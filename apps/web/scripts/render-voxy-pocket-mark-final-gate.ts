@@ -14,11 +14,11 @@ import {
 import {
   buildVoxyPocketMarkFinalGatePlan,
   validateVoxyPocketMarkFinalGatePlan,
+  VOXY_POCKET_MARK_COMPOSITION_SOURCE,
   VOXY_POCKET_MARK_FINAL_REJECTED_PRESENTATION,
 } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import {
   VOXY_STATIC_CANON_NATIVE_ASSETS,
-  VOXY_STATIC_CANON_COMPOSITION_SOURCE,
   VOXY_STATIC_CANON_PIXEL_SOURCE,
 } from "../src/features/voxyVideo/staticCanonRecovery";
 
@@ -205,7 +205,7 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
-    VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
+    VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
     VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
@@ -230,7 +230,7 @@ async function main(): Promise<void> {
   const sourcePaths = {
     canonStage: repositoryPath(
       repositoryRoot,
-      VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
+      VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     ),
     rejectedCanonStage: repositoryPath(
       repositoryRoot,
@@ -433,8 +433,8 @@ async function main(): Promise<void> {
       path: relative(repositoryRoot, sourcePaths.canonStage),
       sha256: await fileSha256(sourcePaths.canonStage),
       derivedFrom: relative(repositoryRoot, sourcePaths.rejectedCanonStage),
-      cleanupRegion: VOXY_STATIC_CANON_COMPOSITION_SOURCE.cleanupRegion,
-      cleanupMethod: VOXY_STATIC_CANON_COMPOSITION_SOURCE.cleanupMethod,
+      cleanupRegion: VOXY_POCKET_MARK_COMPOSITION_SOURCE.cleanupRegion,
+      cleanupMethod: VOXY_POCKET_MARK_COMPOSITION_SOURCE.cleanupMethod,
       nativeResolution: true,
       rasterUpscaleUsed: false,
     },

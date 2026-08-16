@@ -10,7 +10,9 @@ on:
       - "apps/web/public/brands/voxy/overlays/voxy-lapel-pin.svg"
       - "apps/web/public/brands/voxy/overlays/voxy-wordmark.svg"
       - "apps/web/src/features/voxyVideo/firstExplainerVideo.ts"
+      - "apps/web/src/features/voxyVideo/firstExplainerVideoHtml.ts"
       - "apps/web/src/features/voxyVideo/staticCanonRecovery.ts"
+      - "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts"
       - "apps/web/scripts/render-voxy-first-explainer-video.ts"
       - "apps/web/tests/voxy-first-explainer-video.contract.test.ts"
 

@@ -15,9 +15,9 @@ import {
   buildVoxyJacketCanonGatePlan,
   validateVoxyJacketCanonGatePlan,
 } from "../src/features/voxyVideo/jacketCanonGate";
+import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import {
   VOXY_STATIC_CANON_BOARDS,
-  VOXY_STATIC_CANON_COMPOSITION_SOURCE,
   VOXY_STATIC_CANON_FINAL_CAMERA,
   VOXY_STATIC_CANON_NATIVE_ASSETS,
 } from "../src/features/voxyVideo/staticCanonRecovery";
@@ -192,7 +192,7 @@ async function main(): Promise<void> {
     "apps/web/src/features/voxyVideo/staticCanonRecovery.ts",
     "apps/web/src/features/voxyVideo/staticCanonRecoveryHtml.ts",
     "apps/web/public/brands/voxy/references/canon",
-    VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
+    VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
     VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
     VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
@@ -245,7 +245,7 @@ async function main(): Promise<void> {
   const sourcePaths = {
     canonStage: repositoryPath(
       repositoryRoot,
-      VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
+      VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     ),
     canonGeometryReference: repositoryPath(
       repositoryRoot,

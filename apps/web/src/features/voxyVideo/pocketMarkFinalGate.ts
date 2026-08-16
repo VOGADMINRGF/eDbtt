@@ -1,4 +1,7 @@
-import { VOXY_STATIC_CANON_NATIVE_ASSETS } from "./staticCanonRecovery";
+import {
+  VOXY_STATIC_CANON_NATIVE_ASSETS,
+  VOXY_STATIC_CANON_PIXEL_SOURCE,
+} from "./staticCanonRecovery";
 import { VOXY_JACKET_BRAND_LAYER_GEOMETRY } from "./jacketCanonGate";
 
 export const VOXY_POCKET_MARK_FINAL_GATE_SCHEMA_VERSION =
@@ -9,6 +12,18 @@ export const VOXY_POCKET_MARK_FINAL_GATE_REJECTED_HEAD =
 
 export const VOXY_POCKET_MARK_FINAL_GATE_UNCHANGED_LAPEL_PIN_SHA256 =
   "f5d60d98f561959e5a9b7b93899e1b566c91799cea1f83338a8756f9cfdab446" as const;
+
+export const VOXY_POCKET_MARK_COMPOSITION_SOURCE = {
+  repositoryPath:
+    "apps/web/public/brands/voxy/references/derived/CANON-04-pocket-clean.png",
+  sha256: "5176f19d3de18a34c32c908d93a3277a2715959d491620d21c7129f9d305f5ca",
+  width: 1672,
+  height: 941,
+  derivedFrom: VOXY_STATIC_CANON_PIXEL_SOURCE.repositoryPath,
+  cleanupRegion: { x: 768, y: 497, width: 52, height: 22 },
+  cleanupMethod:
+    "ffmpeg_delogo_region_spliced_into_original_raw_rgba_no_scale",
+} as const;
 
 export const VOXY_POCKET_MARK_FINAL_GATE_OUTPUT = {
   outputDirectory: "artifacts/voxy-pocket-mark-final-gate",

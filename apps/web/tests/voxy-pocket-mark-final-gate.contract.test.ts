@@ -5,10 +5,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildVoxyPocketMarkFinalGatePlan,
   validateVoxyPocketMarkFinalGatePlan,
+  VOXY_POCKET_MARK_COMPOSITION_SOURCE,
   VOXY_POCKET_MARK_FINAL_GATE_OUTPUT,
   VOXY_POCKET_MARK_FINAL_GATE_UNCHANGED_LAPEL_PIN_SHA256,
 } from "@/features/voxyVideo/pocketMarkFinalGate";
-import { VOXY_STATIC_CANON_COMPOSITION_SOURCE } from "@/features/voxyVideo/staticCanonRecovery";
 
 const HEAD = "7c6aa18e5618b4ef82760f24e1ecf9b80c04ff70";
 
@@ -110,13 +110,13 @@ describe("Voxy pocket mark final gate contract", () => {
     const sourcePath = resolve(
       process.cwd(),
       "../..",
-      VOXY_STATIC_CANON_COMPOSITION_SOURCE.repositoryPath,
+      VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     );
     const bytes = readFileSync(sourcePath);
     expect(createHash("sha256").update(bytes).digest("hex")).toBe(
-      VOXY_STATIC_CANON_COMPOSITION_SOURCE.sha256,
+      VOXY_POCKET_MARK_COMPOSITION_SOURCE.sha256,
     );
-    expect(VOXY_STATIC_CANON_COMPOSITION_SOURCE).toMatchObject({
+    expect(VOXY_POCKET_MARK_COMPOSITION_SOURCE).toMatchObject({
       cleanupRegion: { x: 768, y: 497, width: 52, height: 22 },
       cleanupMethod:
         "ffmpeg_delogo_region_spliced_into_original_raw_rgba_no_scale",
