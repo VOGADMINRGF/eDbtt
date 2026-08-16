@@ -67,7 +67,7 @@ async function main(): Promise<void> {
   const installedVersion = run(python, ["-c", "import importlib.metadata; print(importlib.metadata.version('piper-tts'))"]);
   if (installedVersion !== VOXY_LOCAL_TTS_ENGINE.version) throw new Error(`piper_version_mismatch:${installedVersion}`);
   const freeze = run(python, ["-m", "pip", "freeze"]);
-  for (const dependency of VOXY_LOCAL_TTS_RUNTIME_DEPENDENCIES.filter((entry) => entry.name !== "espeak-ng (embedded)")) {
+  for (const dependency of VOXY_LOCAL_TTS_RUNTIME_DEPENDENCIES.filter((entry) => entry.name !== "espeak-ng (embedded)" && entry.name !== "piper-tts")) {
     if (!freeze.toLowerCase().includes(`${dependency.name.toLowerCase()}==${dependency.version}`)) throw new Error(`runtime_dependency_mismatch:${dependency.name}`);
   }
   await writeFile(path.resolve(cacheRoot, "provisioning-manifest.json"), `${JSON.stringify({ provisionedAt: new Date().toISOString(), cacheRoot, engine: VOXY_LOCAL_TTS_ENGINE, model: VOXY_LOCAL_TTS_MODEL, wheel: { file: wheel, sha256: wheelHash }, runtimeDependencies: VOXY_LOCAL_TTS_RUNTIME_DEPENDENCIES, pipFreeze: freeze.split("\n"), runtimeDownloadRequired: false, offlineReady: true }, null, 2)}\n`, "utf8");
