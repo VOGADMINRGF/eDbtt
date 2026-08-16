@@ -571,3 +571,38 @@ Es gibt keinen SaaS-, Paid- oder Avatarprovider, keinen visuellen Upload, kein
 Deployment und kein Publishing. `humanVisualAcceptance = accepted`,
 `humanAudioAcceptance = pending`, `productionEligible = false` und
 `autoPublish = false`; PR #589 bleibt Draft.
+
+## Documentary Voice Bake-off (2026-08-16)
+
+Die technisch funktionierende Control-Stimme `de_DE-mls-medium#speaker-20`
+bleibt lizenzseitig gültig, ist menschlich wegen ihres elektronischen und harten
+TTS-Charakters jedoch nicht freigegeben. Der additive Bake-off verändert deshalb
+weder den akzeptierten Character-/Motion-Master auf Head
+`58548d2a5f6e4a59e84464a5c4aea3875f38662c` noch Mouth-v4.1-Geometrie,
+Anchor, Pivot, Pin, Pocket-Mark, Studio, Mikrofon oder die einzelne Waveform.
+Alle Previews verwenden dieselbe eingefrorene 1920×1080-Quelle und denselben
+Renderpfad; nur die technisch unvermeidbare Audiodauer unterscheidet sich.
+
+Neben CONTROL werden drei tatsächlich unterschiedliche lokale Voice-Profile
+geprüft: Ramona Deininger und Karlsson aus einem deutschen M-AILABS-
+Multi-Speaker-Modell sowie das neutrale Profil des separaten Thorsten-
+Emotional-Modells. Beide VITS-Weights stammen revisions- und SHA-gebunden aus
+`MycroftAI/mimic3-voices` (CC-BY-SA-4.0); die M-AILABS-Lizenz erlaubt
+ausdrücklich auch kommerzielle Nutzung unter Beibehaltung von Copyright,
+Bedingungen und Disclaimer, Thorsten-Voice ist CC0. Mimic 3 läuft als lokal
+gepinnte AGPL-3.0-or-later-CLI. CaroTTS wird dagegen fail-closed verworfen:
+Die Apache-Datei des HUI-Repositories deckt den Aufbereitungs-Code, aber nicht
+eindeutig die formale Lizenz der zugrunde liegenden LibriVox-Aufnahmen ab.
+Sämtliche Engine-, Model-, Dataset-, Source-, Attribution-, kommerziellen und
+Offline-Angaben stehen fail-closed in `license-matrix.json`.
+
+`artifacts/voxy-documentary-voice-bakeoff/` enthält pro Voice RAW, identisch
+auf −18 LUFS/−1,5 dBFS normalisierte Finished-WAV und Preview sowie
+`comparison.wav`, `comparison.mp4`, Messwerte, Review Board, Lizenzmatrix und
+Exact-Head-Manifest. Sichtbarer Text und Aussprache-Aliasse sind für alle vier
+Stimmen bytegleich; die Synthese läuft nach dem Provisioning ohne Netzwerk.
+Automatische Dauer-, Peak-, RMS-/LUFS-, Tempo- und Pausenwerte unterstützen
+nur die Hörprüfung und bestimmen keinen Sieger. Status bleibt
+`humanVisualAcceptance = accepted`, `humanAudioAcceptance = pending`,
+`documentaryVoiceBakeoff = ready_for_human_review`, `humanWinner = pending`,
+`productionEligible = false` und `autoPublish = false`; PR #589 bleibt Draft.
