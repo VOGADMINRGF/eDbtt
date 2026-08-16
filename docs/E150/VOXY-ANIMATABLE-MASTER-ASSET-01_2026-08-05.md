@@ -507,3 +507,67 @@ bindet beide Pakete an denselben Exact Head und bewahrt beide CI-Artefakte 14
 Tage auf. MP4 und WebM bleiben wie v4 ohne Audiospur; es gibt keinen externen
 Provider, Upload oder generativen Ersatz. `humanVisualAcceptance = pending`,
 `productionEligible = false` und `autoPublish = false`; PR #589 bleibt Draft.
+
+## Lokales TTS License Gate und Voiced Explainer v1 — 16.08.2026
+
+Der menschliche Review auf Head
+`58548d2a5f6e4a59e84464a5c4aea3875f38662c` akzeptiert anschließend den
+gesamten Character-/Motion-Master einschließlich Mouth-v4.1, Branding, Studio,
+Kamera und der einen Waveform. Diese Revision ist die unveränderliche visuelle
+Baseline. Der folgende Slice ergänzt ausschließlich lokale Stimme,
+audioabgeleitetes Mouth-Timing und eine subtile Reaktion derselben Waveform.
+
+Das vierstufige License Gate trennt Engine/Framework, konkrete Model-Weights,
+Runtime-Abhängigkeiten und Attribution. Gewählt ist aktuelles OHF Piper 1.6.0
+unter GPL-3.0-or-later als isolierter lokaler CLI-Prozess einschließlich des
+eingebetteten eSpeak-NG-Phonemizers. Historisches `rhasspy/piper` unter MIT wird
+nicht fälschlich als aktuelle Engine ausgewiesen. Die konkreten
+`de_DE-mls-medium`-Weights werden aus Revision
+`f5a6e9094787fd865d65cb024472f977f9c542b5` provisioniert und durch SHA-256
+`69cd1d2aa5a35839a518966fcc4924b5f93e5f8c948ed0752b1a616ad53f65bf`
+gebunden. Die konkrete Model Card dokumentiert Training von Grund auf auf
+Multilingual LibriSpeech German; OpenSLR SLR94 weist das Dataset als CC BY 4.0
+aus. Die Modell-Repository-Metadaten weisen MIT aus. Der feste Speaker-Index 20
+entspricht Dataset-Speaker-Key 3494; es findet weder Voice Cloning noch die
+Imitation einer bekannten Person statt.
+
+Andere Kandidaten werden fail-closed behandelt: `de_DE-thorsten-high` hängt an
+einem Lessac-Ausgangsmodell mit dokumentierter nicht-kommerzieller
+Dataset-Beschränkung, `pavoque` ist CC-BY-NC-SA-4.0, und Kandidaten mit nur
+indirekter Dataset-Angabe oder unklarer Fine-Tuning-Basis werden nicht benutzt.
+`artifacts/voxy-local-tts-gate/` enthält Matrix, Engine- und
+Model-Provenienz, Third-Party-Notices, rohe und normalisierte WAV, eine aus der
+WAV berechnete Waveform-Vorschau und das revisionsgebundene Manifest. Das
+Modell bleibt wegen Größe und Lizenz-/Distributionshygiene im expliziten Cache;
+der Synthese- und Renderpfad läuft nach dem Provisioning mit deaktiviertem
+Paket-/Hugging-Face-Netzwerk und ohne stillen Download.
+
+Der typisierte `VoxyLocalTtsAdapter` liefert WAV-Pfad, Dauer, Sample Rate,
+Kanäle, Segmenttimings sowie Engine-, Voice-, Model- und Lizenzprovenienz. Das
+sichtbare deutsche Script bleibt exakt erhalten. Ausschließlich für die lokale
+Aussprache werden die Marken Voxy, Vote4Gov, VoiceOpenGov und eDebatte durch im
+Manifest sichtbare Sprech-Aliase übergeben. Die rohe Ausgabe wird mit
+zurückgenommener Synthese-Lautstärke erzeugt und anschließend ohne aggressive
+Kompression auf −16 LUFS bei höchstens −1,5 dBFS normalisiert. Beide
+Piper-Noise-Skalen sind für die revisionsgebundene Evidence explizit null;
+Länge, Lautstärke und Modell-Input sind damit deterministisch festgelegt.
+
+`artifacts/voxy-voiced-explainer-v1/` enthält die normalisierte `audio.wav`,
+deutsche VTT/SRT, das MP4/WebM mit Audiospur, Preview, Contact Sheet und
+Manifest. Ein geglättetes, gegatetes RMS-Fenster der lokalen WAV wählt
+ausschließlich zwischen `neutral`, `closed`, `slightOpen` und `speakingOpen`;
+Shapes, Anchor `x=328, y=280`, Pivot `48/27` und Head-Bindung ändern sich nicht.
+Dies ist bewusst amplitude- und nicht phonembasiert. Dieselbe Hüllkurve steuert
+eine sehr kleine Höhen-/Helligkeitsreaktion der einzelnen eingefrorenen
+Waveform-Region hinter Voxy. Ihre Position und Anzahl bleiben unverändert.
+
+Der neue Workflow
+`.github/workflows/voxy-local-tts-voiced-explainer-v1-evidence.yml`
+provisioniert Engine und Modell in einem getrennten Netzwerkschritt, führt
+Synthese und beide Renderer danach in einem Linux-Network-Namespace ohne
+Netzwerk aus, prüft FFprobe-, Caption-, Audio-, Frozen-Visual- und
+Release-Verträge und bewahrt License-Gate und voiced Video jeweils 14 Tage auf.
+Es gibt keinen SaaS-, Paid- oder Avatarprovider, keinen visuellen Upload, kein
+Deployment und kein Publishing. `humanVisualAcceptance = accepted`,
+`humanAudioAcceptance = pending`, `productionEligible = false` und
+`autoPublish = false`; PR #589 bleibt Draft.
