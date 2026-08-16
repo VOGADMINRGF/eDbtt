@@ -464,3 +464,46 @@ Head und bewahrt beide CI-Artefakte mindestens 14 Tage auf. Es gibt keinen
 externen Provider, Upload, generativen Ersatz, Merge, Deployment oder
 Publishing. `humanVisualAcceptance = pending`, `productionEligible = false`
 und `autoPublish = false`; PR #589 bleibt Draft.
+
+## Mouth-Shape-Polish und Motion v4.1 — 16.08.2026
+
+Die menschliche Prüfung des Motion-v4-Heads
+`fa45219ea25bbbb4371d311fdc768c175c85f678` akzeptiert Mouth-Anchor,
+Mouth-Pivot, Head-relative Positionierung, Transform-Vererbung und fehlende
+Canvas-Drift. Der autorisierte v4.1-Pass verändert deshalb weder die
+Rig-Architektur noch andere Character-, Branding-, Studio- oder Motion-Ebenen.
+Der Neutralzustand bleibt identisch; nur `slightOpen`, `speakingOpen` und ihre
+kontinuierliche Bézier-Geometrieinterpolation werden visuell poliert.
+
+`slightOpen` wird von 72×18 auf 62×15 Einheiten reduziert. `speakingOpen` wird
+von 80×34 auf 60×31 Einheiten reduziert und damit von derselben horizontalen
+Breite wie Neutral auf 75 % der Neutralbreite begrenzt. Beide Zustände behalten
+die horizontale Mitte, Anchor `x=328, y=280`, Pivot `48/27` und den
+500×400-Referenzkopf. Die schwarze Innenfläche ist kontrollierter; der blaue
+Akzent ist kleiner, abgerundet und zurückhaltender. Die Sequenz bleibt
+`closed → slightOpen → speakingOpen → slightOpen → closed` und wird als eine
+SVG-Geometrie ohne zusätzliche Sticker- oder Zwischenzustands-Layer gerendert.
+
+Das technische Gate unter `artifacts/voxy-mouth-v4-1-gate/` enthält vier
+400-%-Zustände, den direkten v4/v4.1-Vergleich, das gemeinsame
+Anchor-/Pivot-Overlay, den Speaking-Sequenz-Kontaktbogen und `manifest.json`.
+Der lokale Sichtcheck bewertet die neue Form als schmaler, ruhiger und näher am
+akzeptierten Canon-Mund. Diese technische Bewertung nimmt die menschliche
+Freigabe von Mouth Shape, Speaking Naturalness und Transitions nicht vorweg.
+
+Nach bestandenem Gate rendert `artifacts/voxy-motion-v4-1/` denselben
+22-Sekunden-Test mit 528 Frames bei 1920×1080 und 24 fps. Timeline, deutscher
+Textbeginn „Ich bin Voxy.“, Captions, sieben Blinzler, Blick- und Kopfbewegung,
+Atmung, eine Explain-Mikrogeste, Kamera und Gesamtrhythmus werden exakt aus v4
+übernommen. Ein Pixelvergleich der fünf korrespondierenden Standframes bindet
+alle Differenzen auf die lokale Mundregion: maximal `x=784–862`, `y=323–353`
+und 79×31 Pixel. VOXY-Pin, eDebatte-Pocket-Mark, Sakko, Hände, Kopf,
+Kopfhörer, Mikrofon, Studio, Waveform und Layout bleiben außerhalb dieser
+Region pixelgleich.
+
+Der Workflow `.github/workflows/voxy-mouth-motion-v4-1-evidence.yml` prüft die
+eingefrorenen #589-/v4-Verträge, rendert das Mouth-v4.1-Gate vor Motion v4.1,
+bindet beide Pakete an denselben Exact Head und bewahrt beide CI-Artefakte 14
+Tage auf. MP4 und WebM bleiben wie v4 ohne Audiospur; es gibt keinen externen
+Provider, Upload oder generativen Ersatz. `humanVisualAcceptance = pending`,
+`productionEligible = false` und `autoPublish = false`; PR #589 bleibt Draft.

@@ -6,6 +6,10 @@ import {
   renderVoxyMouthStateSvg,
   renderVoxyMouthTransitionSvg,
 } from "./mouthRig";
+import {
+  renderVoxyMouthV41StateSvg,
+  renderVoxyMouthV41TransitionSvg,
+} from "./mouthV41";
 
 export type VoxyHeadRelativeFaceRigFrame = Readonly<{
   headRotationDegrees: number;
@@ -18,6 +22,7 @@ export type VoxyHeadRelativeFaceRigFrame = Readonly<{
   mouthNextState?: VoxyMouthCanonState;
   mouthMix?: number;
   mouthOpacity?: number;
+  mouthProfile?: "v4" | "v4.1";
 }>;
 
 const sourceTransformOrigin = {
@@ -43,13 +48,21 @@ export function renderVoxyHeadRelativeFaceRig(input: {
 }): string {
   const { frame } = input;
   const mix = Math.max(0, Math.min(1, frame.mouthMix ?? 0));
+  const renderState =
+    frame.mouthProfile === "v4.1"
+      ? renderVoxyMouthV41StateSvg
+      : renderVoxyMouthStateSvg;
+  const renderTransition =
+    frame.mouthProfile === "v4.1"
+      ? renderVoxyMouthV41TransitionSvg
+      : renderVoxyMouthTransitionSvg;
   const mouth = frame.mouthNextState
-    ? renderVoxyMouthTransitionSvg(
+    ? renderTransition(
         frame.mouthState,
         frame.mouthNextState,
         mix,
         frame.mouthOpacity ?? 1,
       )
-    : renderVoxyMouthStateSvg(frame.mouthState, frame.mouthOpacity ?? 1);
+    : renderState(frame.mouthState, frame.mouthOpacity ?? 1);
   return `<section class="head-rig" data-head-layer="head-base" data-head-pivot-x="${VOXY_HEAD_RIG_REFERENCE.pivotX}" data-head-pivot-y="${VOXY_HEAD_RIG_REFERENCE.pivotY}"><div class="head-source-clip"><img class="head-source" src="${input.canonStageDataUrl}" alt=""></div><span class="head-eye-glint-cover head-eye-glint-cover-left"></span><span class="head-eye-glint-cover head-eye-glint-cover-right"></span><span class="head-eye-glint head-eye-glint-left" data-head-child="left-eye"></span><span class="head-eye-glint head-eye-glint-right" data-head-child="right-eye"></span><span class="head-eyelid head-eyelid-left" data-head-child="left-eyelid"></span><span class="head-eyelid head-eyelid-right" data-head-child="right-eyelid"></span><span data-head-child="brows" data-binding="inherited_from_head_source"></span><div class="mouth-rig" data-head-child="mouth" data-anchor-type="head_relative" data-anchor-x="${VOXY_MOUTH_CANON_ANCHOR.x}" data-anchor-y="${VOXY_MOUTH_CANON_ANCHOR.y}" data-pivot-x="${VOXY_MOUTH_CANON_ANCHOR.pivotX}" data-pivot-y="${VOXY_MOUTH_CANON_ANCHOR.pivotY}" data-canvas-relative-positioning="false" data-transition-method="single_svg_geometry_interpolation" data-mouth-mix="${mix}">${mouth}</div></section>`;
 }
