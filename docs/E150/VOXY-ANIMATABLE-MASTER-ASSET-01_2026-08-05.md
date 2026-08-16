@@ -418,3 +418,49 @@ Ersatz. Exact-Head-CI rendert Layer-Master und Motion v3 separat und bewahrt
 beide Artefakte mindestens 14 Tage auf. Die sichtbare Motion-Ausgabe wartet auf
 die menschliche Sichtabnahme: `humanVisualAcceptance = pending`,
 `productionEligible = false` und `autoPublish = false`. PR #589 bleibt Draft.
+
+## Mouth Canon Gate und Motion v4 — 16.08.2026
+
+Die menschliche Prüfung des technisch grünen Motion-v3-Stands
+`f7b621de20b34084423fd303728d2dd014817a48` identifizierte den unabhängig vom
+Kopf positionierten Mund als wichtigste Restabweichung. Motion v4 wird deshalb
+im neuen Workflow erst gerendert, nachdem ein revisionsgebundenes Mouth Canon
+Gate technisch bestanden ist.
+
+Der kanonische Mund besitzt genau einen Anchor relativ zum `head-base`-Layer:
+`x=328`, `y=280`, `pivotX=48`, `pivotY=27`, Referenzkopf `500×400` und
+State-Fläche `96×54`. Neutral, Closed, Slight Open und Speaking Open teilen
+Anchor, Pivot, horizontale Mitte und Ausdehnung. Der Mund ist zusammen mit
+Augen, Lidern und den aus dem Head-Source geerbten Brows ein DOM-Kind desselben
+Head-Rigs; Canvas-relative Positionierung ist ausgeschlossen. Neutral zeigt
+den akzeptierten Canon-Mund unverändert. Die Sprechzustände setzen die
+Gesichtsfläche lokal fort und interpolieren eine einzelne Mundgeometrie,
+anstatt halbtransparente Sticker übereinanderzulegen.
+
+`artifacts/voxy-mouth-canon-gate/` enthält die vier 400-%-Zustände, die
+halbtransparente Anchor-/Pivot-Vergleichstafel, Neutral- und Speaking-Head sowie
+das Manifest. Der lokale Sichtcheck bestätigt gleiche Mitte, fehlende X-/Y-
+Sprünge und eine natürliche Einbettung ohne weiße Patchkante. Diese technische
+Prüfung ist keine menschliche Motion-Freigabe.
+
+Nach bestandenem Gate rendert `artifacts/voxy-motion-v4/` einen 22 Sekunden
+langen Sichtkandidaten mit 528 Frames bei 1920×1080 und 24 fps. Der Text beginnt
+verbindlich mit „Ich bin Voxy.“ und erklärt anschließend Vote4Gov,
+VoiceOpenGov und eDebatte in der vorgegebenen Reihenfolge. Mundzustände werden
+über eine einzelne Bézier-Geometrie weich entlang der Caption-Phasen
+interpoliert. Sieben Blinzler, head-relative Blicklichter, eine ruhige
+Kopfbewegung bis rund 0,6°, minimale Atmung und genau eine sehr kleine
+Explain-Geste der verschränkten Hände ergänzen die Bewegung; alle Zustände
+kehren in Neutral zurück. Pin, Pocket-Mark bei −2,5° und 94 % Alpha, Sakko,
+Kopfkontur, Kopfhörer, Studio, Mikrofon und genau eine Waveform bleiben
+eingefroren.
+
+Mangels belastbarem lizenzsauberem lokalem TTS bleiben MP4 und WebM ohne
+Audiospur; VTT, SRT und eingebrannte deutsche Captions bilden die Timing-
+Grundlage. Der Workflow
+`.github/workflows/voxy-mouth-motion-v4-evidence.yml` prüft die bestehenden
+#589-Verträge, rendert Mouth Gate vor Motion v4, bindet beide an denselben Exact
+Head und bewahrt beide CI-Artefakte mindestens 14 Tage auf. Es gibt keinen
+externen Provider, Upload, generativen Ersatz, Merge, Deployment oder
+Publishing. `humanVisualAcceptance = pending`, `productionEligible = false`
+und `autoPublish = false`; PR #589 bleibt Draft.
