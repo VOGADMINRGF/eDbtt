@@ -155,11 +155,11 @@ als eine weitere Plattform für politische Meinungen.`);
     ]);
   });
 
-  it("manifests the next private pilot without implementing or releasing it", () => {
+  it("binds the implemented private pilot without releasing it", () => {
     expect(VOXY_DUAL_VOICE_PILOT_CONTRACT).toMatchObject({
       taskId: "VOXY-DUAL-VOICE-EXPLAINER-PILOT-01",
-      status: "codex_ready",
-      implementationInCurrentPass: false,
+      status: "review",
+      implementationInCurrentPass: true,
       privateHumanReviewEvidence: true,
       format: {
         width: 1920,
@@ -180,6 +180,9 @@ als eine weitere Plattform für politische Meinungen.`);
       "voiceId",
       "text",
     ]);
+    expect(VOXY_DUAL_VOICE_PILOT_CONTRACT.requiredOutputs).toContain(
+      "visual-state-timeline.json",
+    );
     expect(VOXY_FUTURE_FORMAT_FAMILY).toEqual([
       "VOXY_NEWS",
       "VOXY_EXPLAINER",

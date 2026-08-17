@@ -308,8 +308,8 @@ export const VOXY_DUAL_VOICE_PILOT_SEGMENTS = [
 
 export const VOXY_DUAL_VOICE_PILOT_CONTRACT = {
   taskId: "VOXY-DUAL-VOICE-EXPLAINER-PILOT-01",
-  status: "codex_ready",
-  implementationInCurrentPass: false,
+  status: "review",
+  implementationInCurrentPass: true,
   title: "Was ist eDebatte?",
   privateHumanReviewEvidence: true,
   format: { width: 1920, height: 1080, fps: 24, durationSeconds: { min: 45, max: 60 } },
@@ -320,6 +320,7 @@ export const VOXY_DUAL_VOICE_PILOT_CONTRACT = {
     "preview",
     "contact_sheet",
     "speaker-timeline.json",
+    "visual-state-timeline.json",
     "manifest.json",
   ],
   speakerTimelineFields: ["start", "end", "speakerRole", "voiceId", "text"],
@@ -360,7 +361,7 @@ export function validateVoxyDualVoiceArchitecture(): string[] {
   if (VOXY_DYNAMIC_EVIDENCE_MEMORY.staticSidebar || !VOXY_DYNAMIC_EVIDENCE_MEMORY.previouslyDockedObjectsMayReturnToFocus) errors.push("dynamic_evidence_memory_invalid");
   if (VOXY_SOURCE_FIRST_PRIORITY[0] !== "original_source_or_original_data" || VOXY_SOURCE_FIRST_GUARDRAILS.inventedCharts || VOXY_SOURCE_FIRST_GUARDRAILS.decorativeFakeData) errors.push("source_first_contract_failed");
   if (VOXY_DUAL_VOICE_PILOT_CONTRACT.requiredVisualSequence.join(",") !== "host,focus,explain,dock,host" || !VOXY_DUAL_VOICE_PILOT_CONTRACT.finalSynthesisRequired) errors.push("pilot_visual_grammar_incomplete");
-  if (VOXY_DUAL_VOICE_PILOT_CONTRACT.implementationInCurrentPass || VOXY_DUAL_VOICE_PILOT_CONTRACT.autonomousNewsProductionImplemented) errors.push("pilot_scope_expanded");
+  if (!VOXY_DUAL_VOICE_PILOT_CONTRACT.implementationInCurrentPass || VOXY_DUAL_VOICE_PILOT_CONTRACT.autonomousNewsProductionImplemented) errors.push("pilot_implementation_or_scope_invalid");
   if (VOXY_DUAL_VOICE_PILOT_CONTRACT.productionEligible || VOXY_DUAL_VOICE_PILOT_CONTRACT.autoPublish) errors.push("release_must_remain_blocked");
   return errors;
 }
