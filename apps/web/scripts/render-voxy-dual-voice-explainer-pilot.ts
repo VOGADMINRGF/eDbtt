@@ -15,7 +15,10 @@ import {
   validateVoxyDualVoicePilotPlan,
 } from "../src/features/voxyVideo/dualVoiceExplainerPilot";
 import { renderVoxyDualVoicePilotFrameHtml } from "../src/features/voxyVideo/dualVoiceExplainerPilotHtml";
-import { VOXY_SIGNATURE } from "../src/features/voxyVideo/dualVoiceArchitecture";
+import {
+  VOXY_DUAL_VOICE_ACCEPTANCE,
+  VOXY_SIGNATURE,
+} from "../src/features/voxyVideo/dualVoiceArchitecture";
 import { VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH } from "../src/features/voxyVideo/firstExplainerVideo";
 import { VOXY_CHATTERBOX_MODEL } from "../src/features/voxyVideo/firstPartyVoiceClone";
 import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/pocketMarkFinalGate";
@@ -323,7 +326,8 @@ async function verifyMasterAudioAssembly(input: {
       id: segment.id,
       speakerRole: segment.speakerRole,
       voiceId: segment.voiceId,
-      genderPresentation: binding.genderPresentation,
+      candidateId: binding.candidateId,
+      humanIdentityStatus: binding.humanIdentityStatus,
       synthesisBackend: binding.synthesisBackend,
       finishedFileSha256: await sha256(finishedFile),
       masterWindowPcmSha256: sha256Buffer(masterWindow),
@@ -377,6 +381,9 @@ function audioLevelsFromWav(buffer: Buffer, fps: number): number[] {
 
 async function main(): Promise<void> {
   const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
+  if (!VOXY_DUAL_VOICE_ACCEPTANCE.videoRenderingAllowed) {
+    throw new Error("video_render_blocked_pending_human_voice_selection");
+  }
   const exactHeadSha = process.env.VOXY_DUAL_VOICE_PILOT_COMMIT_SHA?.trim() ?? "";
   if (!/^[0-9a-f]{40}$/.test(exactHeadSha)) throw new Error("VOXY_DUAL_VOICE_PILOT_COMMIT_SHA_required");
   if (run("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot }) !== exactHeadSha) throw new Error("exact_head_mismatch");
@@ -570,10 +577,10 @@ async function main(): Promise<void> {
       technicalPilotGate: "passed",
       format: { width: plan.output.width, height: plan.output.height, fps: plan.output.fps, durationMs: plan.output.durationMs, frameCount: plan.output.frameCount },
       voices: {
-        voxy: { role: "voxy", voiceId: VOXY_SIGNATURE.voiceId, selectedVariantId: "e-02-warm-sovereign", genderPresentation: "male", privateReferencePathWithheld: true, acceptedPrivateReferenceSelectionVerified: true, localOfflineSynthesis: true },
-        editorial: { role: "editorial", voiceId: "de_DE/m-ailabs_low#ramona_deininger", genderPresentation: "female", localOfflineSynthesis: true },
+        voxy: { role: "voxy", candidateId: "candidate-e", voiceId: VOXY_SIGNATURE.voiceId, selectedVariantId: "e-02-warm-sovereign", humanIdentityStatus: "failed_pending_reselection", privateReferencePathWithheld: true, acceptedPrivateReferenceSelectionVerified: true, localOfflineSynthesis: true },
+        editorial: { role: "editorial", candidateId: "v1.1-editorial", voiceId: "de_DE/m-ailabs_low#ramona_deininger", humanIdentityStatus: "failed_for_v1.1_pending_reselection", localOfflineSynthesis: true },
       },
-      audioAssembly: { ...audioAssembly, acceptedVoxyReferenceSelectionManifestSha256: acceptedVoxyReference.selectionManifestSha256, maleVoxyActuallyInFinalMaster: true, femaleEditorialActuallyInFinalMaster: true },
+      audioAssembly: { ...audioAssembly, acceptedVoxyReferenceSelectionManifestSha256: acceptedVoxyReference.selectionManifestSha256, candidateEActuallyInFinalMaster: true, v1_1EditorialActuallyInFinalMaster: true, humanIdentityEstablished: false },
       speakerTimeline: plan.speakerTimeline,
       visualStateTimeline: plan.visualStateTimeline,
       evidenceTimeline: plan.evidenceTimeline,
@@ -588,8 +595,9 @@ async function main(): Promise<void> {
       privacy: { ...plan.privacy, artifactStoredOutsideGitWorktreeViaIgnoredLocalSymlink: true, privateRawReferencesInRepository: false, privateReferencePathsRecorded: false },
       files,
       reviewFrames,
-      humanPilotAcceptance: "pending",
-      humanVoiceMappingAcceptance: "pending",
+      humanPilotAcceptance: "needs_changes",
+      humanVoiceIdentityAcceptance: "failed",
+      humanEditorialVoiceAcceptance: "failed_for_v1.1",
       humanNews5VisualAcceptance: "pending",
       productionEligible: false,
       autoPublish: false,
@@ -601,7 +609,7 @@ async function main(): Promise<void> {
       ],
     };
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.manifest), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-    console.info(JSON.stringify({ status: "VOXY_DUAL_VOICE_PILOT_V1_1_PASS", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", maleVoxyActuallyAudible: true, burnedInLowerText: false, humanPilotAcceptance: "pending", humanVoiceMappingAcceptance: "pending", humanNews5VisualAcceptance: "pending", productionEligible: false, autoPublish: false }, null, 2));
+    console.info(JSON.stringify({ status: "VIDEO_RENDER_BLOCKED_PENDING_HUMAN_VOICE_SELECTION", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", candidateEActuallyAudible: true, humanVoiceIdentityAcceptance: "failed", burnedInLowerText: false, humanPilotAcceptance: "needs_changes", humanEditorialVoiceAcceptance: "failed_for_v1.1", humanNews5VisualAcceptance: "pending", productionEligible: false, autoPublish: false }, null, 2));
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }

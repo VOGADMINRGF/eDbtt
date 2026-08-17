@@ -19,26 +19,35 @@ import {
 } from "@/features/voxyVideo/dualVoiceArchitecture";
 
 describe("Voxy dual-voice and evidence-first visual contract", () => {
-  it("binds the accepted male Voxy and female Editorial voices to distinct roles", () => {
+  it("records the failed human identities without gender or canonical labels", () => {
     expect(VOXY_DUAL_VOICE_ACCEPTANCE).toMatchObject({
       humanVoiceArchitectureAcceptance: "accepted",
-      voxyMaleSignatureAcceptance: "accepted",
-      editorialFemaleVoiceAcceptance: "accepted",
+      technicalVoiceMappingGate: "passed",
+      humanVoiceIdentityAcceptance: "failed",
+      humanEditorialVoiceAcceptance: "failed_for_v1.1",
+      humanPilotAcceptance: "needs_changes",
+      canonicalVoxyVoice: "pending",
+      canonicalEditorialVoice: "pending",
+      genderLabelsAllowed: false,
+      videoRenderingAllowed: false,
       productionEligible: false,
       autoPublish: false,
     });
     expect(VOXY_SIGNATURE).toMatchObject({
       speakerRole: "voxy",
-      gender: "male",
+      candidateId: "candidate-e",
+      humanIdentityStatus: "failed_pending_reselection",
       voiceId: "voxy-signature-e-5a465a33",
       selectedVariantId: "e-02-warm-sovereign",
     });
     expect(EDITORIAL_VOICE).toMatchObject({
       speakerRole: "editorial",
-      gender: "female",
+      candidateId: "v1.1-editorial",
+      humanIdentityStatus: "failed_for_v1.1_pending_reselection",
       voiceId: "de_DE/m-ailabs_low#ramona_deininger",
-      acceptedCandidate: "Documentary Candidate A — Ramona Deininger",
     });
+    expect(VOXY_SIGNATURE).not.toHaveProperty("gender");
+    expect(EDITORIAL_VOICE).not.toHaveProperty("gender");
     expect(EDITORIAL_VOICE.voiceId).not.toBe(VOXY_SIGNATURE.voiceId);
   });
 

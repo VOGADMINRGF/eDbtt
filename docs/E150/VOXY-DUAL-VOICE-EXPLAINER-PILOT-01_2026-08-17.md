@@ -1,7 +1,7 @@
 # VOXY-DUAL-VOICE-EXPLAINER-PILOT-01
 
 Stand: 2026-08-17
-Status: `review` — technischer Pilot PASS, private menschliche Sicht- und Hörabnahme ausstehend
+Status: `review` — technischer Pilot PASS, menschliche Voice-Identität fehlgeschlagen; Änderungen erforderlich
 
 ## Verbindliche Dual-Voice-Architektur
 
@@ -279,3 +279,57 @@ Der Pass ist ausschließlich technische Human-Review-Evidence:
 `humanNews5VisualAcceptance = pending`, `productionEligible = false` und
 `autoPublish = false`. Es erfolgten weder Upload, Deployment, Publishing noch
 eine Produktionsfreigabe.
+
+## Human Voice Identity Checkpoint — 2026-08-17
+
+Dieser Abschnitt ersetzt alle früheren Identitäts- und Gender-Ableitungen in
+diesem Dokument. Die historischen technischen Voice-IDs, Backends, Parameter
+und Audio-SHAs bleiben als Provenienz erhalten, sind aber kein Beweis für eine
+menschlich wahrgenommene Sprecheridentität.
+
+Der verbindliche Human Review von v1.1 widerspricht dem technischen
+Voice-Mapping-Gate:
+
+- `technicalVoiceMappingGate = passed` bedeutet nur, dass die vorgesehenen
+  technischen Pfade den Rollen zugeordnet und deren PCM-Segmente im Master
+  enthalten waren;
+- `humanVoiceIdentityAcceptance = failed`;
+- `humanEditorialVoiceAcceptance = failed_for_v1.1`;
+- `humanPilotAcceptance = needs_changes`;
+- `canonicalVoxyVoice = pending` und `canonicalEditorialVoice = pending`;
+- Gender-Labels sind bis zur menschlichen Auswahl unzulässig;
+- `videoRenderingAllowed = false`, `productionEligible = false` und
+  `autoPublish = false`.
+
+Der Provenienz-Audit weist nach, dass `candidate-b`
+`reference-02-segment-b` nutzt, während `candidate-c` und `candidate-e`
+`reference-01-segment-b` nutzen. Die beiden Originalreferenzen stammen laut
+verbindlichem Human-Befund von verschiedenen Personen. Historische Namen wie
+„Ricky“, „Voxy“ oder „Signature“ und Kandidatenbuchstaben dürfen daher nicht
+als Identitätsnachweis verwendet werden. Sowohl v1 als auch v1.1 nutzten für
+die als Voxy getaggten Blöcke `candidate-e` mit Referenz 01.
+
+Der formal als Editorial markierte Pfad ist in v1 und v1.1 dagegen technisch
+identisch: Mycroft Mimic 3 / VITS `0.2.4`, Modellrevision
+`b239a9084e21fbaa7ac78ea6e31f5de1c31c8f42`, Voice
+`de_DE/m-ailabs_low#ramona_deininger`, deterministisch, `noise-scale = 0`,
+`noise-w = 0`, `length-scale = 1.12` und identisches Loudness-Finishing. Zwei
+unabhängige Reproduktionen desselben Vergleichssatzes sind byteidentisch. Die
+Hördifferenz lässt sich deshalb nicht mit einer geänderten Voice-ID oder einem
+anderen Modell erklären.
+
+Für v1.1 ist zusätzlich ein konkreter textabhängiger Qualitätsfehler belegt:
+Der Block mit vier offenen Fragen wird mit genau diesem Pfad reproduzierbar auf
+1,038 Sekunden verkürzt. Der SHA der reproduzierten fertigen Datei stimmt mit
+dem im v1.1-Manifest dokumentierten Segment-SHA überein. Außerdem bestand v1
+aus 31,737 Sekunden `candidate-e`-/Referenz-01-Audio und nur 10,471 Sekunden
+formal getaggtem Editorial-Audio. Es ist deshalb plausibel, aber technisch
+nicht entscheidbar, dass die positiv erinnerte weibliche Stimme aus v1 die
+dominante Referenz-01-Stimme war. Diese Zuordnung bleibt dem Human Review
+vorbehalten.
+
+Der private, nicht getrackte Audio-Audition-Pack liegt außerhalb des Repos
+unter `voxy/voice/review/voxy-identity-check-pr621/`. Er enthält B, C und E mit
+identischem Text, den Editorial-A/B-Vergleich, einen unveränderten Ausschnitt
+des ersten formal getaggten v1-Editorial-Blocks sowie privacy-safe README- und
+Manifest-Metadaten. Es wurde kein Video und kein v1.2-Render erzeugt.

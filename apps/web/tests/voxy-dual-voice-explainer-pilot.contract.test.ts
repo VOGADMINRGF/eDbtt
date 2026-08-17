@@ -33,7 +33,7 @@ const assets = {
 };
 
 describe("VOXY dual-voice democracy pilot v1.1", () => {
-  it("fails closed unless each role uses its one accepted voice mapping", () => {
+  it("preserves the historical technical mapping without claiming human identity", () => {
     expect(plan.speakerTimeline).toHaveLength(9);
     expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy")).toBe(true);
     expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "editorial")).toBe(true);
@@ -42,16 +42,18 @@ describe("VOXY dual-voice democracy pilot v1.1", () => {
     expect(VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS).toEqual({
       voxy: {
         speakerRole: "voxy",
+        candidateId: "candidate-e",
         voiceId: "voxy-signature-e-5a465a33",
         variant: "e-02-warm-sovereign",
-        genderPresentation: "male",
+        humanIdentityStatus: "failed_pending_reselection",
         synthesisBackend: "chatterbox_multilingual_first_party",
       },
       editorial: {
         speakerRole: "editorial",
+        candidateId: "v1.1-editorial",
         voiceId: "de_DE/m-ailabs_low#ramona_deininger",
         variant: null,
-        genderPresentation: "female",
+        humanIdentityStatus: "failed_for_v1.1_pending_reselection",
         synthesisBackend: "mimic3_m_ailabs_ramona_deininger",
       },
     });
@@ -167,7 +169,7 @@ describe("VOXY dual-voice democracy pilot v1.1", () => {
     expect(plan.mouth).toMatchObject({ profile: "voxy-mouth-v4-1-v1", shapesChanged: false, anchorChanged: false, pivotChanged: false });
   });
 
-  it("keeps privacy, three human gates, production and publishing fail-closed", () => {
+  it("keeps privacy, failed human gates, video rendering and release fail-closed", () => {
     expect(plan.privacy).toEqual({
       privateRawVoiceInRepository: false,
       privateReferencePathInManifest: false,
@@ -176,9 +178,15 @@ describe("VOXY dual-voice democracy pilot v1.1", () => {
     });
     expect(plan).toMatchObject({
       technicalPilotGate: "passed",
-      humanPilotAcceptance: "pending",
-      humanVoiceMappingAcceptance: "pending",
+      technicalVoiceMappingGate: "passed",
+      humanPilotAcceptance: "needs_changes",
+      humanVoiceIdentityAcceptance: "failed",
+      humanEditorialVoiceAcceptance: "failed_for_v1.1",
       humanNews5VisualAcceptance: "pending",
+      canonicalVoxyVoice: "pending",
+      canonicalEditorialVoice: "pending",
+      genderLabelsAllowed: false,
+      videoRenderingAllowed: false,
       productionEligible: false,
       autoPublish: false,
     });

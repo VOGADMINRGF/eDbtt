@@ -55,16 +55,18 @@ export type VoxyDualVoicePilotVisualEntry = Readonly<{
 export const VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS = {
   voxy: {
     speakerRole: "voxy",
+    candidateId: "candidate-e",
     voiceId: VOXY_SIGNATURE.voiceId,
     variant: "e-02-warm-sovereign",
-    genderPresentation: "male",
+    humanIdentityStatus: "failed_pending_reselection",
     synthesisBackend: "chatterbox_multilingual_first_party",
   },
   editorial: {
     speakerRole: "editorial",
+    candidateId: "v1.1-editorial",
     voiceId: EDITORIAL_VOICE.voiceId,
     variant: null,
-    genderPresentation: "female",
+    humanIdentityStatus: "failed_for_v1.1_pending_reselection",
     synthesisBackend: "mimic3_m_ailabs_ramona_deininger",
   },
 } as const;
@@ -243,9 +245,15 @@ export function buildVoxyDualVoicePilotPlan(
       upload: false,
     },
     technicalPilotGate: "passed",
-    humanPilotAcceptance: "pending",
-    humanVoiceMappingAcceptance: "pending",
+    technicalVoiceMappingGate: "passed",
+    humanPilotAcceptance: "needs_changes",
+    humanVoiceIdentityAcceptance: "failed",
+    humanEditorialVoiceAcceptance: "failed_for_v1.1",
     humanNews5VisualAcceptance: "pending",
+    canonicalVoxyVoice: "pending",
+    canonicalEditorialVoice: "pending",
+    genderLabelsAllowed: false,
+    videoRenderingAllowed: false,
     productionEligible: false,
     autoPublish: false,
   } as const;
@@ -263,7 +271,7 @@ export function validateVoxyDualVoicePilotPlan(plan: VoxyDualVoicePilotPlan): st
   if (!plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy") || !plan.speakerTimeline.some((entry) => entry.speakerRole === "editorial")) errors.push("both_speaker_roles_required");
   if (plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy" && entry.voiceId !== VOXY_SIGNATURE.voiceId)) errors.push("voxy_voice_invalid");
   if (plan.speakerTimeline.some((entry) => entry.speakerRole === "editorial" && entry.voiceId !== EDITORIAL_VOICE.voiceId)) errors.push("editorial_voice_invalid");
-  if (plan.voiceBindings.voxy.genderPresentation !== "male" || plan.voiceBindings.editorial.genderPresentation !== "female" || String(plan.voiceBindings.voxy.voiceId) === String(plan.voiceBindings.editorial.voiceId)) errors.push("voice_mapping_invalid");
+  if (plan.voiceBindings.voxy.candidateId !== "candidate-e" || plan.voiceBindings.editorial.candidateId !== "v1.1-editorial" || String(plan.voiceBindings.voxy.voiceId) === String(plan.voiceBindings.editorial.voiceId)) errors.push("historical_technical_voice_mapping_invalid");
   if (!plan.speakerTimeline[0]?.text.startsWith("Hallo Nachbar.") || plan.speakerTimeline.slice(1).some((entry) => entry.text.includes("Hallo Nachbar"))) errors.push("greeting_contract_invalid");
   if (plan.visualStateTimeline.map((entry) => entry.state).join(",") !== "HOST,FOCUS,EXPLAIN,DOCK,HOST,FOCUS,EXPLAIN,DOCK,SYNTHESIS,HOST") errors.push("news_5_sequence_invalid");
   if (plan.visualStateTimeline.some((entry) => entry.start >= entry.end)) errors.push("visual_timeline_order_invalid");
@@ -277,7 +285,7 @@ export function validateVoxyDualVoicePilotPlan(plan: VoxyDualVoicePilotPlan): st
   if (plan.waveform.count !== 1 || plan.waveform.secondWaveform || !plan.waveform.reactsToActiveVoice) errors.push("single_waveform_contract_invalid");
   if (plan.mouth.syncSpeakerRole !== "voxy" || plan.mouth.editorialMouth !== "neutral_or_closed" || plan.mouth.shapesChanged || plan.mouth.anchorChanged || plan.mouth.pivotChanged) errors.push("mouth_contract_invalid");
   if (plan.privacy.privateRawVoiceInRepository || plan.privacy.privateReferencePathInManifest || plan.privacy.publicArtifact || plan.privacy.upload) errors.push("privacy_contract_invalid");
-  if (plan.technicalPilotGate !== "passed" || plan.humanPilotAcceptance !== "pending" || plan.humanVoiceMappingAcceptance !== "pending" || plan.humanNews5VisualAcceptance !== "pending" || plan.productionEligible || plan.autoPublish) errors.push("release_gate_invalid");
+  if (plan.technicalPilotGate !== "passed" || plan.technicalVoiceMappingGate !== "passed" || plan.humanPilotAcceptance !== "needs_changes" || plan.humanVoiceIdentityAcceptance !== "failed" || plan.humanEditorialVoiceAcceptance !== "failed_for_v1.1" || plan.humanNews5VisualAcceptance !== "pending" || plan.canonicalVoxyVoice !== "pending" || plan.canonicalEditorialVoice !== "pending" || plan.genderLabelsAllowed || plan.videoRenderingAllowed || plan.productionEligible || plan.autoPublish) errors.push("release_gate_invalid");
   return errors;
 }
 
