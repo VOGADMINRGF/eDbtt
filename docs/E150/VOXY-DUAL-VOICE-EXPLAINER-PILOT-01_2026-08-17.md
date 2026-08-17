@@ -1,7 +1,7 @@
 # VOXY-DUAL-VOICE-EXPLAINER-PILOT-01
 
 Stand: 2026-08-17
-Status: `review` — technischer Pilot v1.2 PASS; Voice-Auswahl angenommen, menschliche Pilot- und NEWS-5.0-Visual-Abnahme offen
+Status: `review` — technischer Pilot v1.3 PASS; Voice-Auswahl angenommen, menschliche Pilot- und NEWS-5.0-Visual-Abnahme offen
 
 ## Verbindliche Dual-Voice-Architektur
 
@@ -58,7 +58,8 @@ eine Waveform; sie reagiert jeweils auf die aktive Stimme.
 
 Die historischen Bake-offs sowie v1 und v1.1 bleiben unverändert erhalten.
 Sie belegen ausschließlich ihre historischen Pipeline- und Review-Stände;
-für v1.2 sind D1 und W1 die einzigen erlaubten Voice-Pipelines.
+für den aktuellen v1.3-Pilot sind D1 und W1 die einzigen erlaubten
+Voice-Pipelines.
 
 ## Evidence-first Visual Grammar
 
@@ -449,3 +450,68 @@ Der 13,990771 Sekunden lange D1/W1-Dialogtest verwendet 320-ms-Übergänge,
 keine künstlich langen Pausen und keine dynamische Normalisierung. D1 und W1
 bestehen den technischen Voice-Preservation-Gate. Menschliche Abnahme des
 Audio-only-Dialogtests bleibt von diesem technischen Befund getrennt.
+
+## Finaler Human-Review-Render v1.3 — Voice Preservation
+
+Der private v1.3-Render wurde revisionsgebunden auf Exact Head
+`cc17906f9fe04a75b5256529ea6284ba32d6ad5b` erzeugt. Artifact-ID:
+`voxy-democracy-pilot-v1-3-cc17906f9fe0`. Er liegt separat unter
+`artifacts/voxy-dual-voice-explainer-pilot-01/v1.3/`; v1, v1.1 und v1.2
+blieben unverändert. Der v1.2-MP4-SHA ist weiterhin
+`973e019e33b6c4ad18100c78b9ee7e8d34eed870011641a90575ba947abe6f0a`.
+
+Der v1.3-Pfad ersetzt den pauschalen D1-`+9 dB`-Wert aus dem vorstehenden
+Audio-only-Dialogtest ausdrücklich durch eine segmentweise Mess- und
+Entscheidungskette. Für jedes der neun Segmente dokumentiert
+`audio-preservation.json` Eingangsloudness, Eingangs-True-Peak, tatsächlich
+angewendeten statischen Gain, Ausgangsloudness, Ausgangs-True-Peak,
+Sample-Rates, Dauer und die konkrete FFmpeg-Filterliste. Es gibt fünf
+unterschiedliche D1-Gains (`+5,2` bis `+10,6 dB`) und vier unterschiedliche
+W1-Gains (`−2,7` bis `−4,3 dB`); es wurde somit kein Rollen-Gain pauschal
+angewendet. Positive Gains wurden segmentweise durch den gemessenen
+True-Peak-Headroom begrenzt.
+
+Der einzige Audiofilter eines Segments ist, sofern der gemessene statische
+Gain nicht `0 dB` beträgt, ein transparenter `volume`-Filter. Anschließend
+erfolgen ausschließlich Mono-/PCM-Formatangleichung und technisch notwendiges
+Resampling von D1 `24→48 kHz` beziehungsweise W1 `22,05→48 kHz`. Loudnorm,
+dynamische Normalisierung, Compressor, Limiter, EQ, Pitching, Tempoänderung,
+Time Stretch, Reverb und Exciter sind nicht Teil des Pfads. Alle Segmentdauern
+bleiben dabei auf die Millisekunde unverändert. Der höchste gemessene
+Ausgangs-True-Peak beträgt `−1,0 dBFS`; Clipping wurde nicht festgestellt.
+
+Der PCM-Assembly-Gate bestätigt erneut alle neun nicht-stummen Segmente
+byteidentisch in den zugehörigen Fenstern des finalen WAV-Masters. Alle
+Voxy-Fenster sind D1, alle Editorial-Fenster W1; Rollenvertauschung, alte
+Voice-Pipeline und Fallback sind ausgeschlossen. Das Master-Audio misst
+`−19,1 LUFS`, `5,8 LU` LRA und `−1,0 dBFS` True Peak. Der Master-SHA ist
+`2dd4a07ae7482ef30bf2c3fb76ee99a148c695718be73d02ee41b79478547293`.
+
+FFprobe bestätigt 1920 × 1080 Pixel und 24 fps. MP4 und PCM-Master dauern
+64,173 Sekunden; das WebM dauert containerbedingt 64,181 Sekunden. Der
+MP4-SHA ist
+`85096379498e0f6eeeb688e53c18471a4be2bb4632c160a0276bce2f41a23af6`,
+der WebM-SHA
+`8cf1898affe04c3bbd0a2bba0c96b408e5ac05443bcb28605e7ee3a327f5cdcd`.
+Die natürliche Sprache bestimmt weiterhin die Szenendauer; kein Audio wurde
+auf ältere Bildslots gezwungen.
+
+Preview und Contact Sheet bestätigen den unveränderten Visual Canon mit
+`HOST → FOCUS → EXPLAIN → DOCK → HOST → FOCUS → EXPLAIN → DOCK → SYNTHESIS → HOST`,
+identitätsstabilem FOCUS→DOCK, Evidence Memory, genau einer Waveform, Mouth
+Sync nur für D1, neutralem Editorial-Mund und Sidecar-Captions ohne
+eingebrannten Text. Der Privacy-Scan der JSON-, VTT- und SRT-Dateien findet
+keine privaten Benutzer-, Referenz-, Evidence- oder Cachepfade. Private
+Audios und Renderartefakte bleiben außerhalb von Git.
+
+Der Gate-Stand nach v1.3 lautet:
+
+- `technicalPilotGate = passed`;
+- `humanVoiceAcceptance = accepted`;
+- `humanPilotAcceptance = pending`;
+- `humanNews5VisualAcceptance = pending`;
+- `productionEligible = false`;
+- `autoPublish = false`.
+
+Es erfolgten kein Merge, Ready-for-Review, Deployment, Upload, Publishing oder
+Produktionsfreigabe.
