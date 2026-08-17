@@ -32,7 +32,7 @@ const assets = {
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,AA==",
 };
 
-describe("VOXY dual-voice democracy pilot v1.2", () => {
+describe("VOXY dual-voice democracy pilot v1.3", () => {
   it("binds every role fail-closed to the final human-accepted pipeline", () => {
     expect(plan.speakerTimeline).toHaveLength(9);
     expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy")).toBe(true);
@@ -78,12 +78,13 @@ describe("VOXY dual-voice democracy pilot v1.2", () => {
     expect(plan.output.durationMs).toBeGreaterThanOrEqual(45_000);
     expect(plan.output.durationMs).toBeLessThanOrEqual(90_000);
     expect(VOXY_DUAL_VOICE_PILOT_OUTPUT).toMatchObject({
-      directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.2",
-      mp4: "voxy-democracy-pilot-v1.2.mp4",
-      webm: "voxy-democracy-pilot-v1.2.webm",
+      directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.3",
+      mp4: "voxy-democracy-pilot-v1.3.mp4",
+      webm: "voxy-democracy-pilot-v1.3.webm",
       captionsVtt: "captions.de.vtt",
       captionsSrt: "captions.de.srt",
       evidenceTimeline: "evidence-timeline.json",
+      audioPreservation: "audio-preservation.json",
     });
     expect(plan.captions).toEqual({ sidecarsOnly: true, burnedIn: false, languages: ["de"] });
     expect(buildVoxyDualVoicePilotVtt(plan.speakerTimeline)).toContain("WEBVTT");

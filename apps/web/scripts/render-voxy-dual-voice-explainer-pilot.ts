@@ -77,6 +77,45 @@ function durationMs(file: string): number {
   return Math.round(Number(ffprobe(file).format.duration) * 1_000);
 }
 
+type AudioMetrics = Readonly<{
+  integratedLufs: number;
+  loudnessRangeLu: number;
+  truePeakDbfs: number;
+  sampleRate: number;
+  channels: number;
+  durationMs: number;
+}>;
+
+function lastMetric(stderr: string, pattern: RegExp, label: string): number {
+  const values = [...stderr.matchAll(pattern)].map((match) => Number(match[1]));
+  const value = values.at(-1);
+  if (!Number.isFinite(value)) throw new Error(`audio_metric_missing:${label}`);
+  return value!;
+}
+
+function audioMetrics(file: string): AudioMetrics {
+  const probe = ffprobe(file);
+  const stream = probe.streams.find((entry) => entry.codec_type === "audio");
+  if (!stream) throw new Error("audio_stream_missing_for_metrics");
+  const analysis = execute("ffmpeg", [
+    "-hide_banner", "-nostats", "-i", file,
+    "-filter_complex", "ebur128=peak=true",
+    "-f", "null", "-",
+  ]).stderr;
+  return {
+    integratedLufs: lastMetric(analysis, /I:\s*(-?\d+(?:\.\d+)?) LUFS/g, "integrated_lufs"),
+    loudnessRangeLu: lastMetric(analysis, /LRA:\s*(-?\d+(?:\.\d+)?) LU/g, "loudness_range"),
+    truePeakDbfs: lastMetric(analysis, /Peak:\s*(-?\d+(?:\.\d+)?) dBFS/g, "true_peak"),
+    sampleRate: Number(stream.sample_rate),
+    channels: Number(stream.channels),
+    durationMs: durationMs(file),
+  };
+}
+
+function roundedGain(value: number, precisionDb: number): number {
+  return Number((Math.round(value / precisionDb) * precisionDb).toFixed(3));
+}
+
 function dataUrl(buffer: Buffer, mime: string): string {
   return `data:${mime};base64,${buffer.toString("base64")}`;
 }
@@ -140,12 +179,19 @@ async function verifyCanonicalHumanEvidence(input: {
   if (await sha256(input.editorialW1) !== EDITORIAL_VOICE.provenance.privateHumanReviewEvidenceSha256) throw new Error("canonical_editorial_w1_evidence_sha_mismatch");
 }
 
-async function renderTransparentMasterAudio(input: string, output: string, speakerRole: "voxy" | "editorial"): Promise<void> {
-  const inputDurationMs = durationMs(input);
+async function renderTransparentMasterAudio(input: {
+  segmentId: string;
+  inputFile: string;
+  outputFile: string;
+  speakerRole: "voxy" | "editorial";
+  acceptedEvidence: AudioMetrics;
+}): Promise<Record<string, unknown>> {
+  const { segmentId, inputFile, outputFile, speakerRole, acceptedEvidence } = input;
+  const inputMetrics = audioMetrics(inputFile);
   const mastering = speakerRole === "voxy"
     ? VOXY_SIGNATURE.provenance.synthesis.mastering
     : EDITORIAL_VOICE.provenance.synthesis.mastering;
-  const staticGainDb = mastering.staticGainDbByRole[speakerRole];
+  const policy = mastering.staticGainPolicy;
   if (
     mastering.dynamicNormalization
     || mastering.compression
@@ -153,22 +199,90 @@ async function renderTransparentMasterAudio(input: string, output: string, speak
     || mastering.tempoChanged
     || mastering.timeStretch
     || mastering.eqApplied
-    || (speakerRole === "voxy" ? staticGainDb !== 9 : staticGainDb !== 0)
+    || !policy.blanketRoleGainForbidden
+    || !policy.abstractLufsTargetForbidden
     || mastering.peakProtectionApplied
   ) {
     throw new Error(`canonical_${speakerRole}_transparent_mastering_invalid`);
   }
-  run("ffmpeg", [
-    "-y", "-i", input,
+
+  const evidenceBalanceDelta = acceptedEvidence.integratedLufs - inputMetrics.integratedLufs;
+  const requestedGainDb = Math.abs(evidenceBalanceDelta) <= policy.zeroGainToleranceLu
+    ? 0
+    : roundedGain(evidenceBalanceDelta, policy.gainPrecisionDb);
+  const maximumPeakSafeGainDb = Number((policy.maximumOutputTruePeakDbfs - inputMetrics.truePeakDbfs).toFixed(3));
+  let staticGainDb = requestedGainDb > 0
+    ? Math.min(requestedGainDb, Math.floor(maximumPeakSafeGainDb / policy.gainPrecisionDb) * policy.gainPrecisionDb)
+    : requestedGainDb;
+  staticGainDb = Number(staticGainDb.toFixed(3));
+  let peakCorrectionApplied = false;
+
+  const render = () => run("ffmpeg", [
+    "-y", "-i", inputFile,
     ...(staticGainDb === 0 ? [] : ["-af", `volume=${staticGainDb}dB`]),
     "-ar", String(mastering.outputSampleRate),
     "-ac", String(mastering.outputChannels),
     "-c:a", mastering.outputCodec,
-    output,
+    outputFile,
   ]);
-  if (Math.abs(durationMs(output) - inputDurationMs) > 2) {
+  render();
+  let outputMetrics = audioMetrics(outputFile);
+  if (outputMetrics.truePeakDbfs > policy.maximumOutputTruePeakDbfs) {
+    const correctionDb = policy.maximumOutputTruePeakDbfs - outputMetrics.truePeakDbfs - policy.gainPrecisionDb;
+    staticGainDb = roundedGain(staticGainDb + correctionDb, policy.gainPrecisionDb);
+    peakCorrectionApplied = true;
+    render();
+    outputMetrics = audioMetrics(outputFile);
+  }
+  if (outputMetrics.truePeakDbfs > policy.maximumOutputTruePeakDbfs) {
+    throw new Error(`canonical_${speakerRole}_static_gain_peak_gate_failed:${segmentId}`);
+  }
+  if (Math.abs(outputMetrics.durationMs - inputMetrics.durationMs) > 2) {
     throw new Error(`canonical_${speakerRole}_finish_changed_duration`);
   }
+  return {
+    segmentId,
+    speakerRole,
+    candidateId: speakerRole === "voxy" ? VOXY_SIGNATURE.candidateId : EDITORIAL_VOICE.candidateId,
+    voiceId: speakerRole === "voxy" ? VOXY_SIGNATURE.voiceId : EDITORIAL_VOICE.voiceId,
+    acceptedEvidenceSha256: speakerRole === "voxy"
+      ? VOXY_SIGNATURE.provenance.privateHumanReviewEvidenceSha256
+      : EDITORIAL_VOICE.provenance.privateHumanReviewEvidenceSha256,
+    acceptedEvidenceMetrics: acceptedEvidence,
+    inputSha256: await sha256(inputFile),
+    inputLufs: inputMetrics.integratedLufs,
+    inputPeak: inputMetrics.truePeakDbfs,
+    inputSampleRate: inputMetrics.sampleRate,
+    inputDurationMs: inputMetrics.durationMs,
+    evidenceBalanceDeltaLu: Number(evidenceBalanceDelta.toFixed(3)),
+    requestedStaticGainDb: requestedGainDb,
+    maximumPeakSafeGainDb,
+    staticGainDb,
+    appliedFfmpegAudioFilters: staticGainDb === 0 ? [] : [`volume=${staticGainDb}dB`],
+    peakSafetyGainAdjustmentApplied: peakCorrectionApplied || staticGainDb !== requestedGainDb,
+    staticGainReason: staticGainDb === 0
+      ? "input_already_within_human_evidence_balance_tolerance"
+      : peakCorrectionApplied || staticGainDb !== requestedGainDb
+        ? "human_evidence_balance_gain_limited_by_peak_headroom"
+        : "human_evidence_relative_dialogue_balance",
+    outputSha256: await sha256(outputFile),
+    outputLufs: outputMetrics.integratedLufs,
+    outputPeak: outputMetrics.truePeakDbfs,
+    outputSampleRate: outputMetrics.sampleRate,
+    outputDurationMs: outputMetrics.durationMs,
+    resamplingApplied: inputMetrics.sampleRate !== outputMetrics.sampleRate,
+    formatAlignmentApplied: inputMetrics.sampleRate !== outputMetrics.sampleRate || inputMetrics.channels !== outputMetrics.channels,
+    dynamicNormalization: false,
+    compression: false,
+    eqApplied: false,
+    pitchChanged: false,
+    tempoChanged: false,
+    timeStretch: false,
+    reverbApplied: false,
+    exciterApplied: false,
+    limiterApplied: false,
+    clipping: false,
+  };
 }
 
 async function synthesizeVoxySegments(input: {
@@ -223,7 +337,7 @@ async function synthesizeVoxySegments(input: {
       id: segment.id,
       modeId: VOXY_SIGNATURE.id,
       variantId: VOXY_SIGNATURE.selectedVariantId,
-      situationId: "dual-voice-pilot-v1.2",
+      situationId: "dual-voice-pilot-v1.3",
       purpose: "canonical_d1_voxy_for_private_human_review_pilot",
       outputPath: path.resolve(input.rawRoot, `${segment.id}.wav`),
       referencePath: referenceSegment,
@@ -484,6 +598,10 @@ async function main(): Promise<void> {
     selectionManifest: voxyReferenceSelection,
   });
   await verifyCanonicalHumanEvidence({ repositoryRoot, voxyD1: voxyD1Evidence, editorialW1: editorialW1Evidence });
+  const acceptedEvidenceMetrics = {
+    voxy: audioMetrics(voxyD1Evidence),
+    editorial: audioMetrics(editorialW1Evidence),
+  } as const;
   for (const modelFile of EDITORIAL_VOICE.provenance.modelFiles) {
     if (await sha256(path.resolve(mimic3Cache, modelFile.path)) !== modelFile.sha256) throw new Error(`canonical_editorial_model_file_sha_mismatch:${modelFile.path}`);
   }
@@ -528,9 +646,16 @@ async function main(): Promise<void> {
     const rawSpeechDurationMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + durationMs(rawById.get(segment.id)!), 0);
     console.info(JSON.stringify({ pilot_progress: "natural_audio_duration", rawSpeechDurationMs, timeCompression: false, timeStretch: false }));
     const finishedById = new Map<string, string>();
+    const audioPreservationSegments: Array<Record<string, unknown>> = [];
     for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
       const finished = path.resolve(finishedRoot, `${segment.id}.wav`);
-      await renderTransparentMasterAudio(rawById.get(segment.id)!, finished, segment.speakerRole);
+      audioPreservationSegments.push(await renderTransparentMasterAudio({
+        segmentId: segment.id,
+        inputFile: rawById.get(segment.id)!,
+        outputFile: finished,
+        speakerRole: segment.speakerRole,
+        acceptedEvidence: acceptedEvidenceMetrics[segment.speakerRole],
+      }));
       finishedById.set(segment.id, finished);
     }
     const speechDurationsMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => durationMs(finishedById.get(segment.id)!));
@@ -540,6 +665,49 @@ async function main(): Promise<void> {
     const planErrors = validateVoxyDualVoicePilotPlan(plan);
     if (planErrors.length) throw new Error(`pilot_plan_invalid:${planErrors.join(",")}`);
     if (Math.abs(durationMs(masterAudio) - plan.output.durationMs) > 120) throw new Error("master_audio_duration_drift");
+    const audioPreservation = {
+      schemaVersion: "voxy-human-accepted-voice-preservation-v1.3",
+      gate: "passed",
+      policy: VOXY_SIGNATURE.provenance.synthesis.mastering,
+      acceptedEvidence: {
+        voxy: {
+          candidateId: VOXY_SIGNATURE.candidateId,
+          sha256: VOXY_SIGNATURE.provenance.privateHumanReviewEvidenceSha256,
+          metrics: acceptedEvidenceMetrics.voxy,
+        },
+        editorial: {
+          candidateId: EDITORIAL_VOICE.candidateId,
+          sha256: EDITORIAL_VOICE.provenance.privateHumanReviewEvidenceSha256,
+          metrics: acceptedEvidenceMetrics.editorial,
+        },
+      },
+      segments: audioPreservationSegments,
+      hardGates: {
+        d1OnlyForVoxy: audioPreservationSegments.filter((entry) => entry.speakerRole === "voxy").every((entry) => entry.candidateId === "D1"),
+        w1OnlyForEditorial: audioPreservationSegments.filter((entry) => entry.speakerRole === "editorial").every((entry) => entry.candidateId === "W1"),
+        fallbackUsed: false,
+        loudnessNormalizationUsed: false,
+        dynamicNormalizationUsed: false,
+        compressionUsed: false,
+        limiterUsed: false,
+        eqApplied: false,
+        pitchChanged: false,
+        tempoChanged: false,
+        timeStretchUsed: false,
+        reverbApplied: false,
+        exciterApplied: false,
+        clippingDetected: false,
+        blanketRoleGainUsed: false,
+        everyGainIsSegmentSpecific: true,
+        everyOutputBelowTruePeakCeiling: audioPreservationSegments.every((entry) => Number(entry.outputPeak) <= VOXY_SIGNATURE.provenance.synthesis.mastering.staticGainPolicy.maximumOutputTruePeakDbfs),
+      },
+      productionEligible: false,
+      autoPublish: false,
+    } as const;
+    if (!audioPreservation.hardGates.d1OnlyForVoxy || !audioPreservation.hardGates.w1OnlyForEditorial || !audioPreservation.hardGates.everyOutputBelowTruePeakCeiling) {
+      throw new Error("audio_preservation_hard_gate_failed");
+    }
+    await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.audioPreservation), `${JSON.stringify(audioPreservation, null, 2)}\n`, "utf8");
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline), `${JSON.stringify(plan.speakerTimeline.map(({ id: _id, ...entry }) => entry), null, 2)}\n`, "utf8");
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.visualStateTimeline), `${JSON.stringify(plan.visualStateTimeline, null, 2)}\n`, "utf8");
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.evidenceTimeline), `${JSON.stringify(plan.evidenceTimeline, null, 2)}\n`, "utf8");
@@ -647,10 +815,11 @@ async function main(): Promise<void> {
       speakerTimeline: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline)) },
       visualStateTimeline: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.visualStateTimeline, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.visualStateTimeline)) },
       evidenceTimeline: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.evidenceTimeline, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.evidenceTimeline)) },
+      audioPreservation: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.audioPreservation, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.audioPreservation)) },
     };
     const manifest = {
       schemaVersion: plan.schemaVersion,
-      artifactId: `voxy-democracy-pilot-v1-2-${exactHeadSha.slice(0, 12)}`,
+      artifactId: `voxy-democracy-pilot-v1-3-${exactHeadSha.slice(0, 12)}`,
       exactHeadSha,
       technicalPilotGate: "passed",
       format: { width: plan.output.width, height: plan.output.height, fps: plan.output.fps, durationMs: plan.output.durationMs, frameCount: plan.output.frameCount },
@@ -694,9 +863,11 @@ async function main(): Promise<void> {
         pitchChanged: false,
         tempoChanged: false,
         peakProtectionApplied: false,
-        staticGainDbByRole: VOXY_SIGNATURE.provenance.synthesis.mastering.staticGainDbByRole,
+        blanketRoleGainUsed: false,
+        perSegmentStaticGainAudit: VOXY_DUAL_VOICE_PILOT_OUTPUT.audioPreservation,
         canonicalPipelinesVerified: true,
       },
+      audioPreservation,
       speakerTimeline: plan.speakerTimeline,
       visualStateTimeline: plan.visualStateTimeline,
       evidenceTimeline: plan.evidenceTimeline,
@@ -728,7 +899,7 @@ async function main(): Promise<void> {
       ],
     };
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.manifest), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-    console.info(JSON.stringify({ status: "PILOT_V1_2_TECHNICAL_PASS", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", canonicalVoxyVoice: "D1 Conversational Dynamic", canonicalEditorialVoice: "W1 Natural Editorial", voiceMappingGate: "passed", burnedInLowerText: false, humanVoiceAcceptance: "accepted", humanPilotAcceptance: "pending", humanNews5VisualAcceptance: "pending", productionEligible: false, autoPublish: false }, null, 2));
+    console.info(JSON.stringify({ status: "PILOT_V1_3_TECHNICAL_PASS", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", canonicalVoxyVoice: "D1 Conversational Dynamic", canonicalEditorialVoice: "W1 Natural Editorial", voiceMappingGate: "passed", audioPreservationGate: "passed", burnedInLowerText: false, humanVoiceAcceptance: "accepted", humanPilotAcceptance: "pending", humanNews5VisualAcceptance: "pending", productionEligible: false, autoPublish: false }, null, 2));
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }

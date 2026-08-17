@@ -7,12 +7,12 @@ import {
 import { VOXY_FIRST_PARTY_VISUAL_BINDING } from "./firstPartyVoiceClone";
 
 export const VOXY_DUAL_VOICE_PILOT_SCHEMA_VERSION =
-  "voxy-dual-voice-explainer-pilot-v1.2" as const;
+  "voxy-dual-voice-explainer-pilot-v1.3" as const;
 
 export const VOXY_DUAL_VOICE_PILOT_OUTPUT = {
-  directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.2",
-  mp4: "voxy-democracy-pilot-v1.2.mp4",
-  webm: "voxy-democracy-pilot-v1.2.webm",
+  directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.3",
+  mp4: "voxy-democracy-pilot-v1.3.mp4",
+  webm: "voxy-democracy-pilot-v1.3.webm",
   masterAudio: "master-audio.wav",
   captionsVtt: "captions.de.vtt",
   captionsSrt: "captions.de.srt",
@@ -21,6 +21,7 @@ export const VOXY_DUAL_VOICE_PILOT_OUTPUT = {
   speakerTimeline: "speaker-timeline.json",
   visualStateTimeline: "visual-state-timeline.json",
   evidenceTimeline: "evidence-timeline.json",
+  audioPreservation: "audio-preservation.json",
   manifest: "manifest.json",
   width: 1920,
   height: 1080,

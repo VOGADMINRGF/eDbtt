@@ -32,7 +32,7 @@ describe("Voxy dual-voice and evidence-first visual contract", () => {
       canonicalEditorialVoice: "W1 Natural Editorial",
       genderLabelsAllowed: false,
       videoRenderingAllowed: true,
-      videoRenderingScope: "private_pilot_v1.2_only",
+      videoRenderingScope: "private_pilot_v1.3_only",
       productionEligible: false,
       autoPublish: false,
     });
@@ -95,13 +95,13 @@ describe("Voxy dual-voice and evidence-first visual contract", () => {
       tempoChanged: false,
       timeStretch: false,
       eqApplied: false,
-      staticGainDbByRole: {
-        voxy: 9,
-        editorial: 0,
-      },
-      staticGainReasonByRole: {
-        voxy: "minimal_dialogue_balance_for_measured_low_raw_d1_level",
-        editorial: "no_gain_required",
+      staticGainPolicy: {
+        mode: "per_segment_relative_to_human_accepted_role_evidence",
+        blanketRoleGainForbidden: true,
+        zeroGainToleranceLu: 0.5,
+        gainPrecisionDb: 0.1,
+        maximumOutputTruePeakDbfs: -1,
+        abstractLufsTargetForbidden: true,
       },
       peakProtectionApplied: false,
       peakProtectionRule: "minimal_transparent_protection_only_after_measured_clipping",
