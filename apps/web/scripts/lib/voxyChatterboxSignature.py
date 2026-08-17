@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Private offline Chatterbox worker for the Voxy D/E/F final pass."""
+"""Private offline Chatterbox worker for a manifest-defined Voxy signature."""
 
 from __future__ import annotations
 

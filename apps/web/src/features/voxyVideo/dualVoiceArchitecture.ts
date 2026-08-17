@@ -29,16 +29,40 @@ export const VOXY_DUAL_VOICE_SCHEMA_VERSION =
 const EDITORIAL_DOCUMENTARY_REFERENCE = VOXY_DOCUMENTARY_VOICE_CANDIDATES[1];
 
 export const VOXY_SIGNATURE = {
-  id: "HISTORICAL_VOXY_CANDIDATE",
+  id: "VOXY_D1_CONVERSATIONAL_DYNAMIC",
   speakerRole: "voxy",
-  candidateId: "candidate-e",
-  humanIdentityStatus: "failed_pending_reselection",
-  voiceId: "voxy-signature-e-5a465a33",
-  deliveryMode: "signature",
-  selectedVariantId: "e-02-warm-sovereign",
+  candidateId: "D1",
+  humanIdentityStatus: "accepted",
+  voiceId: "voxy-d1-conversational-dynamic-pr621",
+  deliveryMode: "conversational_dynamic",
+  selectedVariantId: "d1-conversational-dynamic",
   provenance: {
-    source: "historical_first_party_candidate_not_human_identity_acceptance",
-    exactHeadSha: "5a465a339c453acc2f8206f84d85f009bbf3d037",
+    source: "human_accepted_d1_conversational_dynamic",
+    privateHumanReviewEvidenceSha256:
+      "0cbbacefd3f19332fdc879deae4b683a86a586a431b81d4ce668b4880a52da48",
+    canonicalReference: {
+      id: "reference-02",
+      sha256: "ffd2dd8686f0d29c524174c57572a3c188da64d59a0a8451ae94cbb5252ae5bd",
+      segmentId: "reference-02-segment-b",
+      segmentStartSeconds: 65.15,
+      segmentEndSeconds: 70.98,
+      segmentSha256: "72e1b6ce77bad94da04babd1d66c3c7401f89b42fe7ff8df2076ac076b713f09",
+      privatePathWithheld: true,
+    },
+    synthesis: {
+      seed: 62122,
+      seedStrategy: "base_plus_job_offset_plus_part_index",
+      exaggeration: 0.47,
+      cfgWeight: 0.32,
+      temperature: 0.7,
+      repetitionPenalty: 1.2,
+      minP: 0.05,
+      topP: 1,
+      pauseScale: 0.92,
+      timeStretch: false,
+      finishing:
+        "equalizer=f=175:t=q:w=0.85:g=1,equalizer=f=3200:t=q:w=1.05:g=-0.7,loudnorm=I=-18:TP=-1.5:LRA=7",
+    },
     engine: VOXY_CHATTERBOX_ENGINE,
     model: VOXY_CHATTERBOX_MODEL,
     privateRawReferencesInRepository: false,
@@ -55,14 +79,16 @@ export const VOXY_SIGNATURE = {
 } as const;
 
 export const EDITORIAL_VOICE = {
-  id: "HISTORICAL_EDITORIAL_CANDIDATE",
+  id: "EDITORIAL_W1_NATURAL",
   speakerRole: "editorial",
-  candidateId: "v1.1-editorial",
-  humanIdentityStatus: "failed_for_v1.1_pending_reselection",
+  candidateId: "W1",
+  humanIdentityStatus: "accepted",
   voiceId: EDITORIAL_DOCUMENTARY_REFERENCE.voice,
-  deliveryMode: "editorial",
+  deliveryMode: "natural_editorial",
   provenance: {
-    source: "historical_local_documentary_candidate_not_current_human_acceptance",
+    source: "human_accepted_w1_natural_editorial",
+    privateHumanReviewEvidenceSha256:
+      "773e7cf521a1760e463d50a3d27be25247ebaba06025c582985c1a45a00d3f90",
     candidateId: EDITORIAL_DOCUMENTARY_REFERENCE.id,
     engine: EDITORIAL_DOCUMENTARY_REFERENCE.engine,
     engineVersion: EDITORIAL_DOCUMENTARY_REFERENCE.engineVersion,
@@ -72,7 +98,14 @@ export const EDITORIAL_VOICE = {
     dataset: EDITORIAL_DOCUMENTARY_REFERENCE.dataset,
     datasetSourceUrl: EDITORIAL_DOCUMENTARY_REFERENCE.datasetSourceUrl,
     modelFiles: EDITORIAL_DOCUMENTARY_REFERENCE.modelFiles,
-    historicalBakeoffEvidencePreserved: true,
+    synthesis: {
+      deterministic: true,
+      noiseScale: 0,
+      noiseWidthScale: 0,
+      lengthScale: 1.12,
+      timeCompression: false,
+      finishing: "loudnorm=I=-18:TP=-1.5:LRA=7",
+    },
   },
   privacyAndLicense: {
     engineLicense: EDITORIAL_DOCUMENTARY_REFERENCE.engineLicense,
@@ -91,13 +124,15 @@ export const EDITORIAL_VOICE = {
 export const VOXY_DUAL_VOICE_ACCEPTANCE = {
   humanVoiceArchitectureAcceptance: "accepted",
   technicalVoiceMappingGate: "passed",
-  humanVoiceIdentityAcceptance: "failed",
-  humanEditorialVoiceAcceptance: "failed_for_v1.1",
-  humanPilotAcceptance: "needs_changes",
-  canonicalVoxyVoice: "pending",
-  canonicalEditorialVoice: "pending",
+  humanVoiceIdentityAcceptance: "accepted",
+  humanVoxyVoiceAcceptance: "accepted",
+  humanEditorialVoiceAcceptance: "accepted",
+  humanPilotAcceptance: "pending",
+  canonicalVoxyVoice: "D1 Conversational Dynamic",
+  canonicalEditorialVoice: "W1 Natural Editorial",
   genderLabelsAllowed: false,
-  videoRenderingAllowed: false,
+  videoRenderingAllowed: true,
+  videoRenderingScope: "private_pilot_v1.2_only",
   auditedAt: "2026-08-17",
   productionEligible: false,
   autoPublish: false,
@@ -326,9 +361,9 @@ export const VOXY_DUAL_VOICE_PILOT_CONTRACT = {
   taskId: "VOXY-DUAL-VOICE-EXPLAINER-PILOT-01",
   status: "review",
   implementationInCurrentPass: true,
-  title: "Demokratie — Human-Review Correction Pass v1.1",
+  title: "Demokratie — Canonical Voice Pass v1.2",
   privateHumanReviewEvidence: true,
-  format: { width: 1920, height: 1080, fps: 24, durationSeconds: { min: 45, max: 60 } },
+  format: { width: 1920, height: 1080, fps: 24, durationSeconds: { min: 45, max: 90 } },
   requiredOutputs: [
     "mp4",
     "webm",
@@ -367,10 +402,11 @@ export const VOXY_FUTURE_FORMAT_FAMILY = [
 export function validateVoxyDualVoiceArchitecture(): string[] {
   const errors: string[] = [];
   if (EDITORIAL_DOCUMENTARY_REFERENCE.id !== "candidate-a") errors.push("editorial_reference_drift");
-  if (VOXY_SIGNATURE.speakerRole !== "voxy" || VOXY_SIGNATURE.candidateId !== "candidate-e" || VOXY_SIGNATURE.humanIdentityStatus !== "failed_pending_reselection") errors.push("voxy_candidate_audit_invalid");
-  if (EDITORIAL_VOICE.speakerRole !== "editorial" || EDITORIAL_VOICE.candidateId !== "v1.1-editorial" || EDITORIAL_VOICE.humanIdentityStatus !== "failed_for_v1.1_pending_reselection") errors.push("editorial_candidate_audit_invalid");
-  if (VOXY_DUAL_VOICE_ACCEPTANCE.humanVoiceIdentityAcceptance !== "failed" || VOXY_DUAL_VOICE_ACCEPTANCE.humanEditorialVoiceAcceptance !== "failed_for_v1.1" || VOXY_DUAL_VOICE_ACCEPTANCE.humanPilotAcceptance !== "needs_changes") errors.push("human_review_failure_not_recorded");
-  if (VOXY_DUAL_VOICE_ACCEPTANCE.canonicalVoxyVoice !== "pending" || VOXY_DUAL_VOICE_ACCEPTANCE.canonicalEditorialVoice !== "pending" || VOXY_DUAL_VOICE_ACCEPTANCE.genderLabelsAllowed || VOXY_DUAL_VOICE_ACCEPTANCE.videoRenderingAllowed) errors.push("human_voice_selection_gate_open");
+  if (VOXY_SIGNATURE.speakerRole !== "voxy" || VOXY_SIGNATURE.candidateId !== "D1" || VOXY_SIGNATURE.humanIdentityStatus !== "accepted" || VOXY_SIGNATURE.selectedVariantId !== "d1-conversational-dynamic") errors.push("canonical_voxy_candidate_invalid");
+  if (VOXY_SIGNATURE.provenance.canonicalReference.sha256 !== "ffd2dd8686f0d29c524174c57572a3c188da64d59a0a8451ae94cbb5252ae5bd" || VOXY_SIGNATURE.provenance.canonicalReference.segmentSha256 !== "72e1b6ce77bad94da04babd1d66c3c7401f89b42fe7ff8df2076ac076b713f09" || VOXY_SIGNATURE.provenance.synthesis.timeStretch) errors.push("canonical_voxy_pipeline_invalid");
+  if (EDITORIAL_VOICE.speakerRole !== "editorial" || EDITORIAL_VOICE.candidateId !== "W1" || EDITORIAL_VOICE.humanIdentityStatus !== "accepted" || EDITORIAL_VOICE.provenance.synthesis.timeCompression) errors.push("canonical_editorial_candidate_invalid");
+  if (VOXY_DUAL_VOICE_ACCEPTANCE.humanVoiceIdentityAcceptance !== "accepted" || VOXY_DUAL_VOICE_ACCEPTANCE.humanVoxyVoiceAcceptance !== "accepted" || VOXY_DUAL_VOICE_ACCEPTANCE.humanEditorialVoiceAcceptance !== "accepted" || VOXY_DUAL_VOICE_ACCEPTANCE.humanPilotAcceptance !== "pending") errors.push("human_voice_decision_not_recorded");
+  if (VOXY_DUAL_VOICE_ACCEPTANCE.canonicalVoxyVoice !== "D1 Conversational Dynamic" || VOXY_DUAL_VOICE_ACCEPTANCE.canonicalEditorialVoice !== "W1 Natural Editorial" || VOXY_DUAL_VOICE_ACCEPTANCE.genderLabelsAllowed || !VOXY_DUAL_VOICE_ACCEPTANCE.videoRenderingAllowed || VOXY_DUAL_VOICE_ACCEPTANCE.videoRenderingScope !== "private_pilot_v1.2_only") errors.push("human_voice_selection_gate_invalid");
   if (VOXY_DUAL_VOICE_PILOT_SEGMENTS.some((segment) => segment.speakerRole === "voxy" && segment.voiceId !== VOXY_SIGNATURE.voiceId)) errors.push("voxy_voice_selection_implicit_or_invalid");
   if (VOXY_DUAL_VOICE_PILOT_SEGMENTS.some((segment) => segment.speakerRole === "editorial" && segment.voiceId !== EDITORIAL_VOICE.voiceId)) errors.push("editorial_voice_selection_implicit_or_invalid");
   if (!/^Hallo Nachbar[,.]\n/.test(VOXY_DUAL_VOICE_PILOT_SEGMENTS[0].text) || VOXY_DUAL_VOICE_PILOT_SEGMENTS.slice(1).some((segment) => /Hallo Nachbar[,.]/.test(segment.text))) errors.push("direct_address_greeting_invalid");

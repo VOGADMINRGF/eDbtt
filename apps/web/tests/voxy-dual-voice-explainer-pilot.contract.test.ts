@@ -32,8 +32,8 @@ const assets = {
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,AA==",
 };
 
-describe("VOXY dual-voice democracy pilot v1.1", () => {
-  it("preserves the historical technical mapping without claiming human identity", () => {
+describe("VOXY dual-voice democracy pilot v1.2", () => {
+  it("binds every role fail-closed to the final human-accepted pipeline", () => {
     expect(plan.speakerTimeline).toHaveLength(9);
     expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy")).toBe(true);
     expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "editorial")).toBe(true);
@@ -42,18 +42,18 @@ describe("VOXY dual-voice democracy pilot v1.1", () => {
     expect(VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS).toEqual({
       voxy: {
         speakerRole: "voxy",
-        candidateId: "candidate-e",
-        voiceId: "voxy-signature-e-5a465a33",
-        variant: "e-02-warm-sovereign",
-        humanIdentityStatus: "failed_pending_reselection",
+        candidateId: "D1",
+        voiceId: "voxy-d1-conversational-dynamic-pr621",
+        variant: "d1-conversational-dynamic",
+        humanIdentityStatus: "accepted",
         synthesisBackend: "chatterbox_multilingual_first_party",
       },
       editorial: {
         speakerRole: "editorial",
-        candidateId: "v1.1-editorial",
+        candidateId: "W1",
         voiceId: "de_DE/m-ailabs_low#ramona_deininger",
-        variant: null,
-        humanIdentityStatus: "failed_for_v1.1_pending_reselection",
+        variant: "w1-natural-editorial",
+        humanIdentityStatus: "accepted",
         synthesisBackend: "mimic3_m_ailabs_ramona_deininger",
       },
     });
@@ -76,11 +76,11 @@ describe("VOXY dual-voice democracy pilot v1.1", () => {
   it("keeps sidecar captions separate from the 1920x1080 24-fps video", () => {
     expect(plan.output).toMatchObject({ width: 1920, height: 1080, fps: 24 });
     expect(plan.output.durationMs).toBeGreaterThanOrEqual(45_000);
-    expect(plan.output.durationMs).toBeLessThanOrEqual(60_000);
+    expect(plan.output.durationMs).toBeLessThanOrEqual(90_000);
     expect(VOXY_DUAL_VOICE_PILOT_OUTPUT).toMatchObject({
-      directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.1",
-      mp4: "voxy-democracy-pilot-v1.1.mp4",
-      webm: "voxy-democracy-pilot-v1.1.webm",
+      directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.2",
+      mp4: "voxy-democracy-pilot-v1.2.mp4",
+      webm: "voxy-democracy-pilot-v1.2.webm",
       captionsVtt: "captions.de.vtt",
       captionsSrt: "captions.de.srt",
       evidenceTimeline: "evidence-timeline.json",
@@ -169,7 +169,7 @@ describe("VOXY dual-voice democracy pilot v1.1", () => {
     expect(plan.mouth).toMatchObject({ profile: "voxy-mouth-v4-1-v1", shapesChanged: false, anchorChanged: false, pivotChanged: false });
   });
 
-  it("keeps privacy, failed human gates, video rendering and release fail-closed", () => {
+  it("keeps privacy and release fail-closed after the human voice freeze", () => {
     expect(plan.privacy).toEqual({
       privateRawVoiceInRepository: false,
       privateReferencePathInManifest: false,
@@ -179,14 +179,15 @@ describe("VOXY dual-voice democracy pilot v1.1", () => {
     expect(plan).toMatchObject({
       technicalPilotGate: "passed",
       technicalVoiceMappingGate: "passed",
-      humanPilotAcceptance: "needs_changes",
-      humanVoiceIdentityAcceptance: "failed",
-      humanEditorialVoiceAcceptance: "failed_for_v1.1",
+      humanPilotAcceptance: "pending",
+      humanVoiceAcceptance: "accepted",
+      humanVoxyVoiceAcceptance: "accepted",
+      humanEditorialVoiceAcceptance: "accepted",
       humanNews5VisualAcceptance: "pending",
-      canonicalVoxyVoice: "pending",
-      canonicalEditorialVoice: "pending",
+      canonicalVoxyVoice: "D1 Conversational Dynamic",
+      canonicalEditorialVoice: "W1 Natural Editorial",
       genderLabelsAllowed: false,
-      videoRenderingAllowed: false,
+      videoRenderingAllowed: true,
       productionEligible: false,
       autoPublish: false,
     });

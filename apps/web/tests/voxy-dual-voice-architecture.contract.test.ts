@@ -19,32 +19,63 @@ import {
 } from "@/features/voxyVideo/dualVoiceArchitecture";
 
 describe("Voxy dual-voice and evidence-first visual contract", () => {
-  it("records the failed human identities without gender or canonical labels", () => {
+  it("freezes the final human-accepted D1 and W1 voice pipelines", () => {
     expect(VOXY_DUAL_VOICE_ACCEPTANCE).toMatchObject({
       humanVoiceArchitectureAcceptance: "accepted",
       technicalVoiceMappingGate: "passed",
-      humanVoiceIdentityAcceptance: "failed",
-      humanEditorialVoiceAcceptance: "failed_for_v1.1",
-      humanPilotAcceptance: "needs_changes",
-      canonicalVoxyVoice: "pending",
-      canonicalEditorialVoice: "pending",
+      humanVoiceIdentityAcceptance: "accepted",
+      humanVoxyVoiceAcceptance: "accepted",
+      humanEditorialVoiceAcceptance: "accepted",
+      humanPilotAcceptance: "pending",
+      canonicalVoxyVoice: "D1 Conversational Dynamic",
+      canonicalEditorialVoice: "W1 Natural Editorial",
       genderLabelsAllowed: false,
-      videoRenderingAllowed: false,
+      videoRenderingAllowed: true,
+      videoRenderingScope: "private_pilot_v1.2_only",
       productionEligible: false,
       autoPublish: false,
     });
     expect(VOXY_SIGNATURE).toMatchObject({
       speakerRole: "voxy",
-      candidateId: "candidate-e",
-      humanIdentityStatus: "failed_pending_reselection",
-      voiceId: "voxy-signature-e-5a465a33",
-      selectedVariantId: "e-02-warm-sovereign",
+      candidateId: "D1",
+      humanIdentityStatus: "accepted",
+      voiceId: "voxy-d1-conversational-dynamic-pr621",
+      selectedVariantId: "d1-conversational-dynamic",
+      provenance: {
+        privateHumanReviewEvidenceSha256:
+          "0cbbacefd3f19332fdc879deae4b683a86a586a431b81d4ce668b4880a52da48",
+        canonicalReference: {
+          id: "reference-02",
+          segmentId: "reference-02-segment-b",
+          segmentSha256:
+            "72e1b6ce77bad94da04babd1d66c3c7401f89b42fe7ff8df2076ac076b713f09",
+        },
+        synthesis: {
+          seed: 62122,
+          exaggeration: 0.47,
+          cfgWeight: 0.32,
+          pauseScale: 0.92,
+          timeStretch: false,
+        },
+      },
     });
     expect(EDITORIAL_VOICE).toMatchObject({
       speakerRole: "editorial",
-      candidateId: "v1.1-editorial",
-      humanIdentityStatus: "failed_for_v1.1_pending_reselection",
+      candidateId: "W1",
+      humanIdentityStatus: "accepted",
       voiceId: "de_DE/m-ailabs_low#ramona_deininger",
+      provenance: {
+        privateHumanReviewEvidenceSha256:
+          "773e7cf521a1760e463d50a3d27be25247ebaba06025c582985c1a45a00d3f90",
+        modelRevision: "b239a9084e21fbaa7ac78ea6e31f5de1c31c8f42",
+        synthesis: {
+          deterministic: true,
+          noiseScale: 0,
+          noiseWidthScale: 0,
+          lengthScale: 1.12,
+          timeCompression: false,
+        },
+      },
     });
     expect(VOXY_SIGNATURE).not.toHaveProperty("gender");
     expect(EDITORIAL_VOICE).not.toHaveProperty("gender");
@@ -176,7 +207,7 @@ Wir streiten.`);
         width: 1920,
         height: 1080,
         fps: 24,
-        durationSeconds: { min: 45, max: 60 },
+        durationSeconds: { min: 45, max: 90 },
       },
       requiredVisualSequence: ["host", "focus", "explain", "dock", "host"],
       finalSynthesisRequired: true,
