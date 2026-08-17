@@ -298,7 +298,7 @@ async function main(): Promise<void> {
     const fixedPaddingMs = 500 + 700 + VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + segment.pauseAfterMs, 0);
     const rawSpeechDurationMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + durationMs(rawById.get(segment.id)!), 0);
     const unadjustedDurationMs = rawSpeechDurationMs + fixedPaddingMs;
-    const targetDurationMs = 53_500;
+    const targetDurationMs = unadjustedDurationMs < 45_000 ? 46_000 : 54_000;
     const tempo = unadjustedDurationMs >= 45_000 && unadjustedDurationMs <= 60_000
       ? 1
       : rawSpeechDurationMs / (targetDurationMs - fixedPaddingMs);
