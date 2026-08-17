@@ -9,6 +9,7 @@ import {
   VOXY_DUAL_VOICE_PILOT_SEGMENTS,
   VOXY_DYNAMIC_EVIDENCE_MEMORY,
   VOXY_FUTURE_FORMAT_FAMILY,
+  VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION,
   VOXY_NARRATIVE_CHART_BEHAVIOR,
   VOXY_NEWS_VISUAL_STATES,
   VOXY_SIGNATURE,
@@ -56,6 +57,7 @@ describe("Voxy dual-voice and evidence-first visual contract", () => {
           cfgWeight: 0.32,
           pauseScale: 0.92,
           timeStretch: false,
+          mastering: VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION,
         },
       },
     });
@@ -74,12 +76,36 @@ describe("Voxy dual-voice and evidence-first visual contract", () => {
           noiseWidthScale: 0,
           lengthScale: 1.12,
           timeCompression: false,
+          mastering: VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION,
         },
       },
     });
     expect(VOXY_SIGNATURE).not.toHaveProperty("gender");
     expect(EDITORIAL_VOICE).not.toHaveProperty("gender");
     expect(EDITORIAL_VOICE.voiceId).not.toBe(VOXY_SIGNATURE.voiceId);
+    expect(VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION).toEqual({
+      principle: "human_accepted_voice_preservation",
+      allowedPath: "voice_synthesis_to_necessary_resampling_to_transparent_pcm_assembly",
+      outputSampleRate: 48_000,
+      outputChannels: 1,
+      outputCodec: "pcm_s16le",
+      dynamicNormalization: false,
+      compression: false,
+      pitchChanged: false,
+      tempoChanged: false,
+      timeStretch: false,
+      eqApplied: false,
+      staticGainDbByRole: {
+        voxy: 9,
+        editorial: 0,
+      },
+      staticGainReasonByRole: {
+        voxy: "minimal_dialogue_balance_for_measured_low_raw_d1_level",
+        editorial: "no_gain_required",
+      },
+      peakProtectionApplied: false,
+      peakProtectionRule: "minimal_transparent_protection_only_after_measured_clipping",
+    });
   });
 
   it("makes every spoken pilot block explicit and role-safe", () => {

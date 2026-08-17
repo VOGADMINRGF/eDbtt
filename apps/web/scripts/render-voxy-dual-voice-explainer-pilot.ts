@@ -140,15 +140,31 @@ async function verifyCanonicalHumanEvidence(input: {
   if (await sha256(input.editorialW1) !== EDITORIAL_VOICE.provenance.privateHumanReviewEvidenceSha256) throw new Error("canonical_editorial_w1_evidence_sha_mismatch");
 }
 
-async function normalizeAudio(input: string, output: string, speakerRole: "voxy" | "editorial"): Promise<void> {
+async function renderTransparentMasterAudio(input: string, output: string, speakerRole: "voxy" | "editorial"): Promise<void> {
   const inputDurationMs = durationMs(input);
-  const filter = speakerRole === "voxy"
-    ? VOXY_SIGNATURE.provenance.synthesis.finishing
-    : EDITORIAL_VOICE.provenance.synthesis.finishing;
+  const mastering = speakerRole === "voxy"
+    ? VOXY_SIGNATURE.provenance.synthesis.mastering
+    : EDITORIAL_VOICE.provenance.synthesis.mastering;
+  const staticGainDb = mastering.staticGainDbByRole[speakerRole];
+  if (
+    mastering.dynamicNormalization
+    || mastering.compression
+    || mastering.pitchChanged
+    || mastering.tempoChanged
+    || mastering.timeStretch
+    || mastering.eqApplied
+    || (speakerRole === "voxy" ? staticGainDb !== 9 : staticGainDb !== 0)
+    || mastering.peakProtectionApplied
+  ) {
+    throw new Error(`canonical_${speakerRole}_transparent_mastering_invalid`);
+  }
   run("ffmpeg", [
     "-y", "-i", input,
-    "-af", filter,
-    "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le", output,
+    ...(staticGainDb === 0 ? [] : ["-af", `volume=${staticGainDb}dB`]),
+    "-ar", String(mastering.outputSampleRate),
+    "-ac", String(mastering.outputChannels),
+    "-c:a", mastering.outputCodec,
+    output,
   ]);
   if (Math.abs(durationMs(output) - inputDurationMs) > 2) {
     throw new Error(`canonical_${speakerRole}_finish_changed_duration`);
@@ -514,7 +530,7 @@ async function main(): Promise<void> {
     const finishedById = new Map<string, string>();
     for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
       const finished = path.resolve(finishedRoot, `${segment.id}.wav`);
-      await normalizeAudio(rawById.get(segment.id)!, finished, segment.speakerRole);
+      await renderTransparentMasterAudio(rawById.get(segment.id)!, finished, segment.speakerRole);
       finishedById.set(segment.id, finished);
     }
     const speechDurationsMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => durationMs(finishedById.get(segment.id)!));
@@ -673,6 +689,12 @@ async function main(): Promise<void> {
         roleVoiceCrossing: false,
         fallbackUsed: false,
         timeCompressionUsed: false,
+        dynamicNormalizationUsed: false,
+        eqApplied: false,
+        pitchChanged: false,
+        tempoChanged: false,
+        peakProtectionApplied: false,
+        staticGainDbByRole: VOXY_SIGNATURE.provenance.synthesis.mastering.staticGainDbByRole,
         canonicalPipelinesVerified: true,
       },
       speakerTimeline: plan.speakerTimeline,

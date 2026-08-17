@@ -26,6 +26,30 @@ export type VoxySpeakerTimelineEntry = Readonly<{
 export const VOXY_DUAL_VOICE_SCHEMA_VERSION =
   "voxy-dual-voice-architecture-v1" as const;
 
+export const VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION = {
+  principle: "human_accepted_voice_preservation",
+  allowedPath: "voice_synthesis_to_necessary_resampling_to_transparent_pcm_assembly",
+  outputSampleRate: 48_000,
+  outputChannels: 1,
+  outputCodec: "pcm_s16le",
+  dynamicNormalization: false,
+  compression: false,
+  pitchChanged: false,
+  tempoChanged: false,
+  timeStretch: false,
+  eqApplied: false,
+  staticGainDbByRole: {
+    voxy: 9,
+    editorial: 0,
+  },
+  staticGainReasonByRole: {
+    voxy: "minimal_dialogue_balance_for_measured_low_raw_d1_level",
+    editorial: "no_gain_required",
+  },
+  peakProtectionApplied: false,
+  peakProtectionRule: "minimal_transparent_protection_only_after_measured_clipping",
+} as const;
+
 const EDITORIAL_DOCUMENTARY_REFERENCE = VOXY_DOCUMENTARY_VOICE_CANDIDATES[1];
 
 export const VOXY_SIGNATURE = {
@@ -60,8 +84,7 @@ export const VOXY_SIGNATURE = {
       topP: 1,
       pauseScale: 0.92,
       timeStretch: false,
-      finishing:
-        "equalizer=f=175:t=q:w=0.85:g=1,equalizer=f=3200:t=q:w=1.05:g=-0.7,loudnorm=I=-18:TP=-1.5:LRA=7",
+      mastering: VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION,
     },
     engine: VOXY_CHATTERBOX_ENGINE,
     model: VOXY_CHATTERBOX_MODEL,
@@ -104,7 +127,7 @@ export const EDITORIAL_VOICE = {
       noiseWidthScale: 0,
       lengthScale: 1.12,
       timeCompression: false,
-      finishing: "loudnorm=I=-18:TP=-1.5:LRA=7",
+      mastering: VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION,
     },
   },
   privacyAndLicense: {
@@ -403,8 +426,9 @@ export function validateVoxyDualVoiceArchitecture(): string[] {
   const errors: string[] = [];
   if (EDITORIAL_DOCUMENTARY_REFERENCE.id !== "candidate-a") errors.push("editorial_reference_drift");
   if (VOXY_SIGNATURE.speakerRole !== "voxy" || VOXY_SIGNATURE.candidateId !== "D1" || VOXY_SIGNATURE.humanIdentityStatus !== "accepted" || VOXY_SIGNATURE.selectedVariantId !== "d1-conversational-dynamic") errors.push("canonical_voxy_candidate_invalid");
-  if (VOXY_SIGNATURE.provenance.canonicalReference.sha256 !== "ffd2dd8686f0d29c524174c57572a3c188da64d59a0a8451ae94cbb5252ae5bd" || VOXY_SIGNATURE.provenance.canonicalReference.segmentSha256 !== "72e1b6ce77bad94da04babd1d66c3c7401f89b42fe7ff8df2076ac076b713f09" || VOXY_SIGNATURE.provenance.synthesis.timeStretch) errors.push("canonical_voxy_pipeline_invalid");
-  if (EDITORIAL_VOICE.speakerRole !== "editorial" || EDITORIAL_VOICE.candidateId !== "W1" || EDITORIAL_VOICE.humanIdentityStatus !== "accepted" || EDITORIAL_VOICE.provenance.synthesis.timeCompression) errors.push("canonical_editorial_candidate_invalid");
+  if (VOXY_SIGNATURE.provenance.canonicalReference.sha256 !== "ffd2dd8686f0d29c524174c57572a3c188da64d59a0a8451ae94cbb5252ae5bd" || VOXY_SIGNATURE.provenance.canonicalReference.segmentSha256 !== "72e1b6ce77bad94da04babd1d66c3c7401f89b42fe7ff8df2076ac076b713f09" || VOXY_SIGNATURE.provenance.synthesis.timeStretch || VOXY_SIGNATURE.provenance.synthesis.mastering !== VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION) errors.push("canonical_voxy_pipeline_invalid");
+  if (EDITORIAL_VOICE.speakerRole !== "editorial" || EDITORIAL_VOICE.candidateId !== "W1" || EDITORIAL_VOICE.humanIdentityStatus !== "accepted" || EDITORIAL_VOICE.provenance.synthesis.timeCompression || EDITORIAL_VOICE.provenance.synthesis.mastering !== VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION) errors.push("canonical_editorial_candidate_invalid");
+  if (VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.dynamicNormalization || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.compression || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.pitchChanged || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.tempoChanged || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.timeStretch || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.eqApplied || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.staticGainDbByRole.voxy !== 9 || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.staticGainDbByRole.editorial !== 0 || VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION.peakProtectionApplied) errors.push("human_accepted_voice_preservation_invalid");
   if (VOXY_DUAL_VOICE_ACCEPTANCE.humanVoiceIdentityAcceptance !== "accepted" || VOXY_DUAL_VOICE_ACCEPTANCE.humanVoxyVoiceAcceptance !== "accepted" || VOXY_DUAL_VOICE_ACCEPTANCE.humanEditorialVoiceAcceptance !== "accepted" || VOXY_DUAL_VOICE_ACCEPTANCE.humanPilotAcceptance !== "pending") errors.push("human_voice_decision_not_recorded");
   if (VOXY_DUAL_VOICE_ACCEPTANCE.canonicalVoxyVoice !== "D1 Conversational Dynamic" || VOXY_DUAL_VOICE_ACCEPTANCE.canonicalEditorialVoice !== "W1 Natural Editorial" || VOXY_DUAL_VOICE_ACCEPTANCE.genderLabelsAllowed || !VOXY_DUAL_VOICE_ACCEPTANCE.videoRenderingAllowed || VOXY_DUAL_VOICE_ACCEPTANCE.videoRenderingScope !== "private_pilot_v1.2_only") errors.push("human_voice_selection_gate_invalid");
   if (VOXY_DUAL_VOICE_PILOT_SEGMENTS.some((segment) => segment.speakerRole === "voxy" && segment.voiceId !== VOXY_SIGNATURE.voiceId)) errors.push("voxy_voice_selection_implicit_or_invalid");

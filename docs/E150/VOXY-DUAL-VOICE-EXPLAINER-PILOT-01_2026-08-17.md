@@ -412,3 +412,40 @@ Der aktuelle Gate-Stand lautet:
 - `humanNews5VisualAcceptance = pending`;
 - `productionEligible = false`;
 - `autoPublish = false`.
+
+## Human-Accepted Voice Preservation — Audio-only Micro-Fix
+
+Der nachgelagerte Human Review bestätigt D1 und W1 weiterhin als kanonische
+Stimmen, verwirft aber dynamisches oder klanggestaltendes Mastering nach der
+Synthese. Der künftige Renderpfad ist deshalb fail-closed auf technisch
+notwendige Sample-/Formatangleichung und transparenten PCM-Zusammenbau
+umgestellt. Es wurde in diesem Pass kein Video gerendert; das bestehende
+v1.2-Paket bleibt unverändert.
+
+Für beide Rollen sind dynamische Normalisierung, Compressor, Pitch-, Tempo-
+oder Time-Stretch-Bearbeitung und EQ deaktiviert. W1 erhält ausschließlich
+22,05→48-kHz-Mono/PCM-Resampling und `0 dB` statischen Gain. D1 erhält
+24→48-kHz-Mono/PCM-Resampling sowie `+9 dB` transparenten statischen Gain. Der
+D1-Gain beruht nicht auf einem abstrakten LUFS-Ziel: Im konkreten Dialogtest
+lag das ungefilterte D1-Opening bei −26,9 LUFS gegenüber W1 bei −16,0 LUFS;
+`+9 dB` bringt D1 auf −17,9 LUFS und erhält −1,4 dBFS Peak-Headroom.
+
+Ein Limiter oder anderer Peak-Prozessor war nicht erforderlich. W1 berührt in
+einem isolierten Sample die negative Vollaussteuerung, zeigt aber weder
+aufeinanderfolgende Vollaussteuerungs-Samples noch ein Clipping-Plateau.
+
+Der private Audio-only-Check liegt außerhalb von Git unter
+`voxy/voice/review/voice-preservation-check/`. Für W1 und D1 ist die jeweilige
+Accepted-Evidence byteidentisch mit ihrem transparenten Master-Pfad:
+
+- W1: SHA-256
+  `773e7cf521a1760e463d50a3d27be25247ebaba06025c582985c1a45a00d3f90`,
+  −17,7 LUFS, −2,3 dBFS Peak, 48 kHz, 9,008271 Sekunden;
+- D1: SHA-256
+  `0cbbacefd3f19332fdc879deae4b683a86a586a431b81d4ce668b4880a52da48`,
+  −18,2 LUFS, −1,5 dBFS Peak, 48 kHz, 26,987 Sekunden.
+
+Der 13,990771 Sekunden lange D1/W1-Dialogtest verwendet 320-ms-Übergänge,
+keine künstlich langen Pausen und keine dynamische Normalisierung. D1 und W1
+bestehen den technischen Voice-Preservation-Gate. Menschliche Abnahme des
+Audio-only-Dialogtests bleibt von diesem technischen Befund getrennt.
