@@ -515,3 +515,60 @@ Der Gate-Stand nach v1.3 lautet:
 
 Es erfolgten kein Merge, Ready-for-Review, Deployment, Upload, Publishing oder
 Produktionsfreigabe.
+
+## Additiver Human-A/B-Test — v1.3 Single Voice
+
+Als nicht-kanonische Variante B wurde auf Exact Head
+`e6363026303b83d5ff52a338e917176ed2ad1d48` ein separater privater
+Single-Voice-Render erzeugt. Artifact-ID:
+`voxy-democracy-pilot-v1-3-single-voice-e6363026303b`. Er liegt unter
+`artifacts/voxy-dual-voice-explainer-pilot-01/v1.3-single-voice/`. Variante A
+bleibt der unveränderte v1.3-Dual-Voice-Render. Dessen MP4-, Master-Audio- und
+Manifest-SHAs sind weiterhin
+`85096379498e0f6eeeb688e53c18471a4be2bb4632c160a0276bce2f41a23af6`,
+`2dd4a07ae7482ef30bf2c3fb76ee99a148c695718be73d02ee41b79478547293`
+und `93ff73626b8e45102b2c9f616d8036765a3447689f43d027c4f7fd9f0a305a9d`.
+
+Variante B verwendet für alle neun unveränderten Textsegmente ausschließlich
+D1 Conversational Dynamic. Die Speaker-Timeline enthält neunmal
+`speakerRole = voxy` und die Voice-ID
+`voxy-d1-conversational-dynamic-pr621`; W1, eine alte Voice-Pipeline oder ein
+Fallback wurden nicht verwendet. Die fünf bereits in A vorhandenen
+D1-Segmente behalten ihre Seeds und ihre fertig bearbeiteten PCM-SHAs exakt.
+Nur die vier in A von W1 gesprochenen Textsegmente wurden als zusätzliche
+D1-Takes mit denselben eingefrorenen Synthese- und Prosodieparametern erzeugt.
+
+Der Voice-Preservation-Pfad entspricht v1.3: segmentweiser statischer Gain,
+24→48-kHz-Mono/PCM-Resampling und transparenter PCM-Zusammenbau. Loudnorm,
+Compressor, Limiter, EQ, Pitching, Tempoänderung, Time Stretch, Reverb und
+Exciter sind ausgeschlossen. Alle neun nicht-stummen D1-Segmente liegen
+byteidentisch in ihren Masterfenstern. Der 70,983 Sekunden lange Master misst
+`−20,0 LUFS`, `5,2 LU` LRA und `−1,0 dBFS` True Peak. Der Master-SHA ist
+`6e3182db9d7fc01d0cdcb69c625f6a8457b494518f884cdfc29f449323e0f09d`.
+
+FFprobe bestätigt für B 1920 × 1080 Pixel, 24 fps und 48-kHz-Mono-Audio. Der
+MP4-SHA ist
+`3760d1bcd5b40ffafa18ce9239c5d5aa579ad95af7673a02bad494ba1a8ed47c`,
+der WebM-SHA
+`22b366d68a5cf2c19469783bf730bd47c79328b7d5675af681812e941418f048`.
+Die natürliche D1-Sprechdauer bestimmt die neue Timeline; der Text wurde nicht
+geändert und nicht auf A-Zeitfenster gezwungen.
+
+Die visuelle State-Folge bleibt
+`HOST → FOCUS → EXPLAIN → DOCK → HOST → FOCUS → EXPLAIN → DOCK → SYNTHESIS → HOST`.
+FOCUS, identitätsstabiles DOCK, Evidence Memory, SYNTHESIS und genau eine
+Waveform bleiben unverändert. Da alle Segmente D1 sind, bleibt Mouth-Sync auch
+in sichtbaren EXPLAIN-/SYNTHESIS-Frames aktiv. Preview und Contact Sheet
+bestätigen dies ohne Redesign. Der Privacy-Scan findet keine privaten Pfade.
+
+`ab-comparison-notes.md` dokumentiert ausschließlich A, B und die fünf
+vorgegebenen Human-Review-Fragen. Es enthält keine subjektive
+Gewinnerentscheidung. Der Status lautet:
+
+- `technicalSingleVoiceTest = passed`;
+- `humanSingleVsDualPreference = pending`;
+- `canonicalVoxyVoice = D1 / accepted`;
+- `canonicalEditorialVoice = W1 / accepted`;
+- `canonicalDualVoiceArchitectureChanged = false`;
+- `productionEligible = false`;
+- `autoPublish = false`.
