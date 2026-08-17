@@ -4,21 +4,25 @@ Stand: 2026-08-04
 
 ## Status
 
-`review`
+`done`
 
 Dieser Run-Pack ist eine additive Ausführungsvorbereitung zu Issue #569. `docs/E150/OpenTasks.md` bleibt die alleinige operative Implementierungs-SSOT. Dieser Text ersetzt die Queue nicht.
 
 Der historische Branch-Start und die ursprüngliche animierbare Definition of
-Done unten sind durch den aktuellen Recovery-/Finalisierungsstand überholt. Im
-bestehenden Draft-PR `#589` gilt: Der Motion-Head
-`7f0ad050e4079b823c3bb6c7b2ef5fc991b662cb` ist menschlich abgelehnt. Die
-menschliche Prüfung von `0009a32a8c29781c8f1bc149c2f3538febfec755` hat A als
-Primary Master und C als Editorial-/Anlass-Variante ausgewählt; B ist verworfen.
-Der aktuelle Slice finalisiert ausschließlich statische A/C-Master aus derselben
-CANON-04-Pixelquelle. Genau eine statische Waveform liegt hinter Voxy; eine
-spätere Audio-Reaktion ist nur als Eignung markiert und nicht implementiert.
-`humanVisualAcceptance = pending`, `animationEligible = false`,
-`productionEligible = false` und `autoPublish = false` bleiben verbindlich.
+Done unten sind durch den Recovery-/Finalisierungsstand in PR `#589` überholt.
+Verbindlich ist die spätere menschliche Abnahme: Der Character-/Motion-Master
+auf Head `58548d2a5f6e4a59e84464a5c4aea3875f38662c` ist vollständig eingefroren,
+einschließlich Mouth und Motion v4.1. E — VOXY SIGNATURE ist als männliche
+`VOXY_SIGNATURE` angenommen, Documentary Candidate A — Ramona Deininger als
+weibliche `EDITORIAL_VOICE`; jeder gesprochene Block bindet Rolle und Stimme
+über `speakerRole = "voxy" | "editorial"` und `voiceId`. Die NEWS-5.0-Zustände
+`HOST`, `FOCUS`, `EXPLAIN`, `DOCK` und `SYNTHESIS` sind als Evidence-first-
+Vertrag manifestiert. `humanVisualAcceptance = accepted`,
+`humanVoiceArchitectureAcceptance = accepted`,
+`voxyMaleSignatureAcceptance = accepted`,
+`editorialFemaleVoiceAcceptance = accepted`, `productionEligible = false` und
+`autoPublish = false` sind der Abschlussstand. Private Voice-/Review-Medien
+bleiben außerhalb von Repository, PR-Artefakten, Vercel und Production.
 
 Die Produkt-, Marken-, Look- und kommerzielle Nutzungsfreigabe wurde am 04.08.2026 erteilt. PR #558 ist gemergt. Der 200-%-Kontrollpunkt ist in Issue #580 manifestiert.
 

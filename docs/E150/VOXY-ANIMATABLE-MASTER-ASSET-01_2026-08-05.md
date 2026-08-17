@@ -801,3 +801,28 @@ Durchgang wurde der 45- bis 60-sekündige private Pilot nur manifestiert, nicht
 gerendert oder implementiert. Es wurde keine allgemeine autonome
 News-Produktion eingeführt. `productionEligible = false`,
 `autoPublish = false`; PR #589 bleibt Draft.
+
+## Merge-Readiness-Abschluss (2026-08-17)
+
+Die abschließende Prüfung von PR #589 am Head
+`11e91d15db478a543d2fab622bcfa6e6eefe7958` belegt den Abschluss von
+`VOXY-ANIMATABLE-MASTER-ASSET-01`:
+
+- GitHub CI: 14 Checks erfolgreich, 3 vertragsgemäß übersprungen, 0
+  fehlgeschlagen oder ausstehend;
+- Reviewthreads: keine offenen Threads;
+- Mergeability: `CLEAN` und `MERGEABLE`;
+- Branch-Abstand: 0 Commits hinter `origin/main`;
+- lokaler Scope-/Privacy-Audit: keine privaten Voice-/Review-Medien, keine
+  privaten Referenzpfade und keine neuen Secrets im Repository;
+- lokale Revalidierung: 17 fokussierte Vertragsdateien mit 118/118 Tests,
+  TypeScript, Source-Lint, fokussierter Voxy-Lint, Python-AST und
+  `git diff --check` grün.
+
+Die menschlich akzeptierten Visual-, Mouth-, Motion- und Dual-Voice-
+Entscheidungen bleiben unverändert. `VOXY-DUAL-VOICE-EXPLAINER-PILOT-01`
+bleibt als separater `codex_ready` Task manifestiert; dieser PR enthält weder
+Pilotvideo noch autonome News-Produktion. `productionEligible = false` und
+`autoPublish = false` bleiben verbindlich. Die nachfolgende reine
+Abschlussdokumentation erhält einen eigenen Exact Head und durchläuft dieselben
+Merge-Gates erneut, bevor PR #589 Ready for Review gesetzt oder gemergt wird.
