@@ -86,10 +86,10 @@ async function assertOutsideRepository(repositoryRoot: string, target: string, l
   }
 }
 
-async function normalizeAudio(input: string, output: string): Promise<void> {
+async function normalizeAudio(input: string, output: string, tempo: number): Promise<void> {
   run("ffmpeg", [
     "-y", "-i", input,
-    "-af", "loudnorm=I=-18:TP=-1.5:LRA=7",
+    "-af", `atempo=${tempo.toFixed(6)},loudnorm=I=-18:TP=-1.5:LRA=7`,
     "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le", output,
   ]);
 }
@@ -295,10 +295,19 @@ async function main(): Promise<void> {
     for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.filter((entry) => entry.speakerRole === "editorial")) {
       rawById.set(segment.id, await synthesizeEditorialSegment({ mimic3Cache, segmentId: segment.id, spokenText: segment.spokenText, rawRoot }));
     }
+    const fixedPaddingMs = 500 + 700 + VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + segment.pauseAfterMs, 0);
+    const rawSpeechDurationMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + durationMs(rawById.get(segment.id)!), 0);
+    const unadjustedDurationMs = rawSpeechDurationMs + fixedPaddingMs;
+    const targetDurationMs = 53_500;
+    const tempo = unadjustedDurationMs >= 45_000 && unadjustedDurationMs <= 60_000
+      ? 1
+      : rawSpeechDurationMs / (targetDurationMs - fixedPaddingMs);
+    if (tempo < 0.85 || tempo > 1.35) throw new Error(`required_tempo_adjustment_out_of_bounds:${tempo.toFixed(4)}`);
+    console.info(JSON.stringify({ pilot_progress: "audio_duration_fit", unadjustedDurationMs, targetDurationMs, tempo: Number(tempo.toFixed(6)) }));
     const finishedById = new Map<string, string>();
     for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
       const finished = path.resolve(finishedRoot, `${segment.id}.wav`);
-      await normalizeAudio(rawById.get(segment.id)!, finished);
+      await normalizeAudio(rawById.get(segment.id)!, finished, tempo);
       finishedById.set(segment.id, finished);
     }
     const speechDurationsMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => durationMs(finishedById.get(segment.id)!));
