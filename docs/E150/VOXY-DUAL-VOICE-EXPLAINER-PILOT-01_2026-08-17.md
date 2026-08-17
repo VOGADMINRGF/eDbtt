@@ -1,25 +1,32 @@
 # VOXY-DUAL-VOICE-EXPLAINER-PILOT-01
 
 Stand: 2026-08-17
-Status: `review` — technischer Pilot PASS, menschliche Voice-Identität fehlgeschlagen; Änderungen erforderlich
+Status: `review` — technischer Pilot v1.2 PASS; Voice-Auswahl angenommen, menschliche Pilot- und NEWS-5.0-Visual-Abnahme offen
 
 ## Verbindliche Dual-Voice-Architektur
 
-Die menschliche Produktentscheidung ist angenommen:
+Die finale menschliche Voice-Entscheidung ist angenommen:
 
 - `humanVoiceArchitectureAcceptance = accepted`
-- `voxyMaleSignatureAcceptance = accepted`
-- `editorialFemaleVoiceAcceptance = accepted`
+- `canonicalVoxyVoice = D1 Conversational Dynamic`
+- `humanVoxyVoiceAcceptance = accepted`
+- `canonicalEditorialVoice = W1 Natural Editorial`
+- `humanEditorialVoiceAcceptance = accepted`
 
-`VOXY_SIGNATURE` ist die männliche, zuvor als E akzeptierte Signature-Stimme
-mit der lokalen Voice-ID `voxy-signature-e-5a465a33` und der ausgewählten
-Variante `e-02-warm-sovereign`. Sie spricht ausschließlich Blöcke mit
-`speakerRole = "voxy"`.
+`VOXY_SIGNATURE` ist D1 Conversational Dynamic mit der lokalen Voice-ID
+`voxy-d1-conversational-dynamic-pr621` und der ausgewählten Variante
+`d1-conversational-dynamic`. Sie spricht ausschließlich Blöcke mit
+`speakerRole = "voxy"`. Die reproduzierbare Pipeline nutzt Chatterbox
+Multilingual `0.1.7`/V3 auf Modellrevision
+`5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18`, die privacy-safe gebundene
+Reference 02 / Segment B sowie die menschlich angenommene D1-Parameterkombination.
+Time-Stretch ist ausgeschlossen.
 
-`EDITORIAL_VOICE` ist die weibliche, lokal vorhandene Documentary Candidate A
-mit der Voice-ID `de_DE/m-ailabs_low#ramona_deininger`. Sie spricht
-ausschließlich Blöcke mit `speakerRole = "editorial"`. Sie ist eine
-redaktionelle Stimme und ausdrücklich keine weibliche Voxy-Variante.
+`EDITORIAL_VOICE` ist W1 Natural Editorial mit der Voice-ID
+`de_DE/m-ailabs_low#ramona_deininger`. Sie spricht ausschließlich Blöcke mit
+`speakerRole = "editorial"` und ist eine eigenständige redaktionelle Ebene,
+keine Voxy-Variante. Frühere Gender- und Rollenannahmen sind keine aktuelle
+kanonische Voice-Bezeichnung.
 
 Die Editorial-Stimme stammt aus Mycroft Mimic 3 / VITS
 `mycroft-mimic3-tts 0.2.4`, Modell-Repository
@@ -49,10 +56,9 @@ erhält kein Lip-Sync auf die Editorial-Stimme. Voxy bleibt mit subtiler
 Idle-Bewegung als Gastgeber anwesend. Es gibt keinen zweiten Avatar und genau
 eine Waveform; sie reagiert jeweils auf die aktive Stimme.
 
-Die historischen B/C/D/E/F-Bake-offs bleiben unverändert erhalten. Die
-angenommene Rollenentscheidung ersetzt weder deren Dateien noch ihre
-historischen Manifeststände, sondern dokumentiert die nachfolgende menschliche
-Auswahl.
+Die historischen Bake-offs sowie v1 und v1.1 bleiben unverändert erhalten.
+Sie belegen ausschließlich ihre historischen Pipeline- und Review-Stände;
+für v1.2 sind D1 und W1 die einzigen erlaubten Voice-Pipelines.
 
 ## Evidence-first Visual Grammar
 
@@ -332,4 +338,77 @@ Der private, nicht getrackte Audio-Audition-Pack liegt außerhalb des Repos
 unter `voxy/voice/review/voxy-identity-check-pr621/`. Er enthält B, C und E mit
 identischem Text, den Editorial-A/B-Vergleich, einen unveränderten Ausschnitt
 des ersten formal getaggten v1-Editorial-Blocks sowie privacy-safe README- und
-Manifest-Metadaten. Es wurde kein Video und kein v1.2-Render erzeugt.
+Manifest-Metadaten. Zu diesem damaligen Checkpoint wurde kein Video und kein
+v1.2-Render erzeugt.
+
+## Finaler Voice-Freeze und Pilot v1.2 — 2026-08-17
+
+Dieser Abschnitt ersetzt den vorstehenden Human-Voice-Checkpoint als aktuellen
+Entscheidungsstand, ohne dessen historische Audit-Evidence umzuschreiben. Die
+verbindliche menschliche Auswahl lautet:
+
+- `canonicalVoxyVoice = D1 Conversational Dynamic` und
+  `humanVoxyVoiceAcceptance = accepted`;
+- `canonicalEditorialVoice = W1 Natural Editorial` und
+  `humanEditorialVoiceAcceptance = accepted`;
+- keine weitere Voice-Auswahl, Optimierung oder Fallback-Pipeline.
+
+Der private v1.2-Render wurde revisionsgebunden auf Exact Head
+`4f7a30c7feda68d7afde6f592acf394dae444031` erzeugt. Artifact-ID:
+`voxy-democracy-pilot-v1-2-4f7a30c7feda`. Er liegt separat unter
+`artifacts/voxy-dual-voice-explainer-pilot-01/v1.2/`; v1 und v1.1 wurden nicht
+überschrieben.
+
+Die D1-Pipeline ist an die private menschliche Review-Evidence mit SHA-256
+`0cbbacefd3f19332fdc879deae4b683a86a586a431b81d4ce668b4880a52da48`,
+Reference 02 mit SHA-256
+`ffd2dd8686f0d29c524174c57572a3c188da64d59a0a8451ae94cbb5252ae5bd`
+und deren Segment B mit SHA-256
+`72e1b6ce77bad94da04babd1d66c3c7401f89b42fe7ff8df2076ac076b713f09`
+gebunden. Die Synthese nutzt Seed `62122`, Exaggeration `0.47`, CFG Weight
+`0.32`, Temperature `0.7`, Repetition Penalty `1.2`, Min-P `0.05`, Top-P `1`
+und Pause Scale `0.92`. Es gibt kein Time-Stretch.
+
+Die W1-Pipeline ist an die private menschliche Review-Evidence mit SHA-256
+`773e7cf521a1760e463d50a3d27be25247ebaba06025c582985c1a45a00d3f90`
+gebunden. Mimic 3 `0.2.4` nutzt Modellrevision
+`b239a9084e21fbaa7ac78ea6e31f5de1c31c8f42`, die verifizierten Modellfiles,
+deterministische Synthese, Noise Scale und Noise Width Scale `0`, Length Scale
+`1.12` sowie ausschließlich Loudness-Finishing. Es gibt keine Zeitkompression.
+
+Der Audio-Assembly-Gate prüft nicht nur Voice-IDs: Alle neun fertigen
+Rollensegmente sind nicht-stumm und ihre PCM-Daten liegen byteidentisch in den
+zugehörigen Fenstern des finalen WAV-Masters. Alle Voxy-Fenster stammen aus D1,
+alle Editorial-Fenster aus W1. Das Manifest bestätigt keine Rollenvertauschung,
+keinen Fallback, keine Zeitkompression und ausschließlich die beiden
+kanonischen Pipelines.
+
+FFprobe bestätigt für MP4 und WebM 1920 × 1080 Pixel, 24 fps sowie Audio. Das
+MP4 und der 48-kHz-Mono-PCM-Master dauern 64,173 Sekunden, das WebM
+containerbedingt 64,181 Sekunden. Der natürliche Sprachlauf wurde nicht auf
+die v1.1-Slots komprimiert; die Bildregie passt ihre Dauer an die Sprache an.
+Der MP4-SHA ist
+`973e019e33b6c4ad18100c78b9ee7e8d34eed870011641a90575ba947abe6f0a`,
+der Master-Audio-SHA
+`da1df257a3172faa470ce80d4e6b3e07a20e6f7ebeb0e88bd52459bcbb9bb688`.
+
+Die visuelle Timeline bleibt vollständig
+`HOST → FOCUS → EXPLAIN → DOCK → HOST → FOCUS → EXPLAIN → DOCK → SYNTHESIS → HOST`.
+Review-Frames und Contact Sheet bestätigen die unveränderte Evidence Memory,
+identitätsstabiles FOCUS→DOCK, die vorhandenen Demo-/Illustration-Labels, keine
+eingebrannten Captions sowie den neutral geschlossenen Voxy-Mund während W1.
+Mouth v4.1, Visual Canon und genau eine aktive Waveform bleiben eingefroren.
+
+Der Privacy-Scan der JSON-, VTT- und SRT-Artefakte findet keine privaten
+Referenz-, Evidence-, Cache- oder Benutzerpfade. Private Audios und alle
+v1.2-Artefakte bleiben außerhalb von Git; es erfolgten kein Upload, Deployment,
+Publishing oder Produktionsfreigabe.
+
+Der aktuelle Gate-Stand lautet:
+
+- `technicalPilotGate = passed`;
+- `humanVoiceAcceptance = accepted`;
+- `humanPilotAcceptance = pending`;
+- `humanNews5VisualAcceptance = pending`;
+- `productionEligible = false`;
+- `autoPublish = false`.
