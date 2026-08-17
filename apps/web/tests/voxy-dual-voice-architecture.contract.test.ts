@@ -43,14 +43,16 @@ describe("Voxy dual-voice and evidence-first visual contract", () => {
   });
 
   it("makes every spoken pilot block explicit and role-safe", () => {
-    expect(VOXY_DUAL_VOICE_PILOT_SEGMENTS).toHaveLength(7);
+    expect(VOXY_DUAL_VOICE_PILOT_SEGMENTS).toHaveLength(9);
     expect(VOXY_DUAL_VOICE_PILOT_SEGMENTS.map(({ speakerRole }) => speakerRole)).toEqual([
       "voxy",
       "voxy",
       "editorial",
-      "voxy",
+      "editorial",
       "voxy",
       "editorial",
+      "editorial",
+      "voxy",
       "voxy",
     ]);
     for (const segment of VOXY_DUAL_VOICE_PILOT_SEGMENTS) {
@@ -79,19 +81,19 @@ describe("Voxy dual-voice and evidence-first visual contract", () => {
       repeatForShortInsertTransitionOrNonDirectInformation: false,
       brandNarrativeException: false,
     });
-    expect(VOXY_DUAL_VOICE_PILOT_SEGMENTS[0].text).toBe(`Hallo Nachbar,
-ich bin Voxy.
+    expect(VOXY_DUAL_VOICE_PILOT_SEGMENTS[0].text).toContain(`Hallo Nachbar.
 
-Und ich möchte dir zeigen, warum eDebatte mehr ist
-als eine weitere Plattform für politische Meinungen.`);
+Wir wählen.
+Wir diskutieren.
+Wir streiten.`);
     expect(
       VOXY_DUAL_VOICE_PILOT_SEGMENTS.flatMap(({ text }) =>
-        text.match(/Hallo Nachbar,/g) ?? [],
+        text.match(/Hallo Nachbar\./g) ?? [],
       ),
     ).toHaveLength(1);
     expect(
       VOXY_DUAL_VOICE_PILOT_SEGMENTS.filter(
-        ({ speakerRole, text }) => speakerRole === "editorial" && text.includes("Hallo Nachbar,"),
+        ({ speakerRole, text }) => speakerRole === "editorial" && text.includes("Hallo Nachbar."),
       ),
     ).toEqual([]);
   });

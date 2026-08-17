@@ -5,9 +5,14 @@ import {
   VOXY_SIGNATURE,
 } from "../src/features/voxyVideo/dualVoiceArchitecture";
 import {
+  VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS,
   VOXY_DUAL_VOICE_PILOT_EVIDENCE,
   VOXY_DUAL_VOICE_PILOT_OUTPUT,
+  VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS,
+  assertVoxyPilotVoiceBinding,
   buildVoxyDualVoicePilotPlan,
+  buildVoxyDualVoicePilotSrt,
+  buildVoxyDualVoicePilotVtt,
   speakerAt,
   validateVoxyDualVoicePilotPlan,
   visualStateAt,
@@ -18,7 +23,7 @@ import { VOXY_FIRST_PARTY_VISUAL_BINDING } from "../src/features/voxyVideo/first
 const exactHead = "a".repeat(40);
 const plan = buildVoxyDualVoicePilotPlan(
   exactHead,
-  [8_000, 6_500, 8_500, 5_000, 4_200, 6_500, 3_000],
+  [9_000, 4_500, 6_500, 6_000, 3_500, 5_500, 5_000, 6_500, 3_500],
 );
 const assets = {
   canonStageDataUrl: "data:image/png;base64,AA==",
@@ -27,35 +32,63 @@ const assets = {
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,AA==",
 };
 
-describe("VOXY dual-voice explainer pilot", () => {
-  it("builds exactly seven explicit speaker blocks with accepted role-bound voices", () => {
-    expect(plan.speakerTimeline).toHaveLength(7);
-    expect(plan.speakerTimeline.every((entry) =>
-      ["start", "end", "speakerRole", "voiceId", "text"].every((field) => field in entry),
-    )).toBe(true);
+describe("VOXY dual-voice democracy pilot v1.1", () => {
+  it("fails closed unless each role uses its one accepted voice mapping", () => {
+    expect(plan.speakerTimeline).toHaveLength(9);
+    expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy")).toBe(true);
+    expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "editorial")).toBe(true);
     expect(plan.speakerTimeline.filter((entry) => entry.speakerRole === "voxy").every((entry) => entry.voiceId === VOXY_SIGNATURE.voiceId)).toBe(true);
     expect(plan.speakerTimeline.filter((entry) => entry.speakerRole === "editorial").every((entry) => entry.voiceId === EDITORIAL_VOICE.voiceId)).toBe(true);
-    expect(plan.speakerTimeline[0]?.text.startsWith("Hallo Nachbar,")).toBe(true);
-    expect(plan.speakerTimeline.slice(1).some((entry) => entry.text.includes("Hallo Nachbar,"))).toBe(false);
+    expect(VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS).toEqual({
+      voxy: {
+        speakerRole: "voxy",
+        voiceId: "voxy-signature-e-5a465a33",
+        variant: "e-02-warm-sovereign",
+        genderPresentation: "male",
+        synthesisBackend: "chatterbox_multilingual_first_party",
+      },
+      editorial: {
+        speakerRole: "editorial",
+        voiceId: "de_DE/m-ailabs_low#ramona_deininger",
+        variant: null,
+        genderPresentation: "female",
+        synthesisBackend: "mimic3_m_ailabs_ramona_deininger",
+      },
+    });
+    expect(() => assertVoxyPilotVoiceBinding({ speakerRole: "voxy", voiceId: EDITORIAL_VOICE.voiceId })).toThrow("voice_mapping_fail_closed:voxy");
+    expect(() => assertVoxyPilotVoiceBinding({ speakerRole: "editorial", voiceId: VOXY_SIGNATURE.voiceId })).toThrow("voice_mapping_fail_closed:editorial");
   });
 
-  it("keeps the technical media contract in the 45–60 second window", () => {
+  it("uses the democracy story and only clearly marked illustrative evidence", () => {
+    expect(plan.speakerTimeline[0]?.text).toContain("Wird meine Stimme eigentlich gehört?");
+    expect(plan.speakerTimeline.at(-1)?.text).toContain("Du sollst es prüfen können.");
+    expect(plan.speakerTimeline.map((entry) => entry.text).join(" ")).toContain("Demokratie");
+    expect(VOXY_DUAL_VOICE_PILOT_EVIDENCE.map((entry) => entry.id)).toEqual([
+      "democracy-trust",
+      "democracy-participation",
+      "democracy-open-question",
+    ]);
+    expect(VOXY_DUAL_VOICE_PILOT_EVIDENCE.every((entry) => entry.provenance === "DEMO / ILLUSTRATION")).toBe(true);
+  });
+
+  it("keeps sidecar captions separate from the 1920x1080 24-fps video", () => {
     expect(plan.output).toMatchObject({ width: 1920, height: 1080, fps: 24 });
     expect(plan.output.durationMs).toBeGreaterThanOrEqual(45_000);
     expect(plan.output.durationMs).toBeLessThanOrEqual(60_000);
     expect(VOXY_DUAL_VOICE_PILOT_OUTPUT).toMatchObject({
-      mp4: "voxy-dual-voice-explainer-pilot-01.mp4",
-      webm: "voxy-dual-voice-explainer-pilot-01.webm",
-      masterAudio: "master-audio.wav",
-      preview: "preview.png",
-      contactSheet: "contact-sheet.png",
-      speakerTimeline: "speaker-timeline.json",
-      visualStateTimeline: "visual-state-timeline.json",
-      manifest: "manifest.json",
+      directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.1",
+      mp4: "voxy-democracy-pilot-v1.1.mp4",
+      webm: "voxy-democracy-pilot-v1.1.webm",
+      captionsVtt: "captions.de.vtt",
+      captionsSrt: "captions.de.srt",
+      evidenceTimeline: "evidence-timeline.json",
     });
+    expect(plan.captions).toEqual({ sidecarsOnly: true, burnedIn: false, languages: ["de"] });
+    expect(buildVoxyDualVoicePilotVtt(plan.speakerTimeline)).toContain("WEBVTT");
+    expect(buildVoxyDualVoicePilotSrt(plan.speakerTimeline)).toContain("[Editorial]");
   });
 
-  it("follows HOST FOCUS EXPLAIN DOCK twice before synthesis and Voxy close", () => {
+  it("follows both NEWS 5.0 evidence cycles before synthesis and Voxy close", () => {
     expect(plan.visualStateTimeline.map((entry) => entry.state)).toEqual([
       "HOST", "FOCUS", "EXPLAIN", "DOCK", "HOST",
       "FOCUS", "EXPLAIN", "DOCK", "SYNTHESIS", "HOST",
@@ -65,36 +98,67 @@ describe("VOXY dual-voice explainer pilot", () => {
     )).toBe(true);
   });
 
-  it("focuses information before docking it into dynamic evidence memory", () => {
-    const firstFocus = plan.visualStateTimeline.findIndex((entry) => entry.state === "FOCUS" && entry.activeEvidenceId === "claim-headline");
-    const firstDock = plan.visualStateTimeline.findIndex((entry) => entry.state === "DOCK" && entry.activeEvidenceId === "claim-headline");
-    expect(firstFocus).toBeGreaterThan(-1);
-    expect(firstDock).toBeGreaterThan(firstFocus);
-    expect(plan.visualStateTimeline[firstDock]?.dockedEvidenceIds).toContain("claim-headline");
+  it("moves the identical evidence object from focus through dock without substitution", () => {
+    for (const evidenceId of ["democracy-trust", "democracy-participation"]) {
+      const focus = plan.visualStateTimeline.findIndex((entry) => entry.state === "FOCUS" && entry.activeEvidenceId === evidenceId);
+      const dock = plan.visualStateTimeline.findIndex((entry) => entry.state === "DOCK" && entry.activeEvidenceId === evidenceId);
+      expect(focus).toBeGreaterThan(-1);
+      expect(dock).toBeGreaterThan(focus);
+      expect(plan.visualStateTimeline[dock]?.dockedEvidenceIds).toContain(evidenceId);
+      expect(plan.evidenceTimeline.some((entry) => entry.evidenceId === evidenceId && entry.action === "continuous_scale_translation_to_memory")).toBe(true);
+    }
+    expect(plan.objectContinuity).toEqual({
+      sameEvidenceId: true,
+      sameVisualIdentity: true,
+      scaleAndTranslation: true,
+      hardSubstitution: false,
+      crossfadeToDifferentObject: false,
+    });
+    const dock = plan.visualStateTimeline.find((entry) => entry.state === "DOCK")!;
+    const html = renderVoxyDualVoicePilotFrameHtml({ plan, assets, frameIndex: Math.floor(((dock.start + dock.end) / 2) * plan.output.fps), amplitude: 0.4 });
+    expect(html).toContain('data-object-continuity="same-object-scale-translation"');
+    expect(html).toContain('data-evidence-id="democracy-trust"');
   });
 
-  it("synthesizes all previously docked fixture evidence", () => {
-    const synthesis = plan.visualStateTimeline.find((entry) => entry.state === "SYNTHESIS");
-    expect(synthesis?.dockedEvidenceIds).toEqual(VOXY_DUAL_VOICE_PILOT_EVIDENCE.map((entry) => entry.id));
-    expect(VOXY_DUAL_VOICE_PILOT_EVIDENCE.every((entry) => entry.provenance === "DEMO / FORMAT-FIXTURE")).toBe(true);
+  it("keeps a dynamic evidence memory and derives synthesis from both docked objects", () => {
+    const secondFocus = plan.visualStateTimeline.find((entry) => entry.state === "FOCUS" && entry.activeEvidenceId === "democracy-participation")!;
+    const focusHtml = renderVoxyDualVoicePilotFrameHtml({ plan, assets, frameIndex: Math.floor(((secondFocus.start + secondFocus.end) / 2) * plan.output.fps), amplitude: 0.5 });
+    expect(focusHtml).toContain('data-memory-object="true"');
+    expect(focusHtml).toContain('data-evidence-id="democracy-trust"');
+    const synthesis = plan.visualStateTimeline.find((entry) => entry.state === "SYNTHESIS")!;
+    expect(synthesis.dockedEvidenceIds).toEqual(["democracy-trust", "democracy-participation"]);
+    const synthesisHtml = renderVoxyDualVoicePilotFrameHtml({ plan, assets, frameIndex: Math.floor(((synthesis.start + synthesis.end) / 2) * plan.output.fps), amplitude: 0.5 });
+    expect(synthesisHtml).toContain('data-synthesis-uses="democracy-trust democracy-participation"');
+    expect(synthesisHtml).toContain('data-derived-evidence-id="democracy-open-question"');
+    expect(synthesisHtml).toContain(".synthesis-stage{--build:1;");
+    expect(synthesisHtml).not.toContain('data-memory-object="true"');
   });
 
-  it("keeps Editorial mouth neutral while the one waveform remains audio-reactive", () => {
+  it("removes burned-in speech text while keeping semantic evidence text", () => {
     const editorial = plan.speakerTimeline.find((entry) => entry.speakerRole === "editorial")!;
-    const frameIndex = Math.floor(((editorial.start + 0.25) * plan.output.fps));
+    const html = renderVoxyDualVoicePilotFrameHtml({ plan, assets, frameIndex: Math.floor((editorial.start + 0.5) * plan.output.fps), amplitude: 0.8 });
+    expect(html).toContain('data-burned-in-captions="false"');
+    expect(html).toContain(".caption-bar,.portrait-caption,.editorial-cue{display:none!important}");
+    expect(html).not.toContain(editorial.text);
+    expect(html).toContain("DEMO · ILLUSTRATION");
+  });
+
+  it("keeps Editorial mouth closed while the one waveform remains audio-reactive", () => {
+    const editorial = plan.speakerTimeline.find((entry) => entry.speakerRole === "editorial")!;
+    const frameIndex = Math.floor((editorial.start + 0.25) * plan.output.fps);
     const html = renderVoxyDualVoicePilotFrameHtml({ plan, assets, frameIndex, amplitude: 0.8 });
     expect(speakerAt(plan, frameIndex / plan.output.fps)?.speakerRole).toBe("editorial");
     expect(html).toContain('data-speaker-role="editorial"');
     expect(html).toContain('data-editorial-mouth-neutral="true"');
     expect(html).toContain('data-mouth-state="closed"');
+    expect(html).toContain('data-mouth-next-state="closed"');
     expect(html).toContain('data-waveform-count="1"');
-    expect(html).toContain('data-waveform-audio-reactive="true"');
     expect(html.match(/class="audio-waveform-reactive"/g)).toHaveLength(1);
   });
 
-  it("uses Voxy-only audio mouth sync and preserves the visual canon binding", () => {
+  it("uses Voxy-only mouth sync and preserves the visual canon binding", () => {
     const voxy = plan.speakerTimeline[0]!;
-    const frameIndex = Math.floor(((voxy.start + 0.5) * plan.output.fps));
+    const frameIndex = Math.floor((voxy.start + 0.5) * plan.output.fps);
     const html = renderVoxyDualVoicePilotFrameHtml({ plan, assets, frameIndex, amplitude: 0.9 });
     expect(html).toContain('data-speaker-role="voxy"');
     expect(html).toContain('data-editorial-mouth-neutral="false"');
@@ -103,7 +167,7 @@ describe("VOXY dual-voice explainer pilot", () => {
     expect(plan.mouth).toMatchObject({ profile: "voxy-mouth-v4-1-v1", shapesChanged: false, anchorChanged: false, pivotChanged: false });
   });
 
-  it("keeps privacy, human review, production and publishing fail-closed", () => {
+  it("keeps privacy, three human gates, production and publishing fail-closed", () => {
     expect(plan.privacy).toEqual({
       privateRawVoiceInRepository: false,
       privateReferencePathInManifest: false,
@@ -111,17 +175,20 @@ describe("VOXY dual-voice explainer pilot", () => {
       upload: false,
     });
     expect(plan).toMatchObject({
+      technicalPilotGate: "passed",
       humanPilotAcceptance: "pending",
+      humanVoiceMappingAcceptance: "pending",
+      humanNews5VisualAcceptance: "pending",
       productionEligible: false,
       autoPublish: false,
     });
     expect(validateVoxyDualVoicePilotPlan(plan)).toEqual([]);
+    expect(VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.every((entry) => entry.voiceBinding.voiceId === entry.voiceId)).toBe(true);
   });
 
   it("resolves each visual state continuously across the full timeline", () => {
     for (const entry of plan.visualStateTimeline) {
-      const state = visualStateAt(plan, (entry.start + entry.end) / 2);
-      expect(state.state).toBe(entry.state);
+      expect(visualStateAt(plan, (entry.start + entry.end) / 2).state).toBe(entry.state);
     }
     expect(plan.visualStateTimeline[0]?.start).toBe(0);
     expect(plan.visualStateTimeline.at(-1)?.end).toBe(plan.output.durationMs / 1_000);

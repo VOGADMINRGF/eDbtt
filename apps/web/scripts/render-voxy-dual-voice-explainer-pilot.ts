@@ -8,16 +8,16 @@ import path from "node:path";
 import {
   VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS,
   VOXY_DUAL_VOICE_PILOT_OUTPUT,
+  assertVoxyPilotVoiceBinding,
+  buildVoxyDualVoicePilotSrt,
+  buildVoxyDualVoicePilotVtt,
   buildVoxyDualVoicePilotPlan,
   validateVoxyDualVoicePilotPlan,
 } from "../src/features/voxyVideo/dualVoiceExplainerPilot";
 import { renderVoxyDualVoicePilotFrameHtml } from "../src/features/voxyVideo/dualVoiceExplainerPilotHtml";
 import { VOXY_SIGNATURE } from "../src/features/voxyVideo/dualVoiceArchitecture";
 import { VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH } from "../src/features/voxyVideo/firstExplainerVideo";
-import {
-  VOXY_CHATTERBOX_MODEL,
-  VOXY_FIRST_PARTY_REFERENCE_WINDOWS,
-} from "../src/features/voxyVideo/firstPartyVoiceClone";
+import { VOXY_CHATTERBOX_MODEL } from "../src/features/voxyVideo/firstPartyVoiceClone";
 import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import {
   VOXY_SIGNATURE_DELIVERY_MODES,
@@ -55,6 +55,10 @@ function run(binary: string, args: string[], options: { cwd?: string; input?: st
 
 async function sha256(file: string): Promise<string> {
   return createHash("sha256").update(await readFile(file)).digest("hex");
+}
+
+function sha256Buffer(buffer: Buffer): string {
+  return createHash("sha256").update(buffer).digest("hex");
 }
 
 function ffprobe(file: string): Probe {
@@ -96,6 +100,35 @@ async function assertOutsideRepository(repositoryRoot: string, target: string, l
   }
 }
 
+async function verifyAcceptedVoxyReference(input: {
+  repositoryRoot: string;
+  reference: string;
+  selectionManifest: string;
+}): Promise<{ expectedSegmentSha256: string; selectionManifestSha256: string }> {
+  await assertOutsideRepository(input.repositoryRoot, input.reference, "private_voxy_reference");
+  await assertOutsideRepository(input.repositoryRoot, input.selectionManifest, "private_voxy_reference_selection");
+  const selection = JSON.parse(await readFile(input.selectionManifest, "utf8")) as {
+    schemaVersion?: string;
+    references?: Array<{ id: string; sha256: string; originalPathWithheld: boolean; copiedIntoWorktree: boolean }>;
+    selectedSegments?: Array<{ id: string; sha256: string; privatePathWithheld: boolean }>;
+  };
+  const reference = selection.references?.find((entry) => entry.id === "reference-01");
+  const segment = selection.selectedSegments?.find((entry) => entry.id === "reference-01-segment-b");
+  if (selection.schemaVersion !== "voxy-first-party-reference-selection-v1" || !reference || !segment) {
+    throw new Error("accepted_voxy_reference_selection_invalid");
+  }
+  if (!reference.originalPathWithheld || reference.copiedIntoWorktree || !segment.privatePathWithheld) {
+    throw new Error("accepted_voxy_reference_privacy_invalid");
+  }
+  if (await sha256(input.reference) !== reference.sha256) {
+    throw new Error("accepted_voxy_reference_sha_mismatch");
+  }
+  return {
+    expectedSegmentSha256: segment.sha256,
+    selectionManifestSha256: await sha256(input.selectionManifest),
+  };
+}
+
 async function normalizeAudio(input: string, output: string, tempo: number): Promise<void> {
   run("ffmpeg", [
     "-y", "-i", input,
@@ -108,36 +141,52 @@ async function synthesizeVoxySegments(input: {
   python: string;
   modelDir: string;
   reference: string;
+  expectedReferenceSegmentSha256: string;
   temporaryRoot: string;
   rawRoot: string;
 }): Promise<Map<string, string>> {
-  const window = VOXY_FIRST_PARTY_REFERENCE_WINDOWS.find((entry) => entry.id === "reference-01-segment-b")!;
   const referenceSegment = path.resolve(input.temporaryRoot, "voxy-reference-segment.wav");
   run("ffmpeg", [
-    "-y", "-ss", String(window.startSeconds), "-to", String(window.endSeconds),
+    "-y", "-ss", "59", "-to", "68.95",
     "-i", input.reference, "-ar", "24000", "-ac", "1", "-c:a", "pcm_s16le", referenceSegment,
   ]);
+  if (await sha256(referenceSegment) !== input.expectedReferenceSegmentSha256) {
+    throw new Error("accepted_voxy_reference_segment_sha_mismatch");
+  }
   const mode = VOXY_SIGNATURE_DELIVERY_MODES.find((entry) => entry.id === "candidate-e-signature")!;
   const selected = mode.variants.find((entry) => entry.id === "e-02-warm-sovereign")!;
-  const spokenParts: Record<string, readonly string[]> = {
-    "voxy-introduction": [
-      "Hallo Nachbar, ich bin Woxi.",
-      "Und ich möchte dir zeigen, warum eh Debatte mehr ist als eine weitere Plattform für politische Meinungen.",
+  if (mode.selectedVariantId !== selected.id) throw new Error("accepted_voxy_variant_binding_invalid");
+  const spokenParts: Record<string, readonly { text: string; pauseAfterMs: number }[]> = {
+    "voxy-democracy-opening": [
+      { text: "Hallo Nachbar.", pauseAfterMs: 360 },
+      { text: "Wir wählen. Wir diskutieren. Wir streiten.", pauseAfterMs: 560 },
+      { text: "Und trotzdem bleibt bei vielen Menschen eine ziemlich einfache Frage.", pauseAfterMs: 360 },
+      { text: "Wird meine Stimme eigentlich gehört?", pauseAfterMs: 0 },
     ],
-    "voxy-problem": [
-      "Nehmen wir eine politische Frage.",
-      "Meistens begegnen uns dazu Schlagzeilen, einzelne Zahlen und ziemlich schnell zwei gegensätzliche Lager.",
+    "voxy-headline-limits": [
+      { text: "Aber wenn wir wissen wollen, wie es unserer Demokratie wirklich geht,", pauseAfterMs: 260 },
+      { text: "reicht eine Schlagzeile nicht.", pauseAfterMs: 0 },
     ],
-    "voxy-return": [
-      "Und genau hier komme ich wieder ins Spiel.",
-      "Ich sage dir nicht, welche Seite recht hat.",
+    "voxy-distinction": [
+      { text: "Genau deshalb trennen wir Gefühl, Befund und offene Frage.", pauseAfterMs: 0 },
     ],
-    "voxy-reflection": ["Ich helfe dir dabei, selbst herauszufinden, was du davon hältst."],
-    "voxy-closing": ["Das ist eh Debatte.", "Und ich bin Woxi."],
+    "voxy-democracy-reflection": [
+      { text: "Vielleicht ist die spannendere Frage also nicht nur, ob Demokratie funktioniert.", pauseAfterMs: 440 },
+      { text: "Sondern wo Menschen erleben, dass sie nicht mehr funktioniert.", pauseAfterMs: 0 },
+    ],
+    "voxy-verifiability": [
+      { text: "Du musst mir dabei nichts glauben.", pauseAfterMs: 720 },
+      { text: "Du sollst es prüfen können.", pauseAfterMs: 0 },
+    ],
   };
   const jobs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS
     .filter((segment) => segment.speakerRole === "voxy")
-    .map((segment, jobIndex) => ({
+    .map((segment, jobIndex) => {
+      const binding = assertVoxyPilotVoiceBinding(segment);
+      if (binding.synthesisBackend !== "chatterbox_multilingual_first_party") {
+        throw new Error("voxy_synthesis_backend_mapping_invalid");
+      }
+      return {
       id: segment.id,
       modeId: mode.id,
       variantId: selected.id,
@@ -152,13 +201,14 @@ async function synthesizeVoxySegments(input: {
         minP: VOXY_SIGNATURE_MIN_P,
         topP: VOXY_SIGNATURE_TOP_P,
       },
-      segments: (spokenParts[segment.id] ?? [segment.spokenText]).map((spokenText, index, parts) => ({
+      segments: (spokenParts[segment.id] ?? [{ text: segment.spokenText, pauseAfterMs: 0 }]).map((part, index, parts) => ({
         id: `${segment.id}-${index + 1}`,
-        visibleText: spokenText,
-        spokenText,
-        pauseAfterMs: index < parts.length - 1 ? 280 : 0,
+        visibleText: part.text,
+        spokenText: part.text,
+        pauseAfterMs: index < parts.length - 1 ? part.pauseAfterMs : 0,
       })),
-    }));
+    };
+    });
   const resultPath = path.resolve(input.temporaryRoot, "voxy-result.json");
   const configPath = path.resolve(input.temporaryRoot, "voxy-config.json");
   await writeFile(configPath, `${JSON.stringify({
@@ -192,9 +242,15 @@ async function synthesizeVoxySegments(input: {
 async function synthesizeEditorialSegment(input: {
   mimic3Cache: string;
   segmentId: string;
+  speakerRole: "editorial";
+  voiceId: string;
   spokenText: string;
   rawRoot: string;
 }): Promise<string> {
+  const binding = assertVoxyPilotVoiceBinding(input);
+  if (binding.synthesisBackend !== "mimic3_m_ailabs_ramona_deininger") {
+    throw new Error("editorial_synthesis_backend_mapping_invalid");
+  }
   const segmentRoot = path.resolve(input.rawRoot, `${input.segmentId}-mimic3`);
   await mkdir(segmentRoot, { recursive: true });
   const mimic3 = path.resolve(input.mimic3Cache, "mimic3-venv/bin/mimic3");
@@ -223,15 +279,65 @@ async function concatenateMaster(input: {
     run("ffmpeg", ["-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-t", (milliseconds / 1_000).toFixed(3), "-c:a", "pcm_s16le", file]);
     files.push(file);
   };
-  addSilence("leading-silence", 500);
+  addSilence("leading-silence", 600);
   for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
     files.push(input.finishedById.get(segment.id)!);
     if (segment.pauseAfterMs) addSilence(`pause-${segment.id}`, segment.pauseAfterMs);
   }
-  addSilence("tail-silence", 700);
+  addSilence("tail-silence", 800);
   const concatList = path.resolve(input.temporaryRoot, "master-concat.txt");
   await writeFile(concatList, files.map((file) => `file '${file.replaceAll("'", "'\\''")}'`).join("\n"), "utf8");
   run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", concatList, "-c:a", "pcm_s16le", input.output]);
+}
+
+function wavPcmData(buffer: Buffer): Buffer {
+  const dataChunk = buffer.indexOf(Buffer.from("data"));
+  if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE" || dataChunk < 0) {
+    throw new Error("wav_pcm_data_invalid");
+  }
+  const byteLength = buffer.readUInt32LE(dataChunk + 4);
+  return buffer.subarray(dataChunk + 8, dataChunk + 8 + byteLength);
+}
+
+async function verifyMasterAudioAssembly(input: {
+  finishedById: ReadonlyMap<string, string>;
+  masterAudio: string;
+}) {
+  const masterPcm = wavPcmData(await readFile(input.masterAudio));
+  let cursorBytes = 600 * 48 * 2;
+  const segments = [];
+  for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
+    const binding = assertVoxyPilotVoiceBinding(segment);
+    const finishedFile = input.finishedById.get(segment.id);
+    if (!finishedFile) throw new Error(`finished_audio_missing:${segment.id}`);
+    const finishedPcm = wavPcmData(await readFile(finishedFile));
+    const masterWindow = masterPcm.subarray(cursorBytes, cursorBytes + finishedPcm.length);
+    if (!finishedPcm.equals(masterWindow)) throw new Error(`master_audio_pcm_identity_mismatch:${segment.id}`);
+    let absoluteSampleSum = 0;
+    for (let offset = 0; offset < finishedPcm.length; offset += 2) {
+      absoluteSampleSum += Math.abs(finishedPcm.readInt16LE(offset));
+    }
+    const meanAbsoluteSample = absoluteSampleSum / Math.max(1, finishedPcm.length / 2);
+    if (meanAbsoluteSample < 80) throw new Error(`assembled_voice_segment_is_silent:${segment.id}`);
+    segments.push({
+      id: segment.id,
+      speakerRole: segment.speakerRole,
+      voiceId: segment.voiceId,
+      genderPresentation: binding.genderPresentation,
+      synthesisBackend: binding.synthesisBackend,
+      finishedFileSha256: await sha256(finishedFile),
+      masterWindowPcmSha256: sha256Buffer(masterWindow),
+      pcmIdentityMatch: true,
+      nonSilent: true,
+    });
+    cursorBytes += finishedPcm.length + segment.pauseAfterMs * 48 * 2;
+  }
+  return {
+    gate: "passed",
+    finalMasterContainsEveryVerifiedSegment: true,
+    roleVoiceCrossing: false,
+    segments,
+  } as const;
 }
 
 function audioLevelsFromWav(buffer: Buffer, fps: number): number[] {
@@ -274,15 +380,21 @@ async function main(): Promise<void> {
   const exactHeadSha = process.env.VOXY_DUAL_VOICE_PILOT_COMMIT_SHA?.trim() ?? "";
   if (!/^[0-9a-f]{40}$/.test(exactHeadSha)) throw new Error("VOXY_DUAL_VOICE_PILOT_COMMIT_SHA_required");
   if (run("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot }) !== exactHeadSha) throw new Error("exact_head_mismatch");
-  const requiredArguments = ["voxy-python", "voxy-model-dir", "voxy-reference-01", "mimic3-cache"] as const;
+  const requiredArguments = ["voxy-python", "voxy-model-dir", "voxy-reference-01", "voxy-reference-selection", "mimic3-cache"] as const;
   if (requiredArguments.some((name) => !argument(name))) throw new Error("explicit_private_voice_runtime_arguments_required");
   const voxyPython = path.resolve(argument("voxy-python")!);
   const voxyModelDir = path.resolve(argument("voxy-model-dir")!);
   const voxyReference = path.resolve(argument("voxy-reference-01")!);
+  const voxyReferenceSelection = path.resolve(argument("voxy-reference-selection")!);
   const mimic3Cache = path.resolve(argument("mimic3-cache")!);
-  for (const target of [voxyPython, voxyModelDir, voxyReference, mimic3Cache]) await access(target);
-  await assertOutsideRepository(repositoryRoot, voxyReference, "private_voxy_reference");
+  for (const target of [voxyPython, voxyModelDir, voxyReference, voxyReferenceSelection, mimic3Cache]) await access(target);
   if (!(await lstat(voxyReference)).isFile()) throw new Error("private_voxy_reference_must_be_file");
+  if (!(await lstat(voxyReferenceSelection)).isFile()) throw new Error("private_voxy_reference_selection_must_be_file");
+  const acceptedVoxyReference = await verifyAcceptedVoxyReference({
+    repositoryRoot,
+    reference: voxyReference,
+    selectionManifest: voxyReferenceSelection,
+  });
 
   const outputArgument = argument("output") ?? VOXY_DUAL_VOICE_PILOT_OUTPUT.directory;
   const outputRoot = path.resolve(repositoryRoot, outputArgument);
@@ -299,48 +411,55 @@ async function main(): Promise<void> {
 
   try {
     const masterAudio = path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio);
-    const reusableAudioRootArgument = argument("reuse-audio-root");
-    let speechDurationsMs: number[];
-    if (reusableAudioRootArgument) {
-      const reusableAudioRoot = path.resolve(reusableAudioRootArgument);
-      await assertOutsideRepository(repositoryRoot, reusableAudioRoot, "reusable_private_audio_root");
-      const reusableTimeline = JSON.parse(await readFile(path.resolve(reusableAudioRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline), "utf8")) as Array<{ start: number; end: number; speakerRole: string; voiceId: string; text: string }>;
-      if (reusableTimeline.length !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.length || reusableTimeline.some((entry, index) => entry.speakerRole !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS[index]?.speakerRole || entry.voiceId !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS[index]?.voiceId || entry.text !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS[index]?.text)) throw new Error("reusable_audio_timeline_contract_invalid");
-      speechDurationsMs = reusableTimeline.map((entry) => Math.round((entry.end - entry.start) * 1_000));
-      await copyFile(path.resolve(reusableAudioRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio), masterAudio);
-      console.info("pilot_progress:reuse_privacy_safe_synthesized_master_audio");
-    } else {
-      console.info("pilot_progress:synthesize_voxy_signature");
-      const voxyRaw = await synthesizeVoxySegments({ python: voxyPython, modelDir: voxyModelDir, reference: voxyReference, temporaryRoot, rawRoot });
-      const rawById = new Map(voxyRaw);
-      console.info("pilot_progress:synthesize_editorial_voice");
-      for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.filter((entry) => entry.speakerRole === "editorial")) {
-        rawById.set(segment.id, await synthesizeEditorialSegment({ mimic3Cache, segmentId: segment.id, spokenText: segment.spokenText, rawRoot }));
-      }
-      const fixedPaddingMs = 500 + 700 + VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + segment.pauseAfterMs, 0);
-      const rawSpeechDurationMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + durationMs(rawById.get(segment.id)!), 0);
-      const unadjustedDurationMs = rawSpeechDurationMs + fixedPaddingMs;
-      const targetDurationMs = unadjustedDurationMs < 45_000 ? 46_000 : 54_000;
-      const tempo = unadjustedDurationMs >= 45_000 && unadjustedDurationMs <= 60_000
-        ? 1
-        : rawSpeechDurationMs / (targetDurationMs - fixedPaddingMs);
-      if (tempo < 0.85 || tempo > 1.35) throw new Error(`required_tempo_adjustment_out_of_bounds:${tempo.toFixed(4)}`);
-      console.info(JSON.stringify({ pilot_progress: "audio_duration_fit", unadjustedDurationMs, targetDurationMs, tempo: Number(tempo.toFixed(6)) }));
-      const finishedById = new Map<string, string>();
-      for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
-        const finished = path.resolve(finishedRoot, `${segment.id}.wav`);
-        await normalizeAudio(rawById.get(segment.id)!, finished, tempo);
-        finishedById.set(segment.id, finished);
-      }
-      speechDurationsMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => durationMs(finishedById.get(segment.id)!));
-      await concatenateMaster({ finishedById, output: masterAudio, temporaryRoot });
+    for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) assertVoxyPilotVoiceBinding(segment);
+    console.info("pilot_progress:synthesize_verified_male_voxy_signature");
+    const voxyRaw = await synthesizeVoxySegments({
+      python: voxyPython,
+      modelDir: voxyModelDir,
+      reference: voxyReference,
+      expectedReferenceSegmentSha256: acceptedVoxyReference.expectedSegmentSha256,
+      temporaryRoot,
+      rawRoot,
+    });
+    const rawById = new Map(voxyRaw);
+    console.info("pilot_progress:synthesize_verified_female_editorial_voice");
+    for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.filter((entry) => entry.speakerRole === "editorial")) {
+      rawById.set(segment.id, await synthesizeEditorialSegment({
+        mimic3Cache,
+        segmentId: segment.id,
+        speakerRole: segment.speakerRole,
+        voiceId: segment.voiceId,
+        spokenText: segment.spokenText,
+        rawRoot,
+      }));
     }
+    const fixedPaddingMs = 600 + 800 + VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + segment.pauseAfterMs, 0);
+    const rawSpeechDurationMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + durationMs(rawById.get(segment.id)!), 0);
+    const unadjustedDurationMs = rawSpeechDurationMs + fixedPaddingMs;
+    const targetDurationMs = unadjustedDurationMs < 45_000 ? 50_000 : 55_000;
+    const tempo = unadjustedDurationMs >= 45_000 && unadjustedDurationMs <= 60_000
+      ? 1
+      : rawSpeechDurationMs / (targetDurationMs - fixedPaddingMs);
+    if (tempo < 0.85 || tempo > 1.35) throw new Error(`required_tempo_adjustment_out_of_bounds:${tempo.toFixed(4)}`);
+    console.info(JSON.stringify({ pilot_progress: "audio_duration_fit", unadjustedDurationMs, targetDurationMs, tempo: Number(tempo.toFixed(6)) }));
+    const finishedById = new Map<string, string>();
+    for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
+      const finished = path.resolve(finishedRoot, `${segment.id}.wav`);
+      await normalizeAudio(rawById.get(segment.id)!, finished, tempo);
+      finishedById.set(segment.id, finished);
+    }
+    const speechDurationsMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => durationMs(finishedById.get(segment.id)!));
+    await concatenateMaster({ finishedById, output: masterAudio, temporaryRoot });
+    const audioAssembly = await verifyMasterAudioAssembly({ finishedById, masterAudio });
     const plan = buildVoxyDualVoicePilotPlan(exactHeadSha, speechDurationsMs);
     const planErrors = validateVoxyDualVoicePilotPlan(plan);
     if (planErrors.length) throw new Error(`pilot_plan_invalid:${planErrors.join(",")}`);
     if (Math.abs(durationMs(masterAudio) - plan.output.durationMs) > 120) throw new Error("master_audio_duration_drift");
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline), `${JSON.stringify(plan.speakerTimeline.map(({ id: _id, ...entry }) => entry), null, 2)}\n`, "utf8");
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.visualStateTimeline), `${JSON.stringify(plan.visualStateTimeline, null, 2)}\n`, "utf8");
+    await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.evidenceTimeline), `${JSON.stringify(plan.evidenceTimeline, null, 2)}\n`, "utf8");
+    await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.captionsVtt), buildVoxyDualVoicePilotVtt(plan.speakerTimeline), "utf8");
+    await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.captionsSrt), buildVoxyDualVoicePilotSrt(plan.speakerTimeline), "utf8");
 
     const sourcePaths = {
       canonStage: path.resolve(repositoryRoot, VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath),
@@ -393,18 +512,35 @@ async function main(): Promise<void> {
     console.info("pilot_progress:encode_webm");
     run("ffmpeg", ["-y", "-framerate", "24", "-i", path.resolve(framesRoot, "frame-%05d.png"), "-i", masterAudio, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "-deadline", "good", "-cpu-used", "4", "-threads", "8", "-row-mt", "1", "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "128k", "-shortest", webm]);
 
-    const stateNames = ["HOST", "FOCUS", "EXPLAIN", "DOCK", "SYNTHESIS"] as const;
-    const standframes = [];
-    for (const stateName of stateNames) {
-      const entry = plan.visualStateTimeline.find((state) => state.state === stateName)!;
-      const at = stateName === "DOCK" ? entry.start + (entry.end - entry.start) * 0.68 : (entry.start + entry.end) / 2;
+    const firstFocus = plan.visualStateTimeline[1]!;
+    const firstExplain = plan.visualStateTimeline[2]!;
+    const firstDock = plan.visualStateTimeline[3]!;
+    const firstDocked = plan.visualStateTimeline[4]!;
+    const secondFocus = plan.visualStateTimeline[5]!;
+    const secondDock = plan.visualStateTimeline[7]!;
+    const synthesis = plan.visualStateTimeline[8]!;
+    const reviewFrameSpecs = [
+      { id: "01-voxy-host", at: plan.speakerTimeline[0]!.start + 1 },
+      { id: "02-democracy-question", at: plan.speakerTimeline[0]!.end - 0.45 },
+      { id: "03-evidence-focus", at: (firstFocus.start + firstFocus.end) / 2 },
+      { id: "04-editorial-explain", at: Math.max(firstExplain.start + 0.5, plan.speakerTimeline[2]!.start + 0.5) },
+      { id: "05-focus-to-dock-mid-transition", at: (firstDock.start + firstDock.end) / 2 },
+      { id: "06-evidence-docked", at: firstDocked.start + 0.18 },
+      { id: "07-second-evidence-focus", at: (secondFocus.start + secondFocus.end) / 2 },
+      { id: "08-second-evidence-docked", at: secondDock.end + 0.12 },
+      { id: "09-synthesis", at: (synthesis.start + synthesis.end) / 2 },
+      { id: "10-voxy-close", at: (plan.speakerTimeline.at(-1)!.start + plan.speakerTimeline.at(-1)!.end) / 2 },
+    ];
+    const reviewFrames = [];
+    for (const spec of reviewFrameSpecs) {
+      const at = Math.min(plan.output.durationMs / 1_000 - 0.05, spec.at);
       const frameIndex = Math.min(plan.output.frameCount - 1, Math.floor(at * plan.output.fps));
-      const file = path.resolve(standframesRoot, `${stateName.toLowerCase()}.png`);
+      const file = path.resolve(standframesRoot, `${spec.id}.png`);
       await copyFile(path.resolve(framesRoot, `frame-${String(frameIndex - (frameIndex % 2)).padStart(5, "0")}.png`), file);
-      standframes.push({ state: stateName, at: Number(at.toFixed(3)), frameIndex, file: `standframes/${stateName.toLowerCase()}.png`, sha256: await sha256(file) });
+      reviewFrames.push({ id: spec.id, at: Number(at.toFixed(3)), frameIndex, file: `standframes/${spec.id}.png`, sha256: await sha256(file) });
     }
-    await copyFile(path.resolve(standframesRoot, "synthesis.png"), path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.preview));
-    run("ffmpeg", ["-y", ...standframes.flatMap((entry) => ["-i", path.resolve(outputRoot, entry.file)]), "-filter_complex", "[0:v]scale=360:203[a];[1:v]scale=360:203[b];[2:v]scale=360:203[c];[3:v]scale=360:203[d];[4:v]scale=360:203[e];[a][b][c][d][e]hstack=inputs=5", "-frames:v", "1", path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.contactSheet)]);
+    await copyFile(path.resolve(standframesRoot, "09-synthesis.png"), path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.preview));
+    run("ffmpeg", ["-y", ...reviewFrames.flatMap((entry) => ["-i", path.resolve(outputRoot, entry.file)]), "-filter_complex", "[0:v]scale=360:203[a];[1:v]scale=360:203[b];[2:v]scale=360:203[c];[3:v]scale=360:203[d];[4:v]scale=360:203[e];[5:v]scale=360:203[f];[6:v]scale=360:203[g];[7:v]scale=360:203[h];[8:v]scale=360:203[i];[9:v]scale=360:203[j];[a][b][c][d][e]hstack=inputs=5[top];[f][g][h][i][j]hstack=inputs=5[bottom];[top][bottom]vstack=inputs=2", "-frames:v", "1", path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.contactSheet)]);
 
     const mp4Probe = ffprobe(mp4);
     const webmProbe = ffprobe(webm);
@@ -421,41 +557,51 @@ async function main(): Promise<void> {
       masterAudio: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio, sha256: await sha256(masterAudio), ffprobe: privacySafeProbe(audioProbe) },
       preview: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.preview, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.preview)) },
       contactSheet: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.contactSheet, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.contactSheet)) },
+      captionsVtt: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.captionsVtt, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.captionsVtt)) },
+      captionsSrt: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.captionsSrt, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.captionsSrt)) },
       speakerTimeline: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline)) },
       visualStateTimeline: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.visualStateTimeline, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.visualStateTimeline)) },
+      evidenceTimeline: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.evidenceTimeline, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.evidenceTimeline)) },
     };
     const manifest = {
       schemaVersion: plan.schemaVersion,
-      artifactId: `voxy-dual-voice-explainer-pilot-01-${exactHeadSha.slice(0, 12)}`,
+      artifactId: `voxy-democracy-pilot-v1-1-${exactHeadSha.slice(0, 12)}`,
       exactHeadSha,
       technicalPilotGate: "passed",
       format: { width: plan.output.width, height: plan.output.height, fps: plan.output.fps, durationMs: plan.output.durationMs, frameCount: plan.output.frameCount },
       voices: {
-        voxy: { role: "voxy", voiceId: VOXY_SIGNATURE.voiceId, selectedVariantId: "e-02-warm-sovereign", gender: "male", privateReferencePathWithheld: true, localOfflineSynthesis: true },
-        editorial: { role: "editorial", voiceId: "de_DE/m-ailabs_low#ramona_deininger", gender: "female", localOfflineSynthesis: true },
+        voxy: { role: "voxy", voiceId: VOXY_SIGNATURE.voiceId, selectedVariantId: "e-02-warm-sovereign", genderPresentation: "male", privateReferencePathWithheld: true, acceptedPrivateReferenceSelectionVerified: true, localOfflineSynthesis: true },
+        editorial: { role: "editorial", voiceId: "de_DE/m-ailabs_low#ramona_deininger", genderPresentation: "female", localOfflineSynthesis: true },
       },
+      audioAssembly: { ...audioAssembly, acceptedVoxyReferenceSelectionManifestSha256: acceptedVoxyReference.selectionManifestSha256, maleVoxyActuallyInFinalMaster: true, femaleEditorialActuallyInFinalMaster: true },
       speakerTimeline: plan.speakerTimeline,
       visualStateTimeline: plan.visualStateTimeline,
+      evidenceTimeline: plan.evidenceTimeline,
       evidence: plan.evidence,
+      captions: plan.captions,
+      burnedInLowerText: false,
+      objectContinuity: plan.objectContinuity,
       mouth: { ...plan.mouth, editorialFramesUseClosedMouth: true, voxyOnlyLipSync: true },
       waveform: plan.waveform,
       visualCanon: { frozen: true, visualMasterHeadSha: plan.visualMasterHeadSha, sourceAssets: Object.fromEntries(await Promise.all(Object.entries(sourcePaths).map(async ([id, file]) => [id, { repositoryPath: path.relative(repositoryRoot, file), sha256: await sha256(file) }]))), characterRedesign: false, studioRedesign: false },
       rendering: { renderedFrames, duplicatedAdjacentFrames: plan.output.frameCount - renderedFrames, runtimeNetworkRequests: 0, externalVisualUploadUsed: false },
       privacy: { ...plan.privacy, artifactStoredOutsideGitWorktreeViaIgnoredLocalSymlink: true, privateRawReferencesInRepository: false, privateReferencePathsRecorded: false },
       files,
-      standframes,
+      reviewFrames,
       humanPilotAcceptance: "pending",
+      humanVoiceMappingAcceptance: "pending",
+      humanNews5VisualAcceptance: "pending",
       productionEligible: false,
       autoPublish: false,
       knownDeviations: [
         "private_human_review_required_for_voice_naturalness_and_final_visual_rhythm",
         "voxy_mouth_sync_uses_smoothed_audio_amplitude_not_phoneme_alignment",
         "twelve_unique_visual_updates_per_second_are_frame_doubled_to_twenty_four_fps",
-        "demo_fixture_objects_show_format_behavior_and_are_not_real_sources_or_statistics",
+        "demo_illustration_objects_show_format_behavior_and_are_not_real_sources_or_statistics",
       ],
     };
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.manifest), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-    console.info(JSON.stringify({ status: "VOXY_DUAL_VOICE_PILOT_PASS", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", humanPilotAcceptance: "pending", productionEligible: false, autoPublish: false }, null, 2));
+    console.info(JSON.stringify({ status: "VOXY_DUAL_VOICE_PILOT_V1_1_PASS", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", maleVoxyActuallyAudible: true, burnedInLowerText: false, humanPilotAcceptance: "pending", humanVoiceMappingAcceptance: "pending", humanNews5VisualAcceptance: "pending", productionEligible: false, autoPublish: false }, null, 2));
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }

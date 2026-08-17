@@ -258,46 +258,58 @@ export const VOXY_CANONICAL_INFORMATION_FLOW = [
 
 export const VOXY_DUAL_VOICE_PILOT_SEGMENTS = [
   {
-    id: "voxy-introduction",
+    id: "voxy-democracy-opening",
     speakerRole: "voxy",
     voiceId: VOXY_SIGNATURE.voiceId,
-    text: "Hallo Nachbar,\nich bin Voxy.\n\nUnd ich möchte dir zeigen, warum eDebatte mehr ist\nals eine weitere Plattform für politische Meinungen.",
+    text: "Hallo Nachbar.\n\nWir wählen.\nWir diskutieren.\nWir streiten.\n\nUnd trotzdem bleibt bei vielen Menschen\neine ziemlich einfache Frage:\n\nWird meine Stimme eigentlich gehört?",
   },
   {
-    id: "voxy-problem",
+    id: "voxy-headline-limits",
     speakerRole: "voxy",
     voiceId: VOXY_SIGNATURE.voiceId,
-    text: "Nehmen wir eine politische Frage.\nMeistens begegnen uns dazu Schlagzeilen,\neinzelne Zahlen und ziemlich schnell\nzwei gegensätzliche Lager.",
+    text: "Aber wenn wir wissen wollen,\nwie es unserer Demokratie wirklich geht,\nreicht eine Schlagzeile nicht.",
   },
   {
-    id: "editorial-context",
+    id: "editorial-democracy-dimensions",
     speakerRole: "editorial",
     voiceId: EDITORIAL_VOICE.voiceId,
-    text: "eDebatte führt Quellen, Argumente und unterschiedliche\nPerspektiven zusammen.\nDabei wird sichtbar, was belegt ist,\nwo Aussagen einander widersprechen\nund welche Fragen noch offen sind.",
+    text: "Denn Vertrauen,\npolitische Beteiligung\nund das Gefühl, selbst etwas bewirken zu können,\nbeschreiben unterschiedliche Seiten derselben Demokratie.",
   },
   {
-    id: "voxy-return",
-    speakerRole: "voxy",
-    voiceId: VOXY_SIGNATURE.voiceId,
-    text: "Und genau hier komme ich wieder ins Spiel.\nIch sage dir nicht, welche Seite recht hat.",
-  },
-  {
-    id: "voxy-reflection",
-    speakerRole: "voxy",
-    voiceId: VOXY_SIGNATURE.voiceId,
-    text: "Ich helfe dir dabei, selbst herauszufinden,\nwas du davon hältst.",
-  },
-  {
-    id: "editorial-summary",
+    id: "editorial-look-closer",
     speakerRole: "editorial",
     voiceId: EDITORIAL_VOICE.voiceId,
-    text: "Kurz gesagt:\nverstehen, prüfen, einordnen\nund anschließend selbst entscheiden.",
+    text: "Ein einzelner Wert kann steigen,\nwährend ein anderer fällt.\n\nDas ist kein Widerspruch.\n\nEs bedeutet,\ndass wir genauer hinschauen müssen.",
   },
   {
-    id: "voxy-closing",
+    id: "voxy-distinction",
     speakerRole: "voxy",
     voiceId: VOXY_SIGNATURE.voiceId,
-    text: "Das ist eDebatte.\nUnd ich bin Voxy.",
+    text: "Genau deshalb trennen wir\nGefühl,\nBefund\nund offene Frage.",
+  },
+  {
+    id: "editorial-open-questions",
+    speakerRole: "editorial",
+    voiceId: EDITORIAL_VOICE.voiceId,
+    text: "Was wissen wir?\n\nWas spricht für eine Erklärung?\n\nWas spricht dagegen?\n\nUnd was wissen wir noch nicht?",
+  },
+  {
+    id: "editorial-synthesis",
+    speakerRole: "editorial",
+    voiceId: EDITORIAL_VOICE.voiceId,
+    text: "Erst zusammen entsteht ein Bild,\ndas mehr zeigt als eine einzelne Zahl\noder eine einzelne Meinung.",
+  },
+  {
+    id: "voxy-democracy-reflection",
+    speakerRole: "voxy",
+    voiceId: VOXY_SIGNATURE.voiceId,
+    text: "Vielleicht ist die spannendere Frage also nicht nur,\nob Demokratie funktioniert.\n\nSondern wo Menschen erleben,\ndass sie nicht mehr funktioniert.",
+  },
+  {
+    id: "voxy-verifiability",
+    speakerRole: "voxy",
+    voiceId: VOXY_SIGNATURE.voiceId,
+    text: "Du musst mir dabei nichts glauben.\n\nDu sollst es prüfen können.",
   },
 ] as const satisfies readonly {
   id: string;
@@ -310,7 +322,7 @@ export const VOXY_DUAL_VOICE_PILOT_CONTRACT = {
   taskId: "VOXY-DUAL-VOICE-EXPLAINER-PILOT-01",
   status: "review",
   implementationInCurrentPass: true,
-  title: "Was ist eDebatte?",
+  title: "Demokratie — Human-Review Correction Pass v1.1",
   privateHumanReviewEvidence: true,
   format: { width: 1920, height: 1080, fps: 24, durationSeconds: { min: 45, max: 60 } },
   requiredOutputs: [
@@ -321,6 +333,9 @@ export const VOXY_DUAL_VOICE_PILOT_CONTRACT = {
     "contact_sheet",
     "speaker-timeline.json",
     "visual-state-timeline.json",
+    "evidence-timeline.json",
+    "captions.de.vtt",
+    "captions.de.srt",
     "manifest.json",
   ],
   speakerTimelineFields: ["start", "end", "speakerRole", "voiceId", "text"],
@@ -353,7 +368,7 @@ export function validateVoxyDualVoiceArchitecture(): string[] {
   if (Object.values(VOXY_DUAL_VOICE_ACCEPTANCE).includes("pending" as never)) errors.push("human_acceptance_pending");
   if (VOXY_DUAL_VOICE_PILOT_SEGMENTS.some((segment) => segment.speakerRole === "voxy" && segment.voiceId !== VOXY_SIGNATURE.voiceId)) errors.push("voxy_voice_selection_implicit_or_invalid");
   if (VOXY_DUAL_VOICE_PILOT_SEGMENTS.some((segment) => segment.speakerRole === "editorial" && segment.voiceId !== EDITORIAL_VOICE.voiceId)) errors.push("editorial_voice_selection_implicit_or_invalid");
-  if (!VOXY_DUAL_VOICE_PILOT_SEGMENTS[0].text.startsWith(`${VOXY_DIRECT_ADDRESS_GREETING.text}\n`) || VOXY_DUAL_VOICE_PILOT_SEGMENTS.slice(1).some((segment) => segment.text.includes(VOXY_DIRECT_ADDRESS_GREETING.text))) errors.push("direct_address_greeting_invalid");
+  if (!/^Hallo Nachbar[,.]\n/.test(VOXY_DUAL_VOICE_PILOT_SEGMENTS[0].text) || VOXY_DUAL_VOICE_PILOT_SEGMENTS.slice(1).some((segment) => /Hallo Nachbar[,.]/.test(segment.text))) errors.push("direct_address_greeting_invalid");
   if (VOXY_DIRECT_ADDRESS_GREETING.editorialUsesGreeting || VOXY_DIRECT_ADDRESS_GREETING.brandNarrativeException) errors.push("direct_address_greeting_role_or_canon_invalid");
   if (VOXY_SPEAKER_ROLE_RULES.editorial.voxyMouth !== "neutral_or_closed_no_editorial_lip_sync") errors.push("editorial_voxy_lip_sync_forbidden");
   if (VOXY_SPEAKER_ROLE_RULES.waveform.count !== 1 || VOXY_SPEAKER_ROLE_RULES.waveform.speakerChangeCreatesSecondWaveform) errors.push("single_waveform_contract_failed");
