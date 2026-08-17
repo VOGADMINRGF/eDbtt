@@ -36,6 +36,13 @@ jobs:
       - run: pnpm -C apps/web run test:production-guardrails
       - run: node scripts/ci/check-web-critical-guardrails.mjs
 
+      - name: Focused Voxy self-hosted motion contracts
+        run: >-
+          pnpm -C apps/web exec vitest run
+          tests/voxy-animatable-master-asset.contract.test.ts
+          tests/voxy-self-hosted-motion-strategy.contract.test.ts
+          tests/voxy-character-motion-fixture.contract.test.ts
+
       - name: Focused Create runtime contracts
         run: >-
           pnpm -C apps/web exec vitest run
