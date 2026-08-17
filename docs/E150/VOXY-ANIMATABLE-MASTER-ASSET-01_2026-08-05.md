@@ -1,6 +1,6 @@
 # VOXY-ANIMATABLE-MASTER-ASSET-01
 
-Stand: 2026-08-15
+Stand: 2026-08-17
 
 ## Verbindlicher visueller Review-Stand
 
@@ -679,3 +679,125 @@ Status bleibt `humanVisualAcceptance = accepted`,
 `humanVoiceWinner = pending`, `productionEligible = false` und
 `autoPublish = false`. Es gibt keinen Production-, Publishing- oder weiteren
 Motion-Schritt.
+
+## VOXY Signature Voice Final Pass (2026-08-17)
+
+Die menschliche Prüfung des First-Party-Bake-offs am Exact Head
+`5a465a339c453acc2f8206f84d85f009bbf3d037` bewertet B — Ricky Calm und C —
+Voxy jeweils als `GOOD / KEEP`. A wird nicht weiter optimiert. B und C bleiben
+als akzeptierte Entwicklungsreferenzen vollständig erhalten; ein Vorher-/
+Nachher-Vergleich bindet alle Dateien beider Kandidaten bytegleich. Auch die
+beiden autorisierten Originalaufnahmen bleiben read-only und bytegleich. Weder
+Originale noch Referenzsegmente oder private Referenzpfade gelangen in Git,
+PR-Artefakte, `public/`, Vercel oder Production.
+
+Die neue Zielsetzung ist keine möglichst genaue Imitation einer menschlichen
+Ausgangsstimme, sondern eine eigenständige VOXY Voice Identity. Der lokale
+Final-Pass führt dazu drei getrennte Delivery Modes ein:
+
+| Mode | Entwicklungsreferenz | Gewählte Parameter | Primärtest | Dauer |
+| --- | --- | --- | --- | ---: |
+| D — VOXY EDITORIAL | B — Ricky Calm | `exaggeration=0.42`, `cfgWeight=0.33`, `temperature=0.68`, `seed=58942` | Editorial | 21,080 s |
+| E — VOXY SIGNATURE | Souveränität von B plus Wärme von C, ausschließlich als Parameter-/Delivery-Referenz | `exaggeration=0.46`, `cfgWeight=0.34`, `temperature=0.68`, `seed=58952` | Signature Intro | 12,930 s |
+| F — VOXY EXPLAINER | C — Voxy | `exaggeration=0.47`, `cfgWeight=0.33`, `temperature=0.70`, `seed=58962` | Explainer | 18,152 s |
+
+B und C werden nicht als Audiodateien gemischt. Pro Modus werden genau zwei
+nahe, sinnvolle Varianten geprüft. Ein technischer Score bestimmt keinen
+Sieger; die gewählten Varianten bilden nur die beabsichtigte Delivery für den
+menschlichen Hörvergleich ab. D nutzt B als ruhige Basis mit etwas freiererem
+Gedankenbogen, E verbindet B-artige Ruhe mit C-artiger Wärme, und F zügelt die
+C-nahe Lebendigkeit leicht.
+
+Alle drei Modi sprechen dieselben drei verbindlichen Situationen: Signature
+Intro, Editorial und Explainer. Die sichtbaren Texte bleiben exakt erhalten.
+`spoken-script.json` dokumentiert ausschließlich interne Satzgruppierung,
+Interpunktion, Pausentiming, Aussprache-Aliasse und prosodische Segmentierung;
+es gibt keine neue Aussage oder Bedeutungsänderung. Die Aufteilung verbindet
+zusammengehörige Sätze zu Gedankenbögen und vermeidet eine identische Pause
+nach jedem Punkt.
+
+Die private lokale Evidence liegt vollständig außerhalb des Git-Worktrees und
+enthält pro Modus `raw.wav`, `finished.wav`, `parameters.json` sowie RAW- und
+Finished-WAV für alle drei Testsituationen. Zusätzlich enthält sie die kleine
+Parameter-Suche, `voxy-signature-finalists.wav` in der Reihenfolge D → E → F,
+`voxy-three-situations.wav` in der Reihenfolge Test 1/2/3 mit jeweils D → E →
+F, `spoken-script.json`, `manifest.json` und `README.md`. Es wurde kein
+Preview-Video erzeugt und keine visuelle Datei verändert.
+
+Das Finishing verwendet nur lineare Lautheitsnormalisierung und Peak-Kontrolle
+bei 24 kHz Mono PCM. D, E und F liegen ohne Clipping bei rund −18 LUFS und
+höchstens −1,48 bis −1,50 dBTP; alle RAW- und Finished-Takes bestehen den
+PerTh-Wasserzeichentest. Hall, Voice-Changer, Pitch-Effekt, künstlicher Bass,
+Exciter, Radio-Kompression, hörbarer De-Esser und starke Noise-Bearbeitung
+bleiben ausgeschlossen. Die Offline-Laufzeit meldet null Netzwerkanfragen.
+
+Der technische Final-Pass ist `PASS`. E bleibt ausschließlich
+`primary_canon_candidate`; es gibt keine automatische Sieger- oder
+Canon-Entscheidung. Status:
+
+- `voiceB = development_reference_accepted`;
+- `voiceC = development_reference_accepted`;
+- `voiceD = human_review`;
+- `voiceE = primary_canon_candidate`;
+- `voiceF = human_review`;
+- `humanAudioAcceptance = pending`;
+- `humanVoiceWinner = pending`;
+- `productionEligible = false`;
+- `autoPublish = false`.
+
+PR #589 bleibt Draft. Es gibt keinen Merge, kein Ready-for-Review, kein
+Deployment, keinen Upload und kein Publishing.
+
+## Angenommene Dual-Voice-Architektur und News-5.0-Grammatik (2026-08-17)
+
+Die nachfolgende menschliche Produktentscheidung schließt die offene
+Rollenwahl des Signature-Final-Pass ab, ohne dessen historisches Manifest oder
+die B/C/D/E/F-Bake-off-Evidence umzuschreiben:
+
+- `humanVoiceArchitectureAcceptance = accepted`;
+- `voxyMaleSignatureAcceptance = accepted`;
+- `editorialFemaleVoiceAcceptance = accepted`.
+
+E — VOXY SIGNATURE ist als männliche `VOXY_SIGNATURE` mit der lokalen Voice-ID
+`voxy-signature-e-5a465a33` und Variante `e-02-warm-sovereign` angenommen.
+Diese Stimme gehört ausschließlich Voxy. Documentary Candidate A — Ramona
+Deininger ist als weibliche `EDITORIAL_VOICE` mit der vorhandenen lokalen
+Voice-ID `de_DE/m-ailabs_low#ramona_deininger` angenommen. Sie erklärt,
+verdichtet und fasst zusammen, ist aber ausdrücklich keine weibliche Voxy-
+Variante. Die bereits versionierte Mimic-3-, Modell-, Dataset-, Lizenz-,
+Attributions-, Weight-SHA- und Offline-Provenienz bleibt bindend.
+
+Jeder gesprochene Block erhält explizit `speakerRole = "voxy" | "editorial"`
+und die dazugehörige `voiceId`. Wenn Editorial spricht, bleibt Voxys Mund
+neutral oder geschlossen; es gibt kein Editorial-Lip-Sync, keinen zweiten
+Avatar und keine zweite Waveform. Charakter, Kopf, Kopfhörer, Jacke, Pin,
+Pocket-Mark, Mouth v4.1, Anchor, Pivot, Studio und Kamera bleiben eingefroren.
+Bei direkter Zuschaueransprache eröffnet Voxy den zusammenhängenden Beitrag
+genau einmal mit „Hallo Nachbar,“. Weitere Voxy-Segmente und Editorial
+wiederholen diese Begrüßung nicht. Die bestehende Brand Narrative bleibt
+unverändert und gilt auch für Voxy-Videoformate.
+
+Die verbindliche News-5.0-Grammatik umfasst `HOST`, `FOCUS`, `EXPLAIN`, `DOCK`
+und `SYNTHESIS`. Voxy bleibt Gastgeber, tritt bei konkreter Information aber
+sichtbar zurück. Quellen, Charts, Karten, Dokumente und andere
+Informationsobjekte dürfen die visuelle Hauptrolle übernehmen, werden entlang
+der Erklärung aufgebaut und danach kontrolliert in das dynamische visuelle
+Evidence-Gedächtnis rechts gedockt. Die Zone ist keine statische Sidebar;
+gedockte Evidence darf erneut fokussiert und in der Synthese gemeinsam gezeigt
+werden.
+
+Source-first priorisiert Originalquelle oder Originaldaten vor einer
+nachvollziehbar abgeleiteten Visualisierung und diese vor einer klar
+gekennzeichneten redaktionellen Zusammenfassung. Erfundenen Charts,
+dekorativen Fake-Daten und Quellen nur im Kleingedruckten wird ausdrücklich
+widersprochen. Die Animation folgt der Information; ein Chart darf schrittweise
+von Achse und relevanter Reihe über Zeitraum, Vergleich und Markierung bis zum
+vollständigen Kontext aufgebaut werden.
+
+Der vollständige Vertrag und der separate nächste Task
+`VOXY-DUAL-VOICE-EXPLAINER-PILOT-01` stehen in
+`docs/E150/VOXY-DUAL-VOICE-EXPLAINER-PILOT-01_2026-08-17.md`. In diesem
+Durchgang wurde der 45- bis 60-sekündige private Pilot nur manifestiert, nicht
+gerendert oder implementiert. Es wurde keine allgemeine autonome
+News-Produktion eingeführt. `productionEligible = false`,
+`autoPublish = false`; PR #589 bleibt Draft.
