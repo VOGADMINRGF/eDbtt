@@ -8,7 +8,7 @@ import {
   VOXY_DUAL_VOICE_PILOT_EVIDENCE,
   speakerAt,
   visualStateAt,
-  type VoxyDualVoicePilotPlan,
+  type VoxyExplainerPilotPlan,
   type VoxyDualVoicePilotVisualEntry,
 } from "./dualVoiceExplainerPilot";
 
@@ -118,7 +118,7 @@ function renderHostPrompt(speakerId: string | undefined, atSeconds: number, spea
 }
 
 export function renderVoxyDualVoicePilotFrameHtml(input: {
-  plan: VoxyDualVoicePilotPlan;
+  plan: VoxyExplainerPilotPlan;
   assets: VoxyMotionV4EmbeddedAssets;
   frameIndex: number;
   amplitude: number;

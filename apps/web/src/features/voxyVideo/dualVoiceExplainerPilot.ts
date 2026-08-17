@@ -29,6 +29,17 @@ export const VOXY_DUAL_VOICE_PILOT_OUTPUT = {
   durationSeconds: { min: 45, max: 90 },
 } as const;
 
+export const VOXY_SINGLE_VOICE_REVIEW_SCHEMA_VERSION =
+  "voxy-single-voice-human-ab-test-v1.3" as const;
+
+export const VOXY_SINGLE_VOICE_REVIEW_OUTPUT = {
+  ...VOXY_DUAL_VOICE_PILOT_OUTPUT,
+  directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.3-single-voice",
+  mp4: "voxy-democracy-pilot-v1.3-single-voice.mp4",
+  webm: "voxy-democracy-pilot-v1.3-single-voice.webm",
+  comparisonNotes: "ab-comparison-notes.md",
+} as const;
+
 export type VoxyDualVoicePilotVisualState =
   | "HOST"
   | "FOCUS"
@@ -114,6 +125,15 @@ export const VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS =
     spokenText: segment.text.replaceAll("Voxy", "Woxi"),
     pauseAfterMs: PAUSE_AFTER_MS[segment.id] ?? 0,
     voiceBinding: VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS[segment.speakerRole],
+  }));
+
+export const VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS =
+  VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => ({
+    ...segment,
+    speakerRole: "voxy" as const,
+    voiceId: VOXY_SIGNATURE.voiceId,
+    voiceBinding: VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS.voxy,
+    originalSpeakerRole: segment.speakerRole,
   }));
 
 const roundSeconds = (milliseconds: number): number =>
@@ -263,6 +283,62 @@ export function buildVoxyDualVoicePilotPlan(
 
 export type VoxyDualVoicePilotPlan = ReturnType<typeof buildVoxyDualVoicePilotPlan>;
 
+export function buildVoxySingleVoiceReviewPlan(
+  exactHeadSha: string,
+  speechDurationsMs: readonly number[],
+) {
+  const dualDerivedPlan = buildVoxyDualVoicePilotPlan(exactHeadSha, speechDurationsMs);
+  return {
+    ...dualDerivedPlan,
+    schemaVersion: VOXY_SINGLE_VOICE_REVIEW_SCHEMA_VERSION,
+    reviewVariant: "single_voice_human_ab_test",
+    dualVoiceBaseline: "v1.3",
+    output: {
+      ...VOXY_SINGLE_VOICE_REVIEW_OUTPUT,
+      durationMs: dualDerivedPlan.output.durationMs,
+      frameCount: dualDerivedPlan.output.frameCount,
+    },
+    speakerTimeline: dualDerivedPlan.speakerTimeline.map((entry) => ({
+      ...entry,
+      speakerRole: "voxy" as const,
+      voiceId: VOXY_SIGNATURE.voiceId,
+    })),
+    activeVoiceBindings: {
+      voxy: VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS.voxy,
+    },
+    canonicalArchitectureUnchanged: true,
+    mouth: {
+      ...dualDerivedPlan.mouth,
+      activeForEverySpokenSegment: true,
+      editorialMouth: "not_applicable_single_voice_review",
+    },
+    technicalSingleVoiceTest: "passed",
+    humanSingleVsDualPreference: "pending",
+  } as const;
+}
+
+export type VoxySingleVoiceReviewPlan = ReturnType<typeof buildVoxySingleVoiceReviewPlan>;
+export type VoxyExplainerPilotPlan = VoxyDualVoicePilotPlan | VoxySingleVoiceReviewPlan;
+
+export function validateVoxySingleVoiceReviewPlan(plan: VoxySingleVoiceReviewPlan): string[] {
+  const errors: string[] = [];
+  const durationSeconds = plan.output.durationMs / 1_000;
+  if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) errors.push("exact_head_invalid");
+  if (plan.output.width !== 1920 || plan.output.height !== 1080 || plan.output.fps !== 24 || durationSeconds < 45 || durationSeconds > 90) errors.push("media_contract_invalid");
+  if (plan.reviewVariant !== "single_voice_human_ab_test" || plan.dualVoiceBaseline !== "v1.3" || !plan.canonicalArchitectureUnchanged) errors.push("non_canonical_review_scope_invalid");
+  if (plan.speakerTimeline.length !== VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS.length || plan.speakerTimeline.some((entry) => entry.start >= entry.end)) errors.push("speaker_timeline_invalid");
+  if (plan.speakerTimeline.some((entry) => entry.speakerRole !== "voxy" || entry.voiceId !== VOXY_SIGNATURE.voiceId)) errors.push("single_d1_voice_gate_invalid");
+  if (plan.speakerTimeline.map((entry) => entry.text).join("\n") !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((entry) => entry.text).join("\n")) errors.push("ab_script_changed");
+  if (plan.visualStateTimeline.map((entry) => entry.state).join(",") !== "HOST,FOCUS,EXPLAIN,DOCK,HOST,FOCUS,EXPLAIN,DOCK,SYNTHESIS,HOST") errors.push("news_5_sequence_invalid");
+  if (!plan.objectContinuity.sameEvidenceId || !plan.objectContinuity.sameVisualIdentity || !plan.objectContinuity.scaleAndTranslation || plan.objectContinuity.hardSubstitution || plan.objectContinuity.crossfadeToDifferentObject) errors.push("object_continuity_invalid");
+  if (plan.waveform.count !== 1 || plan.waveform.secondWaveform || !plan.waveform.reactsToActiveVoice) errors.push("single_waveform_contract_invalid");
+  if (plan.mouth.syncSpeakerRole !== "voxy" || !plan.mouth.activeForEverySpokenSegment || plan.mouth.shapesChanged || plan.mouth.anchorChanged || plan.mouth.pivotChanged) errors.push("single_voice_mouth_contract_invalid");
+  if (plan.activeVoiceBindings.voxy.candidateId !== "D1" || plan.activeVoiceBindings.voxy.voiceId !== VOXY_SIGNATURE.voiceId || Object.keys(plan.activeVoiceBindings).length !== 1) errors.push("active_voice_binding_invalid");
+  if (plan.canonicalVoxyVoice !== "D1 Conversational Dynamic" || plan.canonicalEditorialVoice !== "W1 Natural Editorial" || plan.humanVoxyVoiceAcceptance !== "accepted" || plan.humanEditorialVoiceAcceptance !== "accepted") errors.push("canonical_voice_acceptance_changed");
+  if (plan.technicalSingleVoiceTest !== "passed" || plan.humanSingleVsDualPreference !== "pending" || plan.productionEligible || plan.autoPublish || plan.privacy.publicArtifact || plan.privacy.upload) errors.push("review_release_gate_invalid");
+  return errors;
+}
+
 export function validateVoxyDualVoicePilotPlan(plan: VoxyDualVoicePilotPlan): string[] {
   const errors: string[] = [];
   const durationSeconds = plan.output.durationMs / 1_000;
@@ -291,10 +367,10 @@ export function validateVoxyDualVoicePilotPlan(plan: VoxyDualVoicePilotPlan): st
   return errors;
 }
 
-export function speakerAt(plan: VoxyDualVoicePilotPlan, atSeconds: number) {
+export function speakerAt(plan: VoxyExplainerPilotPlan, atSeconds: number) {
   return plan.speakerTimeline.find((entry) => atSeconds >= entry.start && atSeconds < entry.end) ?? null;
 }
 
-export function visualStateAt(plan: VoxyDualVoicePilotPlan, atSeconds: number) {
+export function visualStateAt(plan: VoxyExplainerPilotPlan, atSeconds: number) {
   return plan.visualStateTimeline.find((entry) => atSeconds >= entry.start && atSeconds < entry.end) ?? plan.visualStateTimeline.at(-1)!;
 }

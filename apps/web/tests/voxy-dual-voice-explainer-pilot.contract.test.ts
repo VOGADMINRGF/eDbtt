@@ -9,12 +9,16 @@ import {
   VOXY_DUAL_VOICE_PILOT_EVIDENCE,
   VOXY_DUAL_VOICE_PILOT_OUTPUT,
   VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS,
+  VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS,
+  VOXY_SINGLE_VOICE_REVIEW_OUTPUT,
   assertVoxyPilotVoiceBinding,
   buildVoxyDualVoicePilotPlan,
+  buildVoxySingleVoiceReviewPlan,
   buildVoxyDualVoicePilotSrt,
   buildVoxyDualVoicePilotVtt,
   speakerAt,
   validateVoxyDualVoicePilotPlan,
+  validateVoxySingleVoiceReviewPlan,
   visualStateAt,
 } from "../src/features/voxyVideo/dualVoiceExplainerPilot";
 import { renderVoxyDualVoicePilotFrameHtml } from "../src/features/voxyVideo/dualVoiceExplainerPilotHtml";
@@ -22,6 +26,10 @@ import { VOXY_FIRST_PARTY_VISUAL_BINDING } from "../src/features/voxyVideo/first
 
 const exactHead = "a".repeat(40);
 const plan = buildVoxyDualVoicePilotPlan(
+  exactHead,
+  [9_000, 4_500, 6_500, 6_000, 3_500, 5_500, 5_000, 6_500, 3_500],
+);
+const singleVoicePlan = buildVoxySingleVoiceReviewPlan(
   exactHead,
   [9_000, 4_500, 6_500, 6_000, 3_500, 5_500, 5_000, 6_500, 3_500],
 );
@@ -202,5 +210,60 @@ describe("VOXY dual-voice democracy pilot v1.3", () => {
     }
     expect(plan.visualStateTimeline[0]?.start).toBe(0);
     expect(plan.visualStateTimeline.at(-1)?.end).toBe(plan.output.durationMs / 1_000);
+  });
+});
+
+describe("VOXY single-voice human A/B review variant", () => {
+  it("uses D1 for every unchanged spoken segment without changing the canonical voice decisions", () => {
+    expect(singleVoicePlan.speakerTimeline).toHaveLength(9);
+    expect(singleVoicePlan.speakerTimeline.every((entry) => entry.speakerRole === "voxy" && entry.voiceId === VOXY_SIGNATURE.voiceId)).toBe(true);
+    expect(VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS.every((entry) => entry.voiceBinding.candidateId === "D1")).toBe(true);
+    expect(singleVoicePlan.speakerTimeline.map((entry) => entry.text)).toEqual(plan.speakerTimeline.map((entry) => entry.text));
+    expect(singleVoicePlan).toMatchObject({
+      reviewVariant: "single_voice_human_ab_test",
+      dualVoiceBaseline: "v1.3",
+      canonicalArchitectureUnchanged: true,
+      technicalSingleVoiceTest: "passed",
+      humanSingleVsDualPreference: "pending",
+      canonicalVoxyVoice: "D1 Conversational Dynamic",
+      canonicalEditorialVoice: "W1 Natural Editorial",
+      humanVoxyVoiceAcceptance: "accepted",
+      humanEditorialVoiceAcceptance: "accepted",
+      productionEligible: false,
+      autoPublish: false,
+    });
+    expect(Object.keys(singleVoicePlan.activeVoiceBindings)).toEqual(["voxy"]);
+    expect(validateVoxySingleVoiceReviewPlan(singleVoicePlan)).toEqual([]);
+  });
+
+  it("keeps the v1.3 visual grammar while D1 mouth sync remains active in EXPLAIN", () => {
+    expect(singleVoicePlan.visualStateTimeline).toEqual(plan.visualStateTimeline);
+    expect(singleVoicePlan.visualStateTimeline.map((entry) => entry.state)).toEqual([
+      "HOST", "FOCUS", "EXPLAIN", "DOCK", "HOST",
+      "FOCUS", "EXPLAIN", "DOCK", "SYNTHESIS", "HOST",
+    ]);
+    const explain = singleVoicePlan.visualStateTimeline.find((entry) => entry.state === "EXPLAIN")!;
+    const frameIndex = Math.floor((explain.start + 0.5) * singleVoicePlan.output.fps);
+    const html = renderVoxyDualVoicePilotFrameHtml({ plan: singleVoicePlan, assets, frameIndex, amplitude: 0.9 });
+    expect(html).toContain('data-speaker-role="voxy"');
+    expect(html).toContain('data-editorial-mouth-neutral="false"');
+    expect(html).toContain('data-mouth-next-state="speakingOpen"');
+    expect(html).toContain('data-pilot-state="EXPLAIN"');
+  });
+
+  it("writes the additive private output separately from the unchanged v1.3 baseline", () => {
+    expect(VOXY_SINGLE_VOICE_REVIEW_OUTPUT).toMatchObject({
+      directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.3-single-voice",
+      mp4: "voxy-democracy-pilot-v1.3-single-voice.mp4",
+      webm: "voxy-democracy-pilot-v1.3-single-voice.webm",
+      masterAudio: "master-audio.wav",
+      preview: "preview.png",
+      contactSheet: "contact-sheet.png",
+      speakerTimeline: "speaker-timeline.json",
+      visualStateTimeline: "visual-state-timeline.json",
+      manifest: "manifest.json",
+      comparisonNotes: "ab-comparison-notes.md",
+    });
+    expect(VOXY_SINGLE_VOICE_REVIEW_OUTPUT.directory).not.toBe(VOXY_DUAL_VOICE_PILOT_OUTPUT.directory);
   });
 });
