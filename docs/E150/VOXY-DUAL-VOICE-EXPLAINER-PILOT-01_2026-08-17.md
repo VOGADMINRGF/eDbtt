@@ -214,3 +214,68 @@ Bekannte Restabweichungen:
   keine realen Quellen, Statistiken oder Produktdaten;
 - `humanPilotAcceptance = pending`, `productionEligible = false` und
   `autoPublish = false` bleiben unverändert.
+
+## Human-Review Correction Pass v1.1 — 2026-08-17
+
+Der bestehende technische Pilot bleibt unverändert erhalten. Der ausdrücklich
+autorisierte Correction Pass liegt separat unter
+`artifacts/voxy-dual-voice-explainer-pilot-01/v1.1/` und simuliert einen
+redaktionellen Demokratie-Beitrag ohne aktuelle Tatsachenbehauptung. Alle drei
+Informationsobjekte sind sichtbar als `DEMO · ILLUSTRATION` gekennzeichnet:
+
+- E1 `democracy-trust`: illustrierter Vertrauensverlauf ohne reale Werte;
+- E2 `democracy-participation`: eigenständiger illustrierter
+  Beteiligungsindikator;
+- E3 `democracy-open-question`: „Fühlen sich Menschen politisch wirksam?“.
+
+Der revisionsgebundene Render auf Exact Head
+`afc6cccfc81df0e0f6b7ba8f9c7d462853e94dcb` hat den technischen Gate
+bestanden. Artifact-ID: `voxy-democracy-pilot-v1-1-afc6cccfc81d`. FFprobe
+bestätigt 1920 × 1080, 24 fps, H.264/AAC im MP4, VP9/Opus im WebM sowie
+56,005 Sekunden MP4-/WAV-Dauer; die WebM-Containerdauer beträgt 56,013
+Sekunden.
+
+Die neun Sprechersegmente setzen das verbindliche Demokratie-Skript um. Voxy
+spricht ausschließlich mit der männlichen Signature-Stimme
+`voxy-signature-e-5a465a33`, Variante `e-02-warm-sovereign`; Editorial
+ausschließlich mit der weiblichen Stimme
+`de_DE/m-ailabs_low#ramona_deininger`. Der Renderer verifiziert die akzeptierte
+private First-Party-Referenzauswahl und ihren ausgewählten Segment-Hash, bindet
+die Synthese-Backends hart an die Rollen und bricht bei jeder Kreuzung
+geschlossen ab. Zusätzlich werden alle normalisierten Segmente auf
+Nicht-Stille und ihre PCM-identische Präsenz im finalen WAV-Master geprüft.
+Das Manifest bestätigt für alle neun Segmente `pcmIdentityMatch = true`, keine
+Rollen-/Voice-Kreuzung und beide Stimmen tatsächlich im finalen Master.
+
+Gesprochene Sätze werden nicht im Bild wiederholt. Accessibility-Untertitel
+liegen ausschließlich separat als `captions.de.vtt` und `captions.de.srt` vor;
+`burnedInLowerText = false`. Sichtbarer Text beschränkt sich auf semantische
+Frage-, Evidence- und Herkunftsangaben.
+
+E1 und E2 verwenden in `FOCUS`, `EXPLAIN`, der kontinuierlichen
+Scale-/Translation-Bewegung nach `DOCK` und im dynamischen Gedächtnis jeweils
+dieselbe `evidenceId` und `visualIdentity`. Es gibt weder harte Substitution
+noch Crossfade auf ein anderes Objekt. In `SYNTHESIS` werden E1 und E2 sichtbar
+in Beziehung gesetzt und E3 als offene Frage abgeleitet, nicht als dritter
+unabhängiger Kartenstapel. Der zehnteilige Review-Satz enthält ausdrücklich
+einen Frame mitten im ersten FOCUS→DOCK-Morphing.
+
+Während Editorial spricht, bleibt Voxy sichtbar und subtil präsent, sein Mund
+jedoch neutral geschlossen und ohne amplitudenbasierte Bewegung; das
+Informationsobjekt übernimmt den Fokus. Charakter, Studio, Mouth-v4.1-Geometrie,
+Pivot, Material-/Lichtwirkung und die einzelne aktive Waveform bleiben
+eingefroren.
+
+Das private v1.1-Paket enthält die benannten MP4-, WebM- und WAV-Dateien,
+separate VTT-/SRT-Untertitel, Preview, Contact Sheet, zehn Standframes,
+Speaker-, Visual-State- und Evidence-Timeline sowie ein SHA- und
+FFprobe-gebundenes Manifest. Der Privacy-Scan findet keine privaten
+Referenzpfade in den JSON-Artefakten. Die älteren Pilot-Artefakte im
+übergeordneten Ordner wurden nicht überschrieben.
+
+Der Pass ist ausschließlich technische Human-Review-Evidence:
+`technicalPilotGate = passed`, `humanPilotAcceptance = pending`,
+`humanVoiceMappingAcceptance = pending`,
+`humanNews5VisualAcceptance = pending`, `productionEligible = false` und
+`autoPublish = false`. Es erfolgten weder Upload, Deployment, Publishing noch
+eine Produktionsfreigabe.
