@@ -109,7 +109,7 @@ export function renderVoxyDualVoicePilotFrameHtml(input: {
   const editorial = speaker?.speakerRole === "editorial";
   const audioMouth = buildVoxyAudioMouthFrame(input.amplitude);
   const mouth = editorial
-    ? { mouthState: "neutral" as const, mouthNextState: "closed" as const, mouthMix: 0 }
+    ? { mouthState: "closed" as const, mouthNextState: "neutral" as const, mouthMix: 0 }
     : audioMouth;
   const sourceDurationFrames = 22 * input.plan.output.fps;
   const sourceFrameIndex = editorial

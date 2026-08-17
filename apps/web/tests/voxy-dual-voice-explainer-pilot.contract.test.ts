@@ -86,7 +86,7 @@ describe("VOXY dual-voice explainer pilot", () => {
     expect(speakerAt(plan, frameIndex / plan.output.fps)?.speakerRole).toBe("editorial");
     expect(html).toContain('data-speaker-role="editorial"');
     expect(html).toContain('data-editorial-mouth-neutral="true"');
-    expect(html).toContain('data-mouth-state="neutral"');
+    expect(html).toContain('data-mouth-state="closed"');
     expect(html).toContain('data-waveform-count="1"');
     expect(html).toContain('data-waveform-audio-reactive="true"');
     expect(html.match(/class="audio-waveform-reactive"/g)).toHaveLength(1);

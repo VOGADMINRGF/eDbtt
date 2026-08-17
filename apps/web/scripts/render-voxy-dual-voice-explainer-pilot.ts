@@ -288,34 +288,46 @@ async function main(): Promise<void> {
   await Promise.all([mkdir(rawRoot, { recursive: true }), mkdir(finishedRoot, { recursive: true }), mkdir(framesRoot, { recursive: true }), mkdir(standframesRoot, { recursive: true })]);
 
   try {
-    console.info("pilot_progress:synthesize_voxy_signature");
-    const voxyRaw = await synthesizeVoxySegments({ python: voxyPython, modelDir: voxyModelDir, reference: voxyReference, temporaryRoot, rawRoot });
-    const rawById = new Map(voxyRaw);
-    console.info("pilot_progress:synthesize_editorial_voice");
-    for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.filter((entry) => entry.speakerRole === "editorial")) {
-      rawById.set(segment.id, await synthesizeEditorialSegment({ mimic3Cache, segmentId: segment.id, spokenText: segment.spokenText, rawRoot }));
+    const masterAudio = path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio);
+    const reusableAudioRootArgument = argument("reuse-audio-root");
+    let speechDurationsMs: number[];
+    if (reusableAudioRootArgument) {
+      const reusableAudioRoot = path.resolve(reusableAudioRootArgument);
+      await assertOutsideRepository(repositoryRoot, reusableAudioRoot, "reusable_private_audio_root");
+      const reusableTimeline = JSON.parse(await readFile(path.resolve(reusableAudioRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline), "utf8")) as Array<{ start: number; end: number; speakerRole: string; voiceId: string; text: string }>;
+      if (reusableTimeline.length !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.length || reusableTimeline.some((entry, index) => entry.speakerRole !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS[index]?.speakerRole || entry.voiceId !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS[index]?.voiceId || entry.text !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS[index]?.text)) throw new Error("reusable_audio_timeline_contract_invalid");
+      speechDurationsMs = reusableTimeline.map((entry) => Math.round((entry.end - entry.start) * 1_000));
+      await copyFile(path.resolve(reusableAudioRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio), masterAudio);
+      console.info("pilot_progress:reuse_privacy_safe_synthesized_master_audio");
+    } else {
+      console.info("pilot_progress:synthesize_voxy_signature");
+      const voxyRaw = await synthesizeVoxySegments({ python: voxyPython, modelDir: voxyModelDir, reference: voxyReference, temporaryRoot, rawRoot });
+      const rawById = new Map(voxyRaw);
+      console.info("pilot_progress:synthesize_editorial_voice");
+      for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.filter((entry) => entry.speakerRole === "editorial")) {
+        rawById.set(segment.id, await synthesizeEditorialSegment({ mimic3Cache, segmentId: segment.id, spokenText: segment.spokenText, rawRoot }));
+      }
+      const fixedPaddingMs = 500 + 700 + VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + segment.pauseAfterMs, 0);
+      const rawSpeechDurationMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + durationMs(rawById.get(segment.id)!), 0);
+      const unadjustedDurationMs = rawSpeechDurationMs + fixedPaddingMs;
+      const targetDurationMs = unadjustedDurationMs < 45_000 ? 46_000 : 54_000;
+      const tempo = unadjustedDurationMs >= 45_000 && unadjustedDurationMs <= 60_000
+        ? 1
+        : rawSpeechDurationMs / (targetDurationMs - fixedPaddingMs);
+      if (tempo < 0.85 || tempo > 1.35) throw new Error(`required_tempo_adjustment_out_of_bounds:${tempo.toFixed(4)}`);
+      console.info(JSON.stringify({ pilot_progress: "audio_duration_fit", unadjustedDurationMs, targetDurationMs, tempo: Number(tempo.toFixed(6)) }));
+      const finishedById = new Map<string, string>();
+      for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
+        const finished = path.resolve(finishedRoot, `${segment.id}.wav`);
+        await normalizeAudio(rawById.get(segment.id)!, finished, tempo);
+        finishedById.set(segment.id, finished);
+      }
+      speechDurationsMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => durationMs(finishedById.get(segment.id)!));
+      await concatenateMaster({ finishedById, output: masterAudio, temporaryRoot });
     }
-    const fixedPaddingMs = 500 + 700 + VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + segment.pauseAfterMs, 0);
-    const rawSpeechDurationMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.reduce((sum, segment) => sum + durationMs(rawById.get(segment.id)!), 0);
-    const unadjustedDurationMs = rawSpeechDurationMs + fixedPaddingMs;
-    const targetDurationMs = unadjustedDurationMs < 45_000 ? 46_000 : 54_000;
-    const tempo = unadjustedDurationMs >= 45_000 && unadjustedDurationMs <= 60_000
-      ? 1
-      : rawSpeechDurationMs / (targetDurationMs - fixedPaddingMs);
-    if (tempo < 0.85 || tempo > 1.35) throw new Error(`required_tempo_adjustment_out_of_bounds:${tempo.toFixed(4)}`);
-    console.info(JSON.stringify({ pilot_progress: "audio_duration_fit", unadjustedDurationMs, targetDurationMs, tempo: Number(tempo.toFixed(6)) }));
-    const finishedById = new Map<string, string>();
-    for (const segment of VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS) {
-      const finished = path.resolve(finishedRoot, `${segment.id}.wav`);
-      await normalizeAudio(rawById.get(segment.id)!, finished, tempo);
-      finishedById.set(segment.id, finished);
-    }
-    const speechDurationsMs = VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((segment) => durationMs(finishedById.get(segment.id)!));
     const plan = buildVoxyDualVoicePilotPlan(exactHeadSha, speechDurationsMs);
     const planErrors = validateVoxyDualVoicePilotPlan(plan);
     if (planErrors.length) throw new Error(`pilot_plan_invalid:${planErrors.join(",")}`);
-    const masterAudio = path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio);
-    await concatenateMaster({ finishedById, output: masterAudio, temporaryRoot });
     if (Math.abs(durationMs(masterAudio) - plan.output.durationMs) > 120) throw new Error("master_audio_duration_drift");
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline), `${JSON.stringify(plan.speakerTimeline.map(({ id: _id, ...entry }) => entry), null, 2)}\n`, "utf8");
     await writeFile(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.visualStateTimeline), `${JSON.stringify(plan.visualStateTimeline, null, 2)}\n`, "utf8");
