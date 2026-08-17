@@ -61,6 +61,16 @@ function ffprobe(file: string): Probe {
   return JSON.parse(run("ffprobe", ["-v", "error", "-show_streams", "-show_format", "-of", "json", file])) as Probe;
 }
 
+function privacySafeProbe(probe: Probe): Probe {
+  return {
+    ...probe,
+    format: {
+      ...probe.format,
+      ...(probe.format.filename ? { filename: path.basename(probe.format.filename) } : {}),
+    },
+  };
+}
+
 function durationMs(file: string): number {
   return Math.round(Number(ffprobe(file).format.duration) * 1_000);
 }
@@ -406,9 +416,9 @@ async function main(): Promise<void> {
       if (!video || !audio || Number(video.width) !== 1920 || Number(video.height) !== 1080 || video.avg_frame_rate !== "24/1" || duration < 45 || duration > 60) throw new Error(`${label}_technical_media_gate_failed`);
     }
     const files = {
-      mp4: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.mp4, sha256: await sha256(mp4), ffprobe: mp4Probe },
-      webm: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.webm, sha256: await sha256(webm), ffprobe: webmProbe },
-      masterAudio: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio, sha256: await sha256(masterAudio), ffprobe: audioProbe },
+      mp4: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.mp4, sha256: await sha256(mp4), ffprobe: privacySafeProbe(mp4Probe) },
+      webm: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.webm, sha256: await sha256(webm), ffprobe: privacySafeProbe(webmProbe) },
+      masterAudio: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.masterAudio, sha256: await sha256(masterAudio), ffprobe: privacySafeProbe(audioProbe) },
       preview: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.preview, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.preview)) },
       contactSheet: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.contactSheet, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.contactSheet)) },
       speakerTimeline: { file: VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline, sha256: await sha256(path.resolve(outputRoot, VOXY_DUAL_VOICE_PILOT_OUTPUT.speakerTimeline)) },
@@ -427,7 +437,7 @@ async function main(): Promise<void> {
       speakerTimeline: plan.speakerTimeline,
       visualStateTimeline: plan.visualStateTimeline,
       evidence: plan.evidence,
-      mouth: { ...plan.mouth, editorialFramesUseNeutralMouth: true, voxyOnlyLipSync: true },
+      mouth: { ...plan.mouth, editorialFramesUseClosedMouth: true, voxyOnlyLipSync: true },
       waveform: plan.waveform,
       visualCanon: { frozen: true, visualMasterHeadSha: plan.visualMasterHeadSha, sourceAssets: Object.fromEntries(await Promise.all(Object.entries(sourcePaths).map(async ([id, file]) => [id, { repositoryPath: path.relative(repositoryRoot, file), sha256: await sha256(file) }]))), characterRedesign: false, studioRedesign: false },
       rendering: { renderedFrames, duplicatedAdjacentFrames: plan.output.frameCount - renderedFrames, runtimeNetworkRequests: 0, externalVisualUploadUsed: false },

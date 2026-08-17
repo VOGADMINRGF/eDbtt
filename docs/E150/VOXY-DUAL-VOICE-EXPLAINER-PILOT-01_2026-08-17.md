@@ -1,7 +1,7 @@
 # VOXY-DUAL-VOICE-EXPLAINER-PILOT-01
 
 Stand: 2026-08-17
-Status: `codex_ready` — separater nächster Implementierungsslice, in diesem Durchgang nicht umgesetzt
+Status: `review` — technischer Pilot PASS, private menschliche Sicht- und Hörabnahme ausstehend
 
 ## Verbindliche Dual-Voice-Architektur
 
@@ -140,21 +140,25 @@ Der Pilot verwendet exakt diese sieben sichtbaren Textblöcke:
 6. `editorial` / `EDITORIAL_VOICE`: „Kurz gesagt: verstehen, prüfen, einordnen und anschließend selbst entscheiden.“
 7. `voxy` / `VOXY_SIGNATURE`: „Das ist eDebatte. Und ich bin Voxy.“
 
-Der spätere Pilot muss 1920 × 1080 Pixel, 24 fps und 45 bis 60 Sekunden
-erreichen. Er muss mindestens einmal
+Der implementierte Pilot erreicht 1920 × 1080 Pixel, 24 fps und 45,928
+Sekunden. Er zeigt
 `HOST → FOCUS → EXPLAIN → DOCK → HOST` und abschließend eine
-`SYNTHESIS`-Situation zeigen. Erwartete private Outputs sind MP4, WebM,
-WAV-Master, Preview, Contact Sheet, `speaker-timeline.json` und Manifest. Jede
+`SYNTHESIS`-Situation. Die privaten Outputs enthalten MP4, WebM, WAV-Master,
+Preview, Contact Sheet, `speaker-timeline.json`,
+`visual-state-timeline.json`, fünf State-Standframes und Manifest. Jede
 Timeline-Zeile enthält `start`, `end`, `speakerRole`, `voiceId` und `text`.
 
 Charakter, Kopf, Kopfhörer, Jacke, Pin, Pocket-Mark, Mouth v4.1, Mundanker,
 Pivot, Studio, Kamera und die einzelne Waveform bleiben eingefroren. Es gibt
 keinen zweiten Avatar und kein visuelles Redesign.
 
-Der Pilot ist ausschließlich private Human-Review-Evidence. In diesem Slice
-wurde kein Pilot gerendert, keine allgemeine autonome News-Produktion
-implementiert und weder Upload, Deployment, Publishing noch Production
-autorisiert. `productionEligible = false` und `autoPublish = false`.
+Der Pilot ist ausschließlich private Human-Review-Evidence. Er wurde lokal in
+einem ignorierten Symlink-Ziel außerhalb des Git-Worktrees gerendert. Keine
+private Rohreferenz, kein privater Referenzpfad und kein synthetisiertes Audio
+wird committed oder als PR-/CI-Artefakt hochgeladen. Es wurde keine allgemeine
+autonome News-Produktion implementiert und weder Upload, Deployment,
+Publishing noch Production autorisiert. `humanPilotAcceptance = pending`,
+`productionEligible = false` und `autoPublish = false`.
 
 ## Spätere Formatfamilie
 
@@ -162,3 +166,51 @@ autorisiert. `productionEligible = false` und `autoPublish = false`.
 `VOXY_SOCIAL_SHORT` sollen denselben Rollen- und Visual-State-Vertrag nutzen.
 Für sie werden in diesem Slice weder parallele Voice-Systeme noch eine
 Produktion implementiert.
+
+## Technische Pilot-Evidence — 2026-08-17
+
+Der revisionsgebundene lokale Render auf Exact Head
+`c8c67a500c3fae9d1f926a55cc6ab23a83a1b814` hat den technischen Pilot-Gate
+bestanden. Artifact-ID:
+`voxy-dual-voice-explainer-pilot-01-c8c67a500c3f`.
+
+Das private Paket unter
+`artifacts/voxy-dual-voice-explainer-pilot-01/` enthält:
+
+- `voxy-dual-voice-explainer-pilot-01.mp4` mit H.264/AAC;
+- `voxy-dual-voice-explainer-pilot-01.webm` mit VP9/Opus;
+- `master-audio.wav` als 48-kHz-Mono-PCM;
+- `preview.png`, `contact-sheet.png` und Standframes für `HOST`, `FOCUS`,
+  `EXPLAIN`, `DOCK` und `SYNTHESIS`;
+- explizite Speaker- und Visual-State-Timelines;
+- ein SHA- und FFprobe-gebundenes `manifest.json`.
+
+FFprobe bestätigt 1920 × 1080, 24 fps, Audio in beiden Videocontainern und
+45,928 Sekunden MP4-/WAV-Dauer; WebM liegt containerbedingt bei 45,936
+Sekunden. Die Timeline enthält exakt sieben Blöcke. Voxy nutzt ausschließlich
+`voxy-signature-e-5a465a33`, Editorial ausschließlich
+`de_DE/m-ailabs_low#ramona_deininger`. Editorial erzwingt sichtbar den
+geschlossenen Mouth-v4.1-Zustand; nur Voxy erhält amplitudenbasiertes
+Mouth-Sync. Genau eine Waveform reagiert auf die jeweils aktive Stimme.
+
+Die visuelle Timeline lautet vollständig:
+
+`HOST → FOCUS → EXPLAIN → DOCK → HOST → FOCUS → EXPLAIN → DOCK → SYNTHESIS → HOST`.
+
+Alle fünf Informationsobjekte sind deutlich als `DEMO / FORMAT-FIXTURE`
+markiert. Der zweite Explain-Zyklus baut Dokumentstruktur, relevante Stelle
+und abgeleiteten Kontext narrationsgeführt auf. Die Synthese verwendet alle
+zuvor gedockten Objekte erneut. Die visuelle Selbstprüfung der fünf
+Standframes bestätigt den technischen Vertrag; die qualitative menschliche
+Bewertung von Stimme, Rhythmus, Fokuswechsel, Docking und Formatwirkung bleibt
+ausdrücklich offen.
+
+Bekannte Restabweichungen:
+
+- Mouth-Sync ist geglättet amplituden- statt phonem- oder wortbasiert;
+- die visuelle Bewegung wird mit 12 einzigartigen Zuständen pro Sekunde
+  gerendert und frameverdoppelt in einen validen 24-fps-Container geschrieben;
+- die Informationsobjekte belegen ausschließlich die Formatgrammatik und sind
+  keine realen Quellen, Statistiken oder Produktdaten;
+- `humanPilotAcceptance = pending`, `productionEligible = false` und
+  `autoPublish = false` bleiben unverändert.
