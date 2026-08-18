@@ -605,3 +605,76 @@ erhalten. Der aktuelle Status lautet:
 - `humanNews5VisualAcceptance = pending`;
 - `productionEligible = false`;
 - `autoPublish = false`.
+
+## Final Target Layout v1.4 — 2026-08-18
+
+Der gezielte visuelle Korrekturpass baut ausschließlich auf dem menschlich
+bevorzugten Single-Voice-B-Piloten auf. Der private Render wurde auf Exact Head
+`279ea0f9596f09dc0bf5be401a360b99089bd9ad` erzeugt. Artifact-ID:
+`voxy-democracy-pilot-v1-4-final-layout-279ea0f9596f`. Er liegt separat unter
+`artifacts/voxy-dual-voice-explainer-pilot-01/v1.4-final-layout/`; v1 bis v1.3
+und die A/B-Evidence wurden nicht überschrieben.
+
+Die Narration wurde weder neu synthetisiert noch neu assembliert. Alle neun
+gesprochenen Segmente bleiben D1 Conversational Dynamic mit der Voice-ID
+`voxy-d1-conversational-dynamic-pr621`; W1 ist in diesem Render vollständig
+geparkt und es gibt keinen Fallback oder versteckte zweite Spur. Das
+48-kHz-Mono-PCM-Master-Audio ist byte- und PCM-identisch zum akzeptierten
+Single-Voice-B-Master. Beide Dateien haben SHA-256
+`6e3182db9d7fc01d0cdcb69c625f6a8457b494518f884cdfc29f449323e0f09d`.
+Es wurden keine Audiofilter, kein Gain, Resampling, Loudnorm, Compressor,
+Limiter, EQ, Pitching, Tempo-/Time-Stretch oder Reverb angewendet.
+
+Das 1920×1080-Broadcastraster setzt die ausdrücklich benannten
+Zielbildkorrekturen um:
+
+- links ruhige `VoiceOpenGov`-/`eDebatte`-Brand-Zone;
+- klar lesbarer `VOG`-Revers-Pin und genau eine einzeilige
+  `eDebatte`-Pocket-Mark ohne Badge, Box, Glow oder Duplikat;
+- Thema und Renderdatum oben rechts sowie die dynamische Evidence-Memory-Zone
+  direkt darunter;
+- identitätsstabiles FOCUS→DOCK als Scale-/Translation desselben
+  Evidence-Objekts in die obere rechte Memory-Zone;
+- höchstens drei vollständige Memory-Karten und datengetriebene kompakte
+  Gruppierung älterer Evidenzen;
+- dauerhaftes semantisches Lower Third mit sechs stabilen Inhaltsblöcken,
+  360-ms-Fade/Translation, ohne Blinken, Flash, Typewriter,
+  Wort-für-Wort-Aufbau oder Spiegelung der gesprochenen Captions;
+- separate deutsche VTT-/SRT-Captions ohne eingebrannte Untertitel;
+- unveränderter Character-/Studio-/Mouth-v4.1-Canon und genau eine
+  audioaktive Waveform hinter Voxy.
+
+Die zehn revisionsgebundenen Standframes decken HOST, stabilen Lower Third,
+FOCUS, EXPLAIN, den Mittelpunkt des FOCUS→DOCK-Morphings, einen sowie zwei und
+drei gedockte Evidence-Zustände, SYNTHESIS und den finalen HOST ab. Preview und
+Contact Sheet wurden daraus neu erzeugt und lokal gegen Pin, Pocket-Mark,
+Brand-Zone, obere rechte Memory-Zone, ruhige Textführung, Objektkontinuität und
+Waveform-Anzahl geprüft.
+
+FFprobe bestätigt für MP4 H.264/AAC und für WebM VP9/Opus, jeweils 1920×1080,
+24 fps und 48-kHz-Mono-Audio. MP4 und PCM-Master dauern 70,983 Sekunden, WebM
+containerbedingt 70,991 Sekunden. SHA-256: MP4
+`dfb2d4813a708cfc366bd7bcbdfa578f7a44e1b89c29f0748d3c2d011cfd38ca`,
+WebM `33022b5775276195edd280f2630a14606c51de106ffee34de9ea99a9f0c9c5ec`,
+Preview `c46ef89dc65c842b1c16b1292185d1fafa0260db863ff089ec02200b084c5fb6`
+und Contact Sheet
+`ca54b2d2bc01443f9b972dd82c02ce441e26eb0a908d77a5057361cdab85f954`.
+Der Privacy-Scan der JSON-, VTT- und SRT-Ausgaben findet keine privaten
+Benutzer-, Evidence-, Cache- oder Referenzpfade. Private Medien bleiben
+außerhalb von Git.
+
+Der Gate-Stand nach v1.4 lautet:
+
+- `technicalFinalLayoutGate = passed`;
+- `canonicalNarrationArchitecture = single_voice_default`;
+- `canonicalVoxyVoice = D1 / accepted`;
+- `canonicalEditorialVoice = W1 / accepted_optional_layer`;
+- `w1Used = false`;
+- `humanPilotAcceptance = pending_final_layout_review`;
+- `humanNews5VisualAcceptance = pending_final_layout_review`;
+- `productionEligible = false`;
+- `autoPublish = false`.
+
+Der Task bleibt `review`. Der technische Pass ist keine menschliche
+Pilot-/NEWS-5.0-Visual-Abnahme und autorisiert weder Merge, Ready-for-Review,
+Upload, Deployment, Publishing noch Production.
