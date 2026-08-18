@@ -758,7 +758,7 @@ async function main(): Promise<void> {
     await writeFile(path.resolve(outputRoot, outputContract.captionsVtt), buildVoxyDualVoicePilotVtt(plan.speakerTimeline), "utf8");
     await writeFile(path.resolve(outputRoot, outputContract.captionsSrt), buildVoxyDualVoicePilotSrt(plan.speakerTimeline), "utf8");
     if (singleVoiceReview && "comparisonNotes" in outputContract) {
-      await writeFile(path.resolve(outputRoot, outputContract.comparisonNotes), `# Human A/B Review — Dual Voice vs Single Voice\n\nA = v1.3 Dual Voice (D1 / W1)\n\nB = v1.3 Single Voice (alle gesprochenen Segmente D1)\n\n## Reviewfragen\n\n1. Fühlt sich Voxy stärker als zentrale Persönlichkeit an, wenn er alles selbst erzählt?\n2. Wird der Beitrag dadurch konsistenter?\n3. Oder hilft die zweite Stimme, Information und Moderation besser zu trennen?\n4. Ist Single Voice auf rund 60 Sekunden angenehmer?\n5. Würde Single Voice auch bei längeren Beiträgen tragen?\n\n## Status\n\n- humanSingleVsDualPreference = pending\n- canonicalVoxyVoice = D1 / accepted\n- canonicalEditorialVoice = W1 / accepted\n- canonicalDualVoiceArchitectureChanged = false\n\nKeine Gewinnerentscheidung wurde vorweggenommen.\n`, "utf8");
+      await writeFile(path.resolve(outputRoot, outputContract.comparisonNotes), `# Human A/B Review — Dual Voice vs Single Voice\n\nA = v1.3 Dual Voice (D1 / W1)\n\nB = v1.3 Single Voice (alle gesprochenen Segmente D1)\n\n## Human-Entscheidung\n\n- technicalDualVoiceTest = passed\n- technicalSingleVoiceTest = passed\n- humanSingleVsDualPreference = single_voice\n- humanSingleVsDualPreferenceAcceptance = accepted\n- canonicalNarrationArchitecture = single_voice_default\n- canonicalVoxyVoice = D1 / accepted\n- canonicalEditorialVoice = W1 / accepted optional editorial layer\n\nBegründung: Single Voice stärkt Voxy als zentrale Persönlichkeit und wird als Default bevorzugt. A und B bleiben als technische Evidence erhalten.\n`, "utf8");
     }
 
     const sourcePaths = {
@@ -966,8 +966,11 @@ async function main(): Promise<void> {
       canonicalVoxyVoice: "D1 Conversational Dynamic",
       canonicalEditorialVoice: "W1 Natural Editorial",
       humanNews5VisualAcceptance: "pending",
-      humanSingleVsDualPreference: "pending",
-      canonicalDualVoiceArchitectureChanged: false,
+      canonicalNarrationArchitecture: "single_voice_default",
+      humanNarrationArchitectureAcceptance: "accepted",
+      humanSingleVsDualPreference: "single_voice",
+      humanSingleVsDualPreferenceAcceptance: "accepted",
+      optionalEditorialLayer: "W1 Natural Editorial / accepted / explicit editorialIntent required",
       productionEligible: false,
       autoPublish: false,
       knownDeviations: [
@@ -978,7 +981,7 @@ async function main(): Promise<void> {
       ],
     };
     await writeFile(path.resolve(outputRoot, outputContract.manifest), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-    console.info(JSON.stringify({ status: singleVoiceReview ? "SINGLE_VOICE_HUMAN_AB_TEST_TECHNICAL_PASS" : "PILOT_V1_3_TECHNICAL_PASS", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", activeVoice: singleVoiceReview ? "D1 only" : "D1 / W1", canonicalVoxyVoice: "D1 Conversational Dynamic", canonicalEditorialVoice: "W1 Natural Editorial", canonicalDualVoiceArchitectureChanged: false, voiceMappingGate: "passed", audioPreservationGate: "passed", burnedInLowerText: false, humanVoiceAcceptance: "accepted", humanPilotAcceptance: "pending", humanNews5VisualAcceptance: "pending", humanSingleVsDualPreference: "pending", productionEligible: false, autoPublish: false }, null, 2));
+    console.info(JSON.stringify({ status: singleVoiceReview ? "SINGLE_VOICE_HUMAN_AB_TEST_TECHNICAL_PASS" : "PILOT_V1_3_TECHNICAL_PASS", exactHeadSha, artifactId: manifest.artifactId, output: outputArgument, durationMs: plan.output.durationMs, fps: 24, resolution: "1920x1080", activeVoice: singleVoiceReview ? "D1 only" : "D1 / W1", canonicalNarrationArchitecture: "single_voice_default", canonicalVoxyVoice: "D1 Conversational Dynamic", canonicalEditorialVoice: "W1 Natural Editorial", voiceMappingGate: "passed", audioPreservationGate: "passed", burnedInLowerText: false, humanNarrationArchitectureAcceptance: "accepted", humanVoiceAcceptance: "accepted", humanPilotAcceptance: "pending", humanNews5VisualAcceptance: "pending", humanSingleVsDualPreference: "single_voice", humanSingleVsDualPreferenceAcceptance: "accepted", productionEligible: false, autoPublish: false }, null, 2));
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }

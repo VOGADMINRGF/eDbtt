@@ -9,9 +9,11 @@ import {
   VOXY_DUAL_VOICE_PILOT_EVIDENCE,
   VOXY_DUAL_VOICE_PILOT_OUTPUT,
   VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS,
+  VOXY_CANONICAL_NARRATION_AUDIO_SEGMENTS,
   VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS,
   VOXY_SINGLE_VOICE_REVIEW_OUTPUT,
   assertVoxyPilotVoiceBinding,
+  buildVoxyCanonicalNarrationPlan,
   buildVoxyDualVoicePilotPlan,
   buildVoxySingleVoiceReviewPlan,
   buildVoxyDualVoicePilotSrt,
@@ -33,6 +35,10 @@ const singleVoicePlan = buildVoxySingleVoiceReviewPlan(
   exactHead,
   [9_000, 4_500, 6_500, 6_000, 3_500, 5_500, 5_000, 6_500, 3_500],
 );
+const canonicalNarrationPlan = buildVoxyCanonicalNarrationPlan(
+  exactHead,
+  [9_000, 4_500, 6_500, 6_000, 3_500, 5_500, 5_000, 6_500, 3_500],
+);
 const assets = {
   canonStageDataUrl: "data:image/png;base64,AA==",
   studioLockupDataUrl: "data:image/svg+xml;base64,AA==",
@@ -40,7 +46,7 @@ const assets = {
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,AA==",
 };
 
-describe("VOXY dual-voice democracy pilot v1.3", () => {
+describe("VOXY dual-voice democracy pilot v1.3 evidence A", () => {
   it("binds every role fail-closed to the final human-accepted pipeline", () => {
     expect(plan.speakerTimeline).toHaveLength(9);
     expect(plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy")).toBe(true);
@@ -186,6 +192,12 @@ describe("VOXY dual-voice democracy pilot v1.3", () => {
       upload: false,
     });
     expect(plan).toMatchObject({
+      evidenceVariant: "A",
+      narrationArchitecture: "dual_voice_ab_evidence",
+      technicalDualVoiceTest: "passed",
+      canonicalNarrationArchitecture: "single_voice_default",
+      humanSingleVsDualPreference: "single_voice",
+      humanSingleVsDualPreferenceAcceptance: "accepted",
       technicalPilotGate: "passed",
       technicalVoiceMappingGate: "passed",
       humanPilotAcceptance: "pending",
@@ -213,18 +225,27 @@ describe("VOXY dual-voice democracy pilot v1.3", () => {
   });
 });
 
-describe("VOXY single-voice human A/B review variant", () => {
-  it("uses D1 for every unchanged spoken segment without changing the canonical voice decisions", () => {
+describe("VOXY canonical single-voice narration and preserved evidence B", () => {
+  it("uses D1 for every unchanged spoken segment as the accepted canonical default", () => {
     expect(singleVoicePlan.speakerTimeline).toHaveLength(9);
     expect(singleVoicePlan.speakerTimeline.every((entry) => entry.speakerRole === "voxy" && entry.voiceId === VOXY_SIGNATURE.voiceId)).toBe(true);
     expect(VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS.every((entry) => entry.voiceBinding.candidateId === "D1")).toBe(true);
+    expect(VOXY_CANONICAL_NARRATION_AUDIO_SEGMENTS).toBe(VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS);
+    expect(canonicalNarrationPlan).toEqual(singleVoicePlan);
     expect(singleVoicePlan.speakerTimeline.map((entry) => entry.text)).toEqual(plan.speakerTimeline.map((entry) => entry.text));
     expect(singleVoicePlan).toMatchObject({
       reviewVariant: "single_voice_human_ab_test",
+      evidenceVariant: "B",
       dualVoiceBaseline: "v1.3",
-      canonicalArchitectureUnchanged: true,
+      abEvidencePreserved: true,
+      canonicalNarrationArchitecture: "single_voice_default",
+      defaultNarrationVoice: VOXY_SIGNATURE.voiceId,
+      optionalEditorialLayer: "W1 Natural Editorial / accepted",
+      technicalDualVoiceTest: "passed",
       technicalSingleVoiceTest: "passed",
-      humanSingleVsDualPreference: "pending",
+      humanSingleVsDualPreference: "single_voice",
+      humanSingleVsDualPreferenceAcceptance: "accepted",
+      humanNarrationArchitectureAcceptance: "accepted",
       canonicalVoxyVoice: "D1 Conversational Dynamic",
       canonicalEditorialVoice: "W1 Natural Editorial",
       humanVoxyVoiceAcceptance: "accepted",

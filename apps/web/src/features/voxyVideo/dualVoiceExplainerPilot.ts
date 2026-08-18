@@ -1,6 +1,8 @@
 import {
   EDITORIAL_VOICE,
+  VOXY_CANONICAL_NARRATION_ARCHITECTURE,
   VOXY_DUAL_VOICE_PILOT_SEGMENTS,
+  VOXY_NARRATION_AB_EVIDENCE,
   VOXY_SIGNATURE,
   type VoxySpeakerRole,
 } from "./dualVoiceArchitecture";
@@ -136,6 +138,9 @@ export const VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS =
     originalSpeakerRole: segment.speakerRole,
   }));
 
+export const VOXY_CANONICAL_NARRATION_AUDIO_SEGMENTS =
+  VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS;
+
 const roundSeconds = (milliseconds: number): number =>
   Number((milliseconds / 1_000).toFixed(3));
 
@@ -265,6 +270,12 @@ export function buildVoxyDualVoicePilotPlan(
       publicArtifact: false,
       upload: false,
     },
+    evidenceVariant: "A",
+    narrationArchitecture: "dual_voice_ab_evidence",
+    technicalDualVoiceTest: "passed",
+    canonicalNarrationArchitecture: "single_voice_default",
+    humanSingleVsDualPreference: "single_voice",
+    humanSingleVsDualPreferenceAcceptance: "accepted",
     technicalPilotGate: "passed",
     technicalVoiceMappingGate: "passed",
     humanPilotAcceptance: "pending",
@@ -292,6 +303,7 @@ export function buildVoxySingleVoiceReviewPlan(
     ...dualDerivedPlan,
     schemaVersion: VOXY_SINGLE_VOICE_REVIEW_SCHEMA_VERSION,
     reviewVariant: "single_voice_human_ab_test",
+    evidenceVariant: "B",
     dualVoiceBaseline: "v1.3",
     output: {
       ...VOXY_SINGLE_VOICE_REVIEW_OUTPUT,
@@ -306,26 +318,38 @@ export function buildVoxySingleVoiceReviewPlan(
     activeVoiceBindings: {
       voxy: VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS.voxy,
     },
-    canonicalArchitectureUnchanged: true,
+    abEvidencePreserved: true,
+    canonicalNarrationArchitecture:
+      VOXY_CANONICAL_NARRATION_ARCHITECTURE.canonicalNarrationArchitecture,
+    defaultNarrationVoice:
+      VOXY_CANONICAL_NARRATION_ARCHITECTURE.defaultNarrationVoice,
+    optionalEditorialLayer: "W1 Natural Editorial / accepted",
     mouth: {
       ...dualDerivedPlan.mouth,
       activeForEverySpokenSegment: true,
       editorialMouth: "not_applicable_single_voice_review",
     },
+    technicalDualVoiceTest: VOXY_NARRATION_AB_EVIDENCE.technicalDualVoiceTest,
     technicalSingleVoiceTest: "passed",
-    humanSingleVsDualPreference: "pending",
+    humanSingleVsDualPreference: "single_voice",
+    humanSingleVsDualPreferenceAcceptance: "accepted",
+    humanNarrationArchitectureAcceptance: "accepted",
+    humanPreferenceReason: VOXY_NARRATION_AB_EVIDENCE.reason,
   } as const;
 }
 
 export type VoxySingleVoiceReviewPlan = ReturnType<typeof buildVoxySingleVoiceReviewPlan>;
 export type VoxyExplainerPilotPlan = VoxyDualVoicePilotPlan | VoxySingleVoiceReviewPlan;
 
+export const buildVoxyCanonicalNarrationPlan = buildVoxySingleVoiceReviewPlan;
+
 export function validateVoxySingleVoiceReviewPlan(plan: VoxySingleVoiceReviewPlan): string[] {
   const errors: string[] = [];
   const durationSeconds = plan.output.durationMs / 1_000;
   if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) errors.push("exact_head_invalid");
   if (plan.output.width !== 1920 || plan.output.height !== 1080 || plan.output.fps !== 24 || durationSeconds < 45 || durationSeconds > 90) errors.push("media_contract_invalid");
-  if (plan.reviewVariant !== "single_voice_human_ab_test" || plan.dualVoiceBaseline !== "v1.3" || !plan.canonicalArchitectureUnchanged) errors.push("non_canonical_review_scope_invalid");
+  if (plan.reviewVariant !== "single_voice_human_ab_test" || plan.evidenceVariant !== "B" || plan.dualVoiceBaseline !== "v1.3" || !plan.abEvidencePreserved) errors.push("ab_evidence_scope_invalid");
+  if (plan.canonicalNarrationArchitecture !== "single_voice_default" || plan.defaultNarrationVoice !== VOXY_SIGNATURE.voiceId || plan.humanNarrationArchitectureAcceptance !== "accepted") errors.push("canonical_narration_default_invalid");
   if (plan.speakerTimeline.length !== VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS.length || plan.speakerTimeline.some((entry) => entry.start >= entry.end)) errors.push("speaker_timeline_invalid");
   if (plan.speakerTimeline.some((entry) => entry.speakerRole !== "voxy" || entry.voiceId !== VOXY_SIGNATURE.voiceId)) errors.push("single_d1_voice_gate_invalid");
   if (plan.speakerTimeline.map((entry) => entry.text).join("\n") !== VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS.map((entry) => entry.text).join("\n")) errors.push("ab_script_changed");
@@ -335,7 +359,7 @@ export function validateVoxySingleVoiceReviewPlan(plan: VoxySingleVoiceReviewPla
   if (plan.mouth.syncSpeakerRole !== "voxy" || !plan.mouth.activeForEverySpokenSegment || plan.mouth.shapesChanged || plan.mouth.anchorChanged || plan.mouth.pivotChanged) errors.push("single_voice_mouth_contract_invalid");
   if (plan.activeVoiceBindings.voxy.candidateId !== "D1" || plan.activeVoiceBindings.voxy.voiceId !== VOXY_SIGNATURE.voiceId || Object.keys(plan.activeVoiceBindings).length !== 1) errors.push("active_voice_binding_invalid");
   if (plan.canonicalVoxyVoice !== "D1 Conversational Dynamic" || plan.canonicalEditorialVoice !== "W1 Natural Editorial" || plan.humanVoxyVoiceAcceptance !== "accepted" || plan.humanEditorialVoiceAcceptance !== "accepted") errors.push("canonical_voice_acceptance_changed");
-  if (plan.technicalSingleVoiceTest !== "passed" || plan.humanSingleVsDualPreference !== "pending" || plan.productionEligible || plan.autoPublish || plan.privacy.publicArtifact || plan.privacy.upload) errors.push("review_release_gate_invalid");
+  if (plan.technicalDualVoiceTest !== "passed" || plan.technicalSingleVoiceTest !== "passed" || plan.humanSingleVsDualPreference !== "single_voice" || plan.humanSingleVsDualPreferenceAcceptance !== "accepted" || plan.productionEligible || plan.autoPublish || plan.privacy.publicArtifact || plan.privacy.upload) errors.push("review_release_gate_invalid");
   return errors;
 }
 
@@ -349,6 +373,7 @@ export function validateVoxyDualVoicePilotPlan(plan: VoxyDualVoicePilotPlan): st
   if (!plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy") || !plan.speakerTimeline.some((entry) => entry.speakerRole === "editorial")) errors.push("both_speaker_roles_required");
   if (plan.speakerTimeline.some((entry) => entry.speakerRole === "voxy" && entry.voiceId !== VOXY_SIGNATURE.voiceId)) errors.push("voxy_voice_invalid");
   if (plan.speakerTimeline.some((entry) => entry.speakerRole === "editorial" && entry.voiceId !== EDITORIAL_VOICE.voiceId)) errors.push("editorial_voice_invalid");
+  if (plan.evidenceVariant !== "A" || plan.narrationArchitecture !== "dual_voice_ab_evidence" || plan.technicalDualVoiceTest !== "passed" || plan.canonicalNarrationArchitecture !== "single_voice_default" || plan.humanSingleVsDualPreference !== "single_voice" || plan.humanSingleVsDualPreferenceAcceptance !== "accepted") errors.push("dual_voice_ab_evidence_status_invalid");
   if (plan.voiceBindings.voxy.candidateId !== "D1" || plan.voiceBindings.voxy.variant !== "d1-conversational-dynamic" || plan.voiceBindings.voxy.humanIdentityStatus !== "accepted" || plan.voiceBindings.editorial.candidateId !== "W1" || plan.voiceBindings.editorial.variant !== "w1-natural-editorial" || plan.voiceBindings.editorial.humanIdentityStatus !== "accepted" || String(plan.voiceBindings.voxy.voiceId) === String(plan.voiceBindings.editorial.voiceId)) errors.push("canonical_voice_mapping_invalid");
   if (!plan.speakerTimeline[0]?.text.startsWith("Hallo Nachbar.") || plan.speakerTimeline.slice(1).some((entry) => entry.text.includes("Hallo Nachbar"))) errors.push("greeting_contract_invalid");
   if (plan.visualStateTimeline.map((entry) => entry.state).join(",") !== "HOST,FOCUS,EXPLAIN,DOCK,HOST,FOCUS,EXPLAIN,DOCK,SYNTHESIS,HOST") errors.push("news_5_sequence_invalid");

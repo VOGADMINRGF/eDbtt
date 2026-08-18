@@ -2,28 +2,37 @@ import { describe, expect, it } from "vitest";
 
 import {
   EDITORIAL_VOICE,
+  VOXY_CANONICAL_NARRATION_ARCHITECTURE,
   VOXY_CANONICAL_INFORMATION_FLOW,
   VOXY_DUAL_VOICE_ACCEPTANCE,
   VOXY_DIRECT_ADDRESS_GREETING,
   VOXY_DUAL_VOICE_PILOT_CONTRACT,
   VOXY_DUAL_VOICE_PILOT_SEGMENTS,
   VOXY_DYNAMIC_EVIDENCE_MEMORY,
+  VOXY_EDITORIAL_INTENTS,
   VOXY_FUTURE_FORMAT_FAMILY,
   VOXY_HUMAN_ACCEPTED_VOICE_PRESERVATION,
   VOXY_NARRATIVE_CHART_BEHAVIOR,
+  VOXY_NARRATION_AB_EVIDENCE,
   VOXY_NEWS_VISUAL_STATES,
   VOXY_SIGNATURE,
   VOXY_SOURCE_FIRST_GUARDRAILS,
   VOXY_SOURCE_FIRST_PRIORITY,
   VOXY_SPEAKER_ROLE_RULES,
+  resolveVoxyNarrationBinding,
   validateVoxyDualVoiceArchitecture,
 } from "@/features/voxyVideo/dualVoiceArchitecture";
 
-describe("Voxy dual-voice and evidence-first visual contract", () => {
+describe("Voxy canonical narration and evidence-first visual contract", () => {
   it("freezes the final human-accepted D1 and W1 voice pipelines", () => {
     expect(VOXY_DUAL_VOICE_ACCEPTANCE).toMatchObject({
-      humanVoiceArchitectureAcceptance: "accepted",
+      canonicalNarrationArchitecture: "single_voice_default",
+      humanNarrationArchitectureAcceptance: "accepted",
+      humanSingleVsDualPreference: "single_voice",
+      humanSingleVsDualPreferenceAcceptance: "accepted",
       technicalVoiceMappingGate: "passed",
+      technicalDualVoiceTest: "passed",
+      technicalSingleVoiceTest: "passed",
       humanVoiceIdentityAcceptance: "accepted",
       humanVoxyVoiceAcceptance: "accepted",
       humanEditorialVoiceAcceptance: "accepted",
@@ -108,7 +117,63 @@ describe("Voxy dual-voice and evidence-first visual contract", () => {
     });
   });
 
-  it("makes every spoken pilot block explicit and role-safe", () => {
+  it("defaults every visual state to D1 and allows W1 only with explicit editorial intent", () => {
+    expect(VOXY_CANONICAL_NARRATION_ARCHITECTURE).toMatchObject({
+      canonicalNarrationArchitecture: "single_voice_default",
+      productPrinciple: "one_host_multiple_information_states",
+      defaultNarrationVoice: VOXY_SIGNATURE.voiceId,
+      defaultNarrationCandidate: "D1",
+      defaultSpeakerRole: "voxy",
+      visualStateAndSpeakerRoleIndependent: true,
+      automaticSpeakerRoutingByVisualState: false,
+      editorialLayer: {
+        status: "accepted_optional_explicit_only",
+        voiceId: EDITORIAL_VOICE.voiceId,
+        candidateId: "W1",
+        explicitEditorialIntentRequired: true,
+      },
+    });
+    for (const visualState of ["host", "focus", "explain", "dock", "synthesis"] as const) {
+      expect(resolveVoxyNarrationBinding({ visualState })).toEqual({
+        speakerRole: "voxy",
+        voiceId: VOXY_SIGNATURE.voiceId,
+        candidateId: "D1",
+        editorialIntent: null,
+      });
+    }
+    expect(resolveVoxyNarrationBinding({
+      visualState: "explain",
+      requestedSpeakerRole: "editorial",
+    })).toMatchObject({
+      speakerRole: "voxy",
+      voiceId: VOXY_SIGNATURE.voiceId,
+      editorialIntent: null,
+    });
+    expect(resolveVoxyNarrationBinding({
+      visualState: "explain",
+      editorialIntent: "cross_information",
+    })).toEqual({
+      speakerRole: "editorial",
+      voiceId: EDITORIAL_VOICE.voiceId,
+      candidateId: "W1",
+      editorialIntent: "cross_information",
+    });
+    expect(() => resolveVoxyNarrationBinding({
+      visualState: "synthesis",
+      editorialIntent: "automatic_summary",
+    })).toThrow("editorial_intent_invalid:automatic_summary");
+    expect(VOXY_EDITORIAL_INTENTS).toContain("cross_information");
+    expect(VOXY_NARRATION_AB_EVIDENCE).toMatchObject({
+      technicalDualVoiceTest: "passed",
+      technicalSingleVoiceTest: "passed",
+      humanSingleVsDualPreference: "single_voice",
+      humanSingleVsDualPreferenceAcceptance: "accepted",
+      evidencePreserved: true,
+    });
+    expect(EDITORIAL_VOICE.humanIdentityStatus).toBe("accepted");
+  });
+
+  it("preserves every spoken block of dual-voice evidence A as explicit and role-safe", () => {
     expect(VOXY_DUAL_VOICE_PILOT_SEGMENTS).toHaveLength(9);
     expect(VOXY_DUAL_VOICE_PILOT_SEGMENTS.map(({ speakerRole }) => speakerRole)).toEqual([
       "voxy",
@@ -184,6 +249,7 @@ Wir streiten.`);
       "synthesis",
       "host",
     ]);
+    expect(VOXY_CANONICAL_INFORMATION_FLOW.every(({ speakerRole }) => speakerRole === "voxy")).toBe(true);
     expect(VOXY_DYNAMIC_EVIDENCE_MEMORY).toMatchObject({
       staticSidebar: false,
       previouslyDockedObjectsMayReturnToFocus: true,
@@ -228,6 +294,14 @@ Wir streiten.`);
       taskId: "VOXY-DUAL-VOICE-EXPLAINER-PILOT-01",
       status: "review",
       implementationInCurrentPass: true,
+      canonicalNarrationArchitecture: "single_voice_default",
+      defaultNarrationVoice: VOXY_SIGNATURE.voiceId,
+      defaultSpeakerRole: "voxy",
+      optionalEditorialLayer: {
+        voiceId: EDITORIAL_VOICE.voiceId,
+        status: "accepted",
+        explicitEditorialIntentRequired: true,
+      },
       privateHumanReviewEvidence: true,
       format: {
         width: 1920,

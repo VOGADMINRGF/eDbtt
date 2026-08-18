@@ -1,13 +1,17 @@
 # VOXY-DUAL-VOICE-EXPLAINER-PILOT-01
 
-Stand: 2026-08-17
-Status: `review` — technischer Pilot v1.3 PASS; Voice-Auswahl angenommen, menschliche Pilot- und NEWS-5.0-Visual-Abnahme offen
+Stand: 2026-08-18
+Status: `review` — Narrationsarchitektur und Voice-Auswahl angenommen; menschliche Pilot- und NEWS-5.0-Visual-Abnahme offen
 
-## Verbindliche Dual-Voice-Architektur
+## Verbindliche Narrationsarchitektur
 
-Die finale menschliche Voice-Entscheidung ist angenommen:
+Die finale menschliche A/B-Entscheidung manifestiert Single Voice als
+kanonischen Default:
 
-- `humanVoiceArchitectureAcceptance = accepted`
+- `canonicalNarrationArchitecture = single_voice_default`
+- `humanNarrationArchitectureAcceptance = accepted`
+- `humanSingleVsDualPreference = single_voice`
+- `humanSingleVsDualPreferenceAcceptance = accepted`
 - `canonicalVoxyVoice = D1 Conversational Dynamic`
 - `humanVoxyVoiceAcceptance = accepted`
 - `canonicalEditorialVoice = W1 Natural Editorial`
@@ -15,8 +19,9 @@ Die finale menschliche Voice-Entscheidung ist angenommen:
 
 `VOXY_SIGNATURE` ist D1 Conversational Dynamic mit der lokalen Voice-ID
 `voxy-d1-conversational-dynamic-pr621` und der ausgewählten Variante
-`d1-conversational-dynamic`. Sie spricht ausschließlich Blöcke mit
-`speakerRole = "voxy"`. Die reproduzierbare Pipeline nutzt Chatterbox
+`d1-conversational-dynamic`. D1 ist die Default-Narration für den gesamten
+normalen Beitrag und spricht Blöcke mit `speakerRole = "voxy"`. Die
+reproduzierbare Pipeline nutzt Chatterbox
 Multilingual `0.1.7`/V3 auf Modellrevision
 `5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18`, die privacy-safe gebundene
 Reference 02 / Segment B sowie die menschlich angenommene D1-Parameterkombination.
@@ -24,9 +29,10 @@ Time-Stretch ist ausgeschlossen.
 
 `EDITORIAL_VOICE` ist W1 Natural Editorial mit der Voice-ID
 `de_DE/m-ailabs_low#ramona_deininger`. Sie spricht ausschließlich Blöcke mit
-`speakerRole = "editorial"` und ist eine eigenständige redaktionelle Ebene,
-keine Voxy-Variante. Frühere Gender- und Rollenannahmen sind keine aktuelle
-kanonische Voice-Bezeichnung.
+`speakerRole = "editorial"` und bleibt als menschlich akzeptierte, optionale
+redaktionelle Zweitebene erhalten. W1 ist keine Voxy-Variante, aber auch keine
+automatische Erklärstimme. Frühere Gender- und Rollenannahmen sind keine
+aktuelle kanonische Voice-Bezeichnung.
 
 Die Editorial-Stimme stammt aus Mycroft Mimic 3 / VITS
 `mycroft-mimic3-tts 0.2.4`, Modell-Repository
@@ -38,11 +44,21 @@ Laufzeit arbeitet nach Provisionierung offline und führt keine
 Netzwerkanfragen aus. Eine öffentliche Audio- oder Produktionsfreigabe folgt
 daraus nicht.
 
-Jeder gesprochene Block muss `speakerRole`, `voiceId` und `text` explizit
-führen. Eine implizite Stimmwahl ist unzulässig. Voxy übernimmt Begrüßung,
-direkte Ansprache, Fragen, Moderation, Übergänge, Reflexion, CTA und Abschluss.
-Editorial übernimmt Faktenverdichtung, Kontext, Quellen- und
-Argumenteinordnung, Erklärung sowie Zwischen- und Schlusszusammenfassungen.
+Produktprinzip ist „One host, multiple information states“. Voxy ist der
+zentrale Erzähler: Er begrüßt, fragt, erklärt, ordnet ein, führt durch Quellen,
+kommentiert Unterschiede, verbindet und synthetisiert Informationen,
+reflektiert und schließt ab. Der Default für `HOST`, `FOCUS`, `EXPLAIN`,
+`DOCK` und `SYNTHESIS` ist deshalb `speakerRole = "voxy"` mit D1. Visual State
+und Speaker Role sind voneinander unabhängig.
+
+Die kompatible Rolle `speakerRole = "editorial"` bleibt erhalten, muss aber
+mit einem erlaubten `editorialIntent` bewusst authoriert werden. Erlaubte
+Fälle sind Querinformation, ein klar abgegrenzter Kontextblock, ein
+redaktioneller Einschub, eine zusätzliche Perspektive, ein bewusst als zweite
+Ebene inszenierter Quellenhinweis, Meta-Einordnung oder eine bewusst markierte
+Zusammenfassung außerhalb von Voxys Hauptnarration. Ohne `editorialIntent`
+bindet der Resolver fail closed auf Voxy/D1; ein Visual State allein darf W1
+nicht wählen. Ein unbekannter Intent ist ein Contract-Fehler.
 
 Bei direkter Zuschaueransprache eröffnet Voxy den zusammenhängenden Beitrag
 genau einmal mit „Hallo Nachbar,“. Die Begrüßung wird weder vor weiteren
@@ -56,10 +72,12 @@ erhält kein Lip-Sync auf die Editorial-Stimme. Voxy bleibt mit subtiler
 Idle-Bewegung als Gastgeber anwesend. Es gibt keinen zweiten Avatar und genau
 eine Waveform; sie reagiert jeweils auf die aktive Stimme.
 
-Die historischen Bake-offs sowie v1 und v1.1 bleiben unverändert erhalten.
-Sie belegen ausschließlich ihre historischen Pipeline- und Review-Stände;
-für den aktuellen v1.3-Pilot sind D1 und W1 die einzigen erlaubten
-Voice-Pipelines.
+Die historischen Bake-offs, v1 bis v1.3 sowie beide A/B-Varianten bleiben
+unverändert erhalten. Sie belegen ausschließlich ihre historischen Pipeline-
+und Review-Stände. A dokumentiert den technisch bestandenen D1/W1-Pfad, B den
+technisch bestandenen D1-only-Pfad. Die Human-Entscheidung verwirft W1 nicht,
+sondern ändert ausschließlich dessen Einsatz vom automatischen Default zur
+explizit authorierten Editorial Layer.
 
 ## Evidence-first Visual Grammar
 
@@ -81,11 +99,12 @@ hervorgehoben werden.
 
 ### `EXPLAIN`
 
-Dies ist der bevorzugte Zustand für Editorial. Die aktive Information bleibt
-groß und die Visualisierung folgt der gesprochenen Erklärung. Charts dürfen
-sich entlang der Narration aufbauen, Dokumentstellen markiert und Karten oder
-Trends fokussiert werden. Dekorative Animation ohne Informationswert ist
-unzulässig. Voxy bleibt passiv präsent und sein Mund neutral oder geschlossen.
+Voxy/D1 erklärt standardmäßig weiter, während die aktive Information groß
+bleibt und die Visualisierung der Narration folgt. Charts dürfen sich entlang
+der Narration aufbauen, Dokumentstellen markiert und Karten oder Trends
+fokussiert werden. Dekorative Animation ohne Informationswert ist unzulässig.
+W1 folgt aus `EXPLAIN` nicht automatisch und ist nur mit explizitem
+`editorialIntent` zulässig.
 
 ### `DOCK`
 
@@ -102,13 +121,13 @@ Abstimmungsergebnisse speichern. Bereits gedockte Elemente dürfen erneut in
 ### `SYNTHESIS`
 
 Mehrere zuvor erklärte Evidence-Elemente werden gemeinsam sichtbar.
-Beziehungen, Widersprüche oder Übereinstimmungen dürfen visualisiert und durch
-Editorial zusammengefasst werden. Danach übernimmt Voxy wieder für Einordnung,
-Frage oder CTA.
+Beziehungen, Widersprüche oder Übereinstimmungen dürfen visualisiert werden;
+Voxy/D1 synthetisiert standardmäßig selbst. Eine bewusst markierte Editorial-
+Zusammenfassung ist nur mit explizitem `editorialIntent` zulässig.
 
 Der kanonische Informationsfluss lautet:
 
-`VOXY / HOST → INFORMATION / FOCUS → EDITORIAL / EXPLAIN → INFORMATION / DOCK → VOXY / HOST → nächste INFORMATION / FOCUS → EDITORIAL / EXPLAIN → DOCK → SYNTHESIS → VOXY / REFLECTION OR CTA`
+`VOXY / HOST → VOXY + INFORMATION / FOCUS → VOXY + INFORMATION / EXPLAIN → VOXY + INFORMATION / DOCK → VOXY / HOST → VOXY + nächste INFORMATION / FOCUS → VOXY + INFORMATION / EXPLAIN → VOXY + INFORMATION / DOCK → VOXY / SYNTHESIS → VOXY / REFLECTION OR CTA`
 
 ## Source-first-Prinzip und Chart-Verhalten
 
@@ -170,9 +189,9 @@ Publishing noch Production autorisiert. `humanPilotAcceptance = pending`,
 ## Spätere Formatfamilie
 
 `VOXY_NEWS`, `VOXY_EXPLAINER`, `VOXY_DOSSIER`, `VOXY_BALLOT` und
-`VOXY_SOCIAL_SHORT` sollen denselben Rollen- und Visual-State-Vertrag nutzen.
-Für sie werden in diesem Slice weder parallele Voice-Systeme noch eine
-Produktion implementiert.
+`VOXY_SOCIAL_SHORT` sollen denselben Single-Voice-Default, optionalen
+Editorial-Intent und Visual-State-Vertrag nutzen. Für sie werden in diesem
+Slice weder parallele Voice-Systeme noch eine Produktion implementiert.
 
 ## Technische Pilot-Evidence — 2026-08-17
 
@@ -516,9 +535,9 @@ Der Gate-Stand nach v1.3 lautet:
 Es erfolgten kein Merge, Ready-for-Review, Deployment, Upload, Publishing oder
 Produktionsfreigabe.
 
-## Additiver Human-A/B-Test — v1.3 Single Voice
+## Human-A/B-Evidence und finale Narrationsentscheidung
 
-Als nicht-kanonische Variante B wurde auf Exact Head
+Als zunächst nicht-kanonische Variante B wurde auf Exact Head
 `e6363026303b83d5ff52a338e917176ed2ad1d48` ein separater privater
 Single-Voice-Render erzeugt. Artifact-ID:
 `voxy-democracy-pilot-v1-3-single-voice-e6363026303b`. Er liegt unter
@@ -563,12 +582,26 @@ bestätigen dies ohne Redesign. Der Privacy-Scan findet keine privaten Pfade.
 
 `ab-comparison-notes.md` dokumentiert ausschließlich A, B und die fünf
 vorgegebenen Human-Review-Fragen. Es enthält keine subjektive
-Gewinnerentscheidung. Der Status lautet:
+Gewinnerentscheidung, weil es den technischen Evidence-Stand vor der
+nachgelagerten Human-Entscheidung festhält.
 
+Die anschließende menschliche Produktentscheidung bevorzugt Single Voice,
+weil sie Voxy als zentrale Persönlichkeit stärkt, und manifestiert B als
+kanonischen Default. Dies ist eine Human-Entscheidung und keine technische
+Behauptung über subjektive Überlegenheit. A und B bleiben als Evidence
+erhalten. Der aktuelle Status lautet:
+
+- `technicalDualVoiceTest = passed`;
 - `technicalSingleVoiceTest = passed`;
-- `humanSingleVsDualPreference = pending`;
+- `humanSingleVsDualPreference = single_voice`;
+- `humanSingleVsDualPreferenceAcceptance = accepted`;
+- `canonicalNarrationArchitecture = single_voice_default`;
+- `humanNarrationArchitectureAcceptance = accepted`;
 - `canonicalVoxyVoice = D1 / accepted`;
 - `canonicalEditorialVoice = W1 / accepted`;
-- `canonicalDualVoiceArchitectureChanged = false`;
+- `defaultExplainSpeaker = voxy`;
+- `defaultSynthesisSpeaker = voxy`;
+- `humanPilotAcceptance = pending`;
+- `humanNews5VisualAcceptance = pending`;
 - `productionEligible = false`;
 - `autoPublish = false`.
