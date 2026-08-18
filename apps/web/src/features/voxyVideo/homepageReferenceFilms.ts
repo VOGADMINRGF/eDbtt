@@ -14,6 +14,7 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS_SCHEMA_VERSION =
 
 export type VoxyHomepageFilmId = "edebatte" | "voiceopengov";
 export type VoxyHomepageContextMode = "evergreen" | "election_window";
+export type VoxyHomepageVisualLanguage = "media_forensics" | "democratic_journey";
 
 export const VOXY_HOMEPAGE_REFERENCE_FILMS_OUTPUT = {
   edebatte: {
@@ -103,6 +104,15 @@ export const VOXY_HOMEPAGE_SOURCE_REGISTRY = [
     retrievedAt: "2026-08-18",
     revision: "live-page-check-2026-08-18",
   },
+  {
+    id: "luebbe-wolff-demophobie-2023",
+    publisher: "Vittorio Klostermann",
+    title: "Gertrude Lübbe-Wolff: Demophobie. Muss man die direkte Demokratie fürchten?",
+    url: "https://www.klostermann.de/Luebbe-Wolff-Getrude-Demophobie",
+    sourceClass: "first_party_publisher_surface",
+    retrievedAt: "2026-08-18",
+    revision: "publisher-page-check-2026-08-18",
+  },
 ] as const;
 
 export const VOXY_CURRENT_OFFER_INVENTORY = [
@@ -147,6 +157,14 @@ export const VOXY_CURRENT_OFFER_INVENTORY = [
     marketable: false,
   },
   {
+    id: "direct-democracy-question",
+    classification: "editorial_principle",
+    product: "VoiceOpenGov",
+    claim: "Die Frage nach mehr direkter Beteiligung wird als offene demokratische Gestaltungsfrage behandelt, nicht als bereits vorhandene Produktfunktion.",
+    sourceIds: ["luebbe-wolff-demophobie-2023"],
+    marketable: false,
+  },
+  {
     id: "continuous-democratic-mandate",
     classification: "future_intent",
     product: "VoiceOpenGov",
@@ -169,6 +187,8 @@ type HomepageFilmDefinition = Readonly<{
   title: string;
   proposition: string;
   cta: string;
+  visualLanguage: VoxyHomepageVisualLanguage;
+  motionVocabulary: readonly string[];
   broadcastMeta: VoxyBroadcastMeta;
   segments: readonly FilmSegment[];
   evidence: readonly VoxyPilotEvidence[];
@@ -183,33 +203,133 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
     id: "edebatte",
     title: "eDebatte Homepage Reference Film",
     proposition: "Prüfen statt glauben.",
-    cta: "Aktuelle Entwicklungen entdecken",
+    cta: "Lies die Schlagzeile. Dann geh einen Schritt weiter.",
+    visualLanguage: "media_forensics",
+    motionVocabulary: [
+      "headline_freeze",
+      "source_scan",
+      "primary_source_pull",
+      "passage_highlight",
+      "context_expand",
+      "counterposition_split",
+      "evidence_trace",
+      "dossier_dock",
+    ],
     broadcastMeta: {
-      topicLabel: "THEMA",
-      topicTitle: "Aussagen nachvollziehbar prüfen",
+      topicLabel: "MEDIEN-CHECK",
+      topicTitle: "Von der Schlagzeile zur Primärquelle",
       displayDate: "WAHLFENSTER 2026",
       kicker: "PRÜFEN STATT GLAUBEN",
-      headline: "Eine Behauptung ist noch kein Beleg",
-      summary: "Aussage, Quelle, Gegenposition und offene Frage bleiben unterscheidbar.",
+      headline: "Die Schlagzeile ist der Anfang",
+      summary: "Headline, Primärquelle, Kontext, Gegenposition und offene Frage werden getrennt prüfbar.",
     },
     segments: [
-      { id: "edebatte-greeting", text: "Hallo Nachbar. Ein Versprechen ist noch kein Beschluss. Und eine Behauptung noch kein Beleg.", spokenText: "Hallo Nachbar. Ein Versprechen ist noch kein Beschluss. Und eine Behauptung noch kein Beleg.", pauseAfterMs: 160, contexts: bothModes },
-      { id: "edebatte-election-noise", text: "Gerade vor einer Wahl hören wir viele Antworten. Aber welche Frage wurde eigentlich beantwortet?", spokenText: "Gerade vor einer Wahl hören wir viele Antworten. Aber welche Frage wurde eigentlich beantwortet?", pauseAfterMs: 130, contexts: ["election_window"] },
-      { id: "edebatte-source-questions", text: "Wo steht die Aussage? Von wann ist die Quelle? Wer trägt Verantwortung?", spokenText: "Wo steht die Aussage? Von wann ist die Quelle? Wer trägt Verantwortung?", pauseAfterMs: 120, contexts: bothModes },
-      { id: "edebatte-status-distinction", text: "Ist es Programm, Antrag, Beschluss – oder schon umgesetzt? Denn ein Wahlprogramm ist kein Gesetz. Und ein Beschluss noch keine Wirkung.", spokenText: "Ist es Programm, Antrag, Beschluss – oder schon umgesetzt? Denn ein Wahlprogramm ist kein Gesetz. Und ein Beschluss noch keine Wirkung.", pauseAfterMs: 170, contexts: bothModes },
-      { id: "edebatte-product-model", text: "eDebatte hält Aussage, Quelle, Gegenposition und offene Frage in einem nachvollziehbaren Themenstand auseinander.", spokenText: "eDebatte hält Aussage, Quelle, Gegenposition und offene Frage in einem nachvollziehbaren Themenstand auseinander.", pauseAfterMs: 130, contexts: bothModes },
-      { id: "edebatte-current-offer", text: "Du kannst aktuelle Themen und Statements mit Kontext lesen, Dossiers öffnen und einen Beitrag zur Prüfung einreichen.", spokenText: "Du kannst aktuelle Themen und Statements mit Kontext lesen, Dossiers öffnen und einen Beitrag zur Prüfung einreichen.", pauseAfterMs: 130, contexts: bothModes },
-      { id: "edebatte-no-autopublish", text: "Nichts davon wird automatisch veröffentlicht. Verantwortung und Freigabe bleiben bei Menschen.", spokenText: "Nichts davon wird automatisch veröffentlicht. Verantwortung und Freigabe bleiben bei Menschen.", pauseAfterMs: 150, contexts: bothModes },
-      { id: "edebatte-synthesis-questions", text: "Was wissen wir? Was spricht dafür? Was dagegen? Und was wissen wir noch nicht?", spokenText: "Was wissen wir? Was spricht dafür? Was dagegen? Und was wissen wir noch nicht?", pauseAfterMs: 180, contexts: bothModes },
-      { id: "edebatte-verifiability", text: "Du musst mir nichts glauben. Du sollst es prüfen können.", spokenText: "Du musst mir nichts glauben. Du sollst es prüfen können.", pauseAfterMs: 160, contexts: bothModes },
-      { id: "edebatte-cta", text: "Aktuelle Entwicklungen entdecken.", spokenText: "Aktuelle Entwicklungen entdecken.", pauseAfterMs: 0, contexts: bothModes },
+      {
+        id: "edebatte-greeting",
+        text: "Hallo Nachbar. Jeden Tag erreichen uns Schlagzeilen, Zahlen und Zitate. Aber eine Schlagzeile ist der Anfang – nicht das Ende der Recherche.",
+        spokenText: "Hallo Nachbar. Jeden Tag erreichen uns Schlagzeilen, Zahlen und Zitate. Aber eine Schlagzeile ist der Anfang, nicht das Ende der Recherche.",
+        pauseAfterMs: 140,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-election-noise",
+        text: "Gerade vor Wahlen wird Tempo zum Problem: viele Antworten, wenig Zeit für die Frage, worauf sie eigentlich beruhen.",
+        spokenText: "Gerade vor Wahlen wird Tempo zum Problem: viele Antworten, wenig Zeit für die Frage, worauf sie eigentlich beruhen.",
+        pauseAfterMs: 120,
+        contexts: ["election_window"],
+      },
+      {
+        id: "edebatte-source-questions",
+        text: "Wer hat es gesagt? Wo ist die Primärquelle? Von wann stammt sie? Und zeigt die Quelle wirklich das, was die Überschrift behauptet?",
+        spokenText: "Wer hat es gesagt? Wo ist die Primärquelle? Von wann stammt sie? Und zeigt die Quelle wirklich das, was die Überschrift behauptet?",
+        pauseAfterMs: 120,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-media-forensics",
+        text: "Eine Zahl ist noch kein Beleg. Ein Zitat noch kein Kontext. Und eine Studie ist nicht dasselbe wie ihre Interpretation.",
+        spokenText: "Eine Zahl ist noch kein Beleg. Ein Zitat noch kein Kontext. Und eine Studie ist nicht dasselbe wie ihre Interpretation.",
+        pauseAfterMs: 140,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-product-model",
+        text: "eDebatte ordnet Aussage, Originalquelle, Kontext, Gegenposition und offene Frage so, dass du den Weg zurück zum Beleg sehen kannst.",
+        spokenText: "eDebatte ordnet Aussage, Originalquelle, Kontext, Gegenposition und offene Frage so, dass du den Weg zurück zum Beleg sehen kannst.",
+        pauseAfterMs: 130,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-current-offer",
+        text: "Du kannst öffentliche Themen und Statements mit Kontext aufrufen und einen Beitrag zur Prüfung einreichen.",
+        spokenText: "Du kannst öffentliche Themen und Statements mit Kontext aufrufen und einen Beitrag zur Prüfung einreichen.",
+        pauseAfterMs: 120,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-next-generation",
+        text: "Gute Berichterstattung braucht Vertrauen. Die nächste Generation braucht zusätzlich Nachprüfbarkeit.",
+        spokenText: "Gute Berichterstattung braucht Vertrauen. Die nächste Generation braucht zusätzlich Nachprüfbarkeit.",
+        pauseAfterMs: 150,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-synthesis-questions",
+        text: "Was wissen wir? Was spricht dagegen? Was fehlt? Und wo endet der Beleg?",
+        spokenText: "Was wissen wir? Was spricht dagegen? Was fehlt? Und wo endet der Beleg?",
+        pauseAfterMs: 160,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-verifiability",
+        text: "Du musst mir nichts glauben. Du sollst es prüfen können.",
+        spokenText: "Du musst mir nichts glauben. Du sollst es prüfen können.",
+        pauseAfterMs: 150,
+        contexts: bothModes,
+      },
+      {
+        id: "edebatte-cta",
+        text: "Lies die Schlagzeile. Dann geh einen Schritt weiter.",
+        spokenText: "Lies die Schlagzeile. Dann geh einen Schritt weiter.",
+        pauseAfterMs: 0,
+        contexts: bothModes,
+      },
     ],
     evidence: [
-      { id: "edebatte-source-chain", type: "QUELLEN-CHECK", title: "Aussage → Quelle → Kontext", shortSummary: "Herkunft und Stand einer Aussage bleiben sichtbar.", sourceLabel: "eDebatte · öffentliche Produktoberflächen", provenance: "AKTUELLE PRODUKT-EVIDENZ", visualIdentity: "source-chain-cyan-continuous-line", visualPayload: { kind: "trend_line" }, memoryPriority: 100 },
-      { id: "edebatte-status-ladder", type: "STATUS PRÜFEN", title: "Programm ist nicht Wirkung", shortSummary: "Programm, Antrag, Beschluss und Umsetzung sind verschiedene Stände.", sourceLabel: "redaktionelle Einordnung", provenance: "REDAKTIONELLES PRINZIP", visualIdentity: "status-ladder-blue-stepped-bars", visualPayload: { kind: "bar_series", values: [0.28, 0.48, 0.7, 1] }, memoryPriority: 90 },
-      { id: "edebatte-open-question", type: "OFFENE FRAGE", title: "Was wissen wir noch nicht?", shortSummary: "Unsicherheit bleibt sichtbar, statt zur Gewissheit umgedeutet zu werden.", provenance: "REDAKTIONELLES PRINZIP", visualIdentity: "open-question-amber-ring", visualPayload: { kind: "open_question" }, memoryPriority: 110 },
+      {
+        id: "edebatte-source-chain",
+        type: "HEADLINE-CHECK",
+        title: "Headline → Primärquelle → Kontext",
+        shortSummary: "Nicht nur lesen, was behauptet wird – zurückverfolgen, worauf es beruht.",
+        sourceLabel: "eDebatte · öffentliche Produktoberflächen",
+        provenance: "AKTUELLE PRODUKT-EVIDENZ",
+        visualIdentity: "media-forensics-cyan-source-trace",
+        visualPayload: { kind: "trend_line" },
+        memoryPriority: 100,
+      },
+      {
+        id: "edebatte-status-ladder",
+        type: "MEDIENFORENSIK",
+        title: "Zitat, Zahl, Studie: Was trägt?",
+        shortSummary: "Quelle, Interpretation und Kontext werden nicht miteinander verwechselt.",
+        sourceLabel: "redaktionelle Einordnung",
+        provenance: "REDAKTIONELLES PRINZIP",
+        visualIdentity: "media-forensics-blue-evidence-stack",
+        visualPayload: { kind: "bar_series", values: [0.28, 0.48, 0.7, 1] },
+        memoryPriority: 90,
+      },
+      {
+        id: "edebatte-open-question",
+        type: "OFFENE FRAGE",
+        title: "Wo endet der Beleg?",
+        shortSummary: "Unsicherheit bleibt sichtbar, statt zur Gewissheit umgedeutet zu werden.",
+        provenance: "REDAKTIONELLES PRINZIP",
+        visualIdentity: "media-forensics-amber-open-case",
+        visualPayload: { kind: "open_question" },
+        memoryPriority: 110,
+      },
     ],
-    sourceIds: ["edebatte-homepage", "edebatte-statements", "federal-election-calendar-2026", "berlin-election-2026-faq"],
+    sourceIds: ["edebatte-homepage", "edebatte-statements"],
     marketedOfferIds: ["edebatte-public-orientation", "edebatte-check-contribution"],
   },
   voiceopengov: {
@@ -217,33 +337,141 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
     title: "VoiceOpenGov Homepage Reference Film",
     proposition: "Deine Stimme endet nicht am Wahltag.",
     cta: "Mitmachen und informiert bleiben",
+    visualLanguage: "democratic_journey",
+    motionVocabulary: [
+      "ballot_cast",
+      "timeline_extend",
+      "coalition_transform",
+      "status_chain_advance",
+      "demophobie_question_reveal",
+      "citizen_network_expand",
+      "equal_voice_pulse",
+      "participation_path",
+    ],
     broadcastMeta: {
-      topicLabel: "THEMA",
-      topicTitle: "Demokratie zwischen den Wahlen",
+      topicLabel: "DEMOKRATIE",
+      topicTitle: "Was passiert nach dem Wahltag?",
       displayDate: "SEPTEMBER 2026",
       kicker: "DEINE STIMME BLEIBT",
-      headline: "Der Wahltag ist ein Anfang",
-      summary: "Zusagen, Entscheidungen, Umsetzung und offene Fragen bleiben nachvollziehbar.",
+      headline: "Eine Wahl dauert einen Tag",
+      summary: "Der demokratische Weg geht über Programme, Verhandlungen, Entscheidungen, Umsetzung und Wirkung weiter.",
     },
     segments: [
-      { id: "vog-greeting", text: "Hallo Nachbar. Eine Wahl dauert einen Tag. Demokratie die Jahre dazwischen.", spokenText: "Hallo Nachbar. Eine Wahl dauert einen Tag. Demokratie die Jahre dazwischen.", pauseAfterMs: 150, contexts: bothModes },
-      { id: "vog-election-calendar", text: "Im September 2026 finden mehrere Wahlen statt: in Sachsen-Anhalt, Niedersachsen, Berlin und Mecklenburg-Vorpommern.", spokenText: "Im September zweitausendsechsundzwanzig finden mehrere Wahlen statt: in Sachsen-Anhalt, Niedersachsen, Berlin und Mecklenburg-Vorpommern.", pauseAfterMs: 130, contexts: ["election_window"] },
-      { id: "vog-berlin-sixteen", text: "In Berlin dürfen bei der Abgeordnetenhauswahl erstmals auch Sechzehn- und Siebzehnjährige abstimmen.", spokenText: "In Berlin dürfen bei der Abgeordnetenhauswahl erstmals auch Sechzehn- und Siebzehnjährige abstimmen.", pauseAfterMs: 140, contexts: ["election_window"] },
-      { id: "vog-after-election", text: "Aber was passiert nach dem Wahltag? Was wurde zugesagt? Was wurde beschlossen?", spokenText: "Aber was passiert nach dem Wahltag? Was wurde zugesagt? Was wurde beschlossen?", pauseAfterMs: 120, contexts: bothModes },
-      { id: "vog-status-chain", text: "Was wurde umgesetzt? Was hat sich verändert – und was blieb offen?", spokenText: "Was wurde umgesetzt? Was hat sich verändert – und was blieb offen?", pauseAfterMs: 130, contexts: bothModes },
-      { id: "vog-tools-roles", text: "VoiceOpenGov ist die unabhängige Initiative. eDebatte ist das Werkzeug, das Aussagen, Quellen, Dossiers und Status nachvollziehbar verbindet.", spokenText: "Voice Open Gov ist die unabhängige Initiative. eDebatte ist das Werkzeug, das Aussagen, Quellen, Dossiers und Status nachvollziehbar verbindet.", pauseAfterMs: 140, contexts: bothModes },
-      { id: "vog-current-offer", text: "Du kannst dich aktuell kostenfrei per Double-Opt-in eintragen, mobil mitwirken oder die Initiative freiwillig unterstützen.", spokenText: "Du kannst dich aktuell kostenfrei per Double Opt in eintragen, mobil mitwirken oder die Initiative freiwillig unterstützen.", pauseAfterMs: 130, contexts: bothModes },
-      { id: "vog-equal-voice", text: "Unterstützung schafft keine Stimmvorteile. Beteiligung bleibt freiwillig und nachvollziehbar.", spokenText: "Unterstützung schafft keine Stimmvorteile. Beteiligung bleibt freiwillig und nachvollziehbar.", pauseAfterMs: 150, contexts: bothModes },
-      { id: "vog-synthesis", text: "Ein Kreuz ist eine Entscheidung. Nachvollziehbarkeit zeigt, was daraus geworden ist.", spokenText: "Ein Kreuz ist eine Entscheidung. Nachvollziehbarkeit zeigt, was daraus geworden ist.", pauseAfterMs: 180, contexts: bothModes },
-      { id: "vog-cta", text: "Deine Stimme endet nicht am Wahltag. Mitmachen und informiert bleiben.", spokenText: "Deine Stimme endet nicht am Wahltag. Mitmachen und informiert bleiben.", pauseAfterMs: 0, contexts: bothModes },
+      {
+        id: "vog-greeting",
+        text: "Hallo Nachbar. Eine Wahl dauert einen Tag. Aber eine Entscheidung wirkt Jahre.",
+        spokenText: "Hallo Nachbar. Eine Wahl dauert einen Tag. Aber eine Entscheidung wirkt Jahre.",
+        pauseAfterMs: 140,
+        contexts: bothModes,
+      },
+      {
+        id: "vog-election-calendar",
+        text: "Im September 2026 finden mehrere Wahlen statt: in Sachsen-Anhalt, Niedersachsen, Berlin und Mecklenburg-Vorpommern.",
+        spokenText: "Im September zweitausendsechsundzwanzig finden mehrere Wahlen statt: in Sachsen-Anhalt, Niedersachsen, Berlin und Mecklenburg-Vorpommern.",
+        pauseAfterMs: 120,
+        contexts: ["election_window"],
+      },
+      {
+        id: "vog-berlin-sixteen",
+        text: "In Berlin dürfen bei der Abgeordnetenhauswahl erstmals auch Sechzehn- und Siebzehnjährige abstimmen.",
+        spokenText: "In Berlin dürfen bei der Abgeordnetenhauswahl erstmals auch Sechzehn- und Siebzehnjährige abstimmen.",
+        pauseAfterMs: 130,
+        contexts: ["election_window"],
+      },
+      {
+        id: "vog-after-election",
+        text: "Dann ist der Wahltag vorbei. Aus Programmen werden Verhandlungen, Kompromisse, Anträge, Beschlüsse – oder eben nichts davon.",
+        spokenText: "Dann ist der Wahltag vorbei. Aus Programmen werden Verhandlungen, Kompromisse, Anträge, Beschlüsse, oder eben nichts davon.",
+        pauseAfterMs: 130,
+        contexts: bothModes,
+      },
+      {
+        id: "vog-program-not-contract",
+        text: "Was genau davon hast du eigentlich gewählt? Ein Wahlprogramm ist kein Vertrag. Ein Wahlversprechen ist kein Gesetz.",
+        spokenText: "Was genau davon hast du eigentlich gewählt? Ein Wahlprogramm ist kein Vertrag. Ein Wahlversprechen ist kein Gesetz.",
+        pauseAfterMs: 140,
+        contexts: bothModes,
+      },
+      {
+        id: "vog-demophobie",
+        text: "Die frühere Verfassungsrichterin Gertrude Lübbe-Wolff fragt in ‚Demophobie‘: Muss man direkte Demokratie wirklich fürchten?",
+        spokenText: "Die frühere Verfassungsrichterin Gertrude Lübbe-Wolff fragt in Demophobie: Muss man direkte Demokratie wirklich fürchten?",
+        pauseAfterMs: 150,
+        contexts: bothModes,
+      },
+      {
+        id: "vog-participation-balance",
+        text: "Die Antwort muss nicht heißen, über alles direkt abzustimmen. Aber sie sollte auch nicht heißen: wählen – und danach nur zuschauen.",
+        spokenText: "Die Antwort muss nicht heißen, über alles direkt abzustimmen. Aber sie sollte auch nicht heißen: wählen, und danach nur zuschauen.",
+        pauseAfterMs: 150,
+        contexts: bothModes,
+      },
+      {
+        id: "vog-current-offer",
+        text: "VoiceOpenGov macht diese Beteiligungsfrage sichtbar. Aktuell kannst du dich kostenfrei eintragen oder die Initiative freiwillig unterstützen. Unterstützung schafft keine Stimmvorteile.",
+        spokenText: "Voice Open Gov macht diese Beteiligungsfrage sichtbar. Aktuell kannst du dich kostenfrei eintragen oder die Initiative freiwillig unterstützen. Unterstützung schafft keine Stimmvorteile.",
+        pauseAfterMs: 140,
+        contexts: bothModes,
+      },
+      {
+        id: "vog-synthesis",
+        text: "Ein Kreuz ist eine Entscheidung. Nachvollziehbarkeit zeigt, was daraus geworden ist.",
+        spokenText: "Ein Kreuz ist eine Entscheidung. Nachvollziehbarkeit zeigt, was daraus geworden ist.",
+        pauseAfterMs: 170,
+        contexts: bothModes,
+      },
+      {
+        id: "vog-cta",
+        text: "Deine Stimme ist mehr als ein Kreuz. Die Frage ist, was wir daraus machen.",
+        spokenText: "Deine Stimme ist mehr als ein Kreuz. Die Frage ist, was wir daraus machen.",
+        pauseAfterMs: 0,
+        contexts: bothModes,
+      },
     ],
     evidence: [
-      { id: "vog-election-calendar", type: "WAHLTERMINE 2026", title: "Vier Termine im September", shortSummary: "06.09. Sachsen-Anhalt · 13.09. Niedersachsen · 20.09. Berlin und Mecklenburg-Vorpommern", sourceLabel: "Bundeswahlleiterin · Stand 18.08.2026", provenance: "AMTLICHE QUELLE", visualIdentity: "election-calendar-cyan-continuous-line", visualPayload: { kind: "trend_line" }, memoryPriority: 100 },
-      { id: "vog-accountability-chain", type: "NACH DEM WAHLTAG", title: "Zusage → Beschluss → Umsetzung", shortSummary: "Status und offene Fragen bleiben unterscheidbar.", sourceLabel: "VoiceOpenGov · eDebatte", provenance: "REDAKTIONELLES PRINZIP", visualIdentity: "accountability-blue-stepped-bars", visualPayload: { kind: "bar_series", values: [0.34, 0.64, 1] }, memoryPriority: 95 },
-      { id: "vog-open-question", type: "OFFENE FRAGE", title: "Was hat sich wirklich verändert?", shortSummary: "Die Bewertung bleibt bei den Menschen.", provenance: "REDAKTIONELLES PRINZIP", visualIdentity: "open-question-amber-ring", visualPayload: { kind: "open_question" }, memoryPriority: 110 },
+      {
+        id: "vog-election-calendar",
+        type: "WAHLTERMINE 2026",
+        title: "Vier Termine im September",
+        shortSummary: "06.09. Sachsen-Anhalt · 13.09. Niedersachsen · 20.09. Berlin und Mecklenburg-Vorpommern",
+        sourceLabel: "Bundeswahlleiterin · Stand 18.08.2026",
+        provenance: "AMTLICHE QUELLE",
+        visualIdentity: "democracy-journey-cyan-election-path",
+        visualPayload: { kind: "trend_line" },
+        memoryPriority: 100,
+      },
+      {
+        id: "vog-accountability-chain",
+        type: "NACH DEM WAHLTAG",
+        title: "Programm → Verhandlung → Beschluss → Wirkung",
+        shortSummary: "Wahlprogramm, Kompromiss, Beschluss und Ergebnis sind nicht dasselbe.",
+        sourceLabel: "VoiceOpenGov · eDebatte",
+        provenance: "REDAKTIONELLES PRINZIP",
+        visualIdentity: "democracy-journey-blue-process-path",
+        visualPayload: { kind: "bar_series", values: [0.2, 0.38, 0.58, 0.78, 1] },
+        memoryPriority: 95,
+      },
+      {
+        id: "vog-open-question",
+        type: "DEMOPHOBIE?",
+        title: "Wie viel direkte Entscheidung trauen wir Bürgern zu?",
+        shortSummary: "Lübbe-Wolff untersucht Einwände gegen direkte Demokratie – die Ausgestaltung entscheidet über Chancen und Risiken.",
+        sourceLabel: "Gertrude Lübbe-Wolff · Demophobie · Klostermann 2023",
+        provenance: "BUCH / DISKUSSIONSIMPULS",
+        visualIdentity: "democracy-journey-amber-demophobie-question",
+        visualPayload: { kind: "open_question" },
+        memoryPriority: 110,
+      },
     ],
-    sourceIds: ["voiceopengov-homepage", "edebatte-homepage", "edebatte-statements", "federal-election-calendar-2026", "berlin-election-2026-faq"],
-    marketedOfferIds: ["voiceopengov-double-opt-in", "voiceopengov-voluntary-support", "edebatte-public-orientation"],
+    sourceIds: [
+      "voiceopengov-homepage",
+      "edebatte-homepage",
+      "edebatte-statements",
+      "federal-election-calendar-2026",
+      "berlin-election-2026-faq",
+      "luebbe-wolff-demophobie-2023",
+    ],
+    marketedOfferIds: ["voiceopengov-double-opt-in", "voiceopengov-voluntary-support"],
   },
 } as const satisfies Record<VoxyHomepageFilmId, HomepageFilmDefinition>;
 
@@ -260,8 +488,21 @@ export function filmSegments(filmId: VoxyHomepageFilmId, contextMode: VoxyHomepa
 
 const seconds = (milliseconds: number): number => Number((milliseconds / 1_000).toFixed(3));
 
-function lowerThird(input: Omit<VoxyLowerThirdEntry, "transitionMs" | "transition" | "minimumDwellSeconds" | "wordByWordAnimation" | "blinking" | "captionMirror">): VoxyLowerThirdEntry {
-  return { ...input, transitionMs: 360, transition: "soft_translate_fade", minimumDwellSeconds: Math.min(2.4, input.validUntil - input.validFrom), wordByWordAnimation: false, blinking: false, captionMirror: false };
+function lowerThird(
+  input: Omit<
+    VoxyLowerThirdEntry,
+    "transitionMs" | "transition" | "minimumDwellSeconds" | "wordByWordAnimation" | "blinking" | "captionMirror"
+  >,
+): VoxyLowerThirdEntry {
+  return {
+    ...input,
+    transitionMs: 360,
+    transition: "soft_translate_fade",
+    minimumDwellSeconds: Math.min(2.4, input.validUntil - input.validFrom),
+    wordByWordAnimation: false,
+    blinking: false,
+    captionMirror: false,
+  };
 }
 
 export function buildVoxyHomepageReferenceFilmPlan(input: {
@@ -272,68 +513,201 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
 }) {
   const definition = VOXY_HOMEPAGE_REFERENCE_FILMS[input.filmId];
   const segments = filmSegments(input.filmId, input.contextMode);
-  if (segments.length !== input.speechDurationsMs.length) throw new Error("homepage_film_speech_duration_count_mismatch");
+  if (segments.length !== input.speechDurationsMs.length) {
+    throw new Error("homepage_film_speech_duration_count_mismatch");
+  }
+
   let cursorMs = 600;
   const speakerTimeline: VoxyDualVoicePilotSpeakerEntry[] = segments.map((segment, index) => {
     const startMs = cursorMs;
     const endMs = startMs + input.speechDurationsMs[index]!;
     cursorMs = endMs + segment.pauseAfterMs;
-    return { id: segment.id, start: seconds(startMs), end: seconds(endMs), speakerRole: "voxy", voiceId: VOXY_SIGNATURE.voiceId, text: segment.text };
+    return {
+      id: segment.id,
+      start: seconds(startMs),
+      end: seconds(endMs),
+      speakerRole: "voxy",
+      voiceId: VOXY_SIGNATURE.voiceId,
+      text: segment.text,
+    };
   });
+
   const totalDurationMs = cursorMs + 800;
   const end = seconds(totalDurationMs);
   const boundary = (ratio: number) => Number((end * ratio).toFixed(3));
   const e1 = definition.evidence[0]!.id;
   const e2 = definition.evidence[1]!.id;
   const e3 = definition.evidence[2]!.id;
+
   const visualStateTimeline: VoxyDualVoicePilotVisualEntry[] = [
-    { start: 0, end: boundary(.14), state: "HOST", activeEvidenceId: null, dockedEvidenceIds: [] },
-    { start: boundary(.14), end: boundary(.24), state: "FOCUS", activeEvidenceId: e1, dockedEvidenceIds: [] },
-    { start: boundary(.24), end: boundary(.34), state: "EXPLAIN", activeEvidenceId: e1, dockedEvidenceIds: [] },
-    { start: boundary(.34), end: boundary(.4), state: "DOCK", activeEvidenceId: e1, dockedEvidenceIds: [e1] },
-    { start: boundary(.4), end: boundary(.48), state: "HOST", activeEvidenceId: null, dockedEvidenceIds: [e1] },
-    { start: boundary(.48), end: boundary(.59), state: "FOCUS", activeEvidenceId: e2, dockedEvidenceIds: [e1] },
-    { start: boundary(.59), end: boundary(.7), state: "EXPLAIN", activeEvidenceId: e2, dockedEvidenceIds: [e1] },
-    { start: boundary(.7), end: boundary(.76), state: "DOCK", activeEvidenceId: e2, dockedEvidenceIds: [e1, e2] },
-    { start: boundary(.76), end: boundary(.89), state: "SYNTHESIS", activeEvidenceId: e3, dockedEvidenceIds: [e1, e2] },
-    { start: boundary(.89), end, state: "HOST", activeEvidenceId: null, dockedEvidenceIds: [e1, e2, e3] },
+    { start: 0, end: boundary(0.14), state: "HOST", activeEvidenceId: null, dockedEvidenceIds: [] },
+    { start: boundary(0.14), end: boundary(0.24), state: "FOCUS", activeEvidenceId: e1, dockedEvidenceIds: [] },
+    { start: boundary(0.24), end: boundary(0.34), state: "EXPLAIN", activeEvidenceId: e1, dockedEvidenceIds: [] },
+    { start: boundary(0.34), end: boundary(0.4), state: "DOCK", activeEvidenceId: e1, dockedEvidenceIds: [e1] },
+    { start: boundary(0.4), end: boundary(0.48), state: "HOST", activeEvidenceId: null, dockedEvidenceIds: [e1] },
+    { start: boundary(0.48), end: boundary(0.59), state: "FOCUS", activeEvidenceId: e2, dockedEvidenceIds: [e1] },
+    { start: boundary(0.59), end: boundary(0.7), state: "EXPLAIN", activeEvidenceId: e2, dockedEvidenceIds: [e1] },
+    { start: boundary(0.7), end: boundary(0.76), state: "DOCK", activeEvidenceId: e2, dockedEvidenceIds: [e1, e2] },
+    { start: boundary(0.76), end: boundary(0.89), state: "SYNTHESIS", activeEvidenceId: e3, dockedEvidenceIds: [e1, e2] },
+    { start: boundary(0.89), end, state: "HOST", activeEvidenceId: null, dockedEvidenceIds: [e1, e2, e3] },
   ];
+
   const evidenceTimeline = visualStateTimeline
     .filter((entry) => entry.activeEvidenceId)
     .map((entry) => ({
-      evidenceId: entry.activeEvidenceId!, start: entry.start, end: entry.end,
-      action: entry.state === "DOCK" ? "continuous_scale_translation_to_memory" : entry.state.toLowerCase(),
-      visualIdentity: definition.evidence.find((evidence) => evidence.id === entry.activeEvidenceId)!.visualIdentity,
+      evidenceId: entry.activeEvidenceId!,
+      start: entry.start,
+      end: entry.end,
+      action:
+        entry.state === "DOCK"
+          ? "continuous_scale_translation_to_memory"
+          : entry.state.toLowerCase(),
+      visualIdentity: definition.evidence.find(
+        (evidence) => evidence.id === entry.activeEvidenceId,
+      )!.visualIdentity,
       ...(entry.state === "SYNTHESIS" ? { relatedEvidenceIds: [e1, e2] } : {}),
     }));
-  const motionTimeline = [] as Array<{ id: string; at: number; state: string; activeEvidenceId: string | null; motion: string; semanticPurpose: string; decorativeOnly: false }>;
+
+  const motionTimeline = [] as Array<{
+    id: string;
+    at: number;
+    state: string;
+    activeEvidenceId: string | null;
+    motion: string;
+    semanticPurpose: string;
+    decorativeOnly: false;
+  }>;
+
   for (let at = 0, index = 0; at < end; index += 1) {
-    const state = visualStateTimeline.find((entry) => at >= entry.start && at < entry.end) ?? visualStateTimeline.at(-1)!;
-    const motions = ["semantic_reveal", "source_highlight", "relationship_trace", "status_progression", "camera_emphasis", "memory_continuity"];
-    motionTimeline.push({ id: `motion-${String(index + 1).padStart(2, "0")}`, at: Number(at.toFixed(3)), state: state.state, activeEvidenceId: state.activeEvidenceId, motion: motions[index % motions.length]!, semanticPurpose: state.activeEvidenceId ? `explain_${state.activeEvidenceId}` : `advance_${state.state.toLowerCase()}_narrative`, decorativeOnly: false });
+    const state =
+      visualStateTimeline.find((entry) => at >= entry.start && at < entry.end) ??
+      visualStateTimeline.at(-1)!;
+    const motion = definition.motionVocabulary[index % definition.motionVocabulary.length]!;
+    motionTimeline.push({
+      id: `motion-${String(index + 1).padStart(2, "0")}`,
+      at: Number(at.toFixed(3)),
+      state: state.state,
+      activeEvidenceId: state.activeEvidenceId,
+      motion,
+      semanticPurpose: state.activeEvidenceId
+        ? `${definition.visualLanguage}_${motion}_${state.activeEvidenceId}`
+        : `${definition.visualLanguage}_${motion}_${state.state.toLowerCase()}`,
+      decorativeOnly: false,
+    });
     at += at < 12 ? 2 : 3;
   }
-  const lowerThirdTimeline = [
-    lowerThird({ id: "opening", kicker: definition.broadcastMeta.kicker, headline: definition.proposition, summary: definition.broadcastMeta.summary, validFrom: 0, validUntil: boundary(.24) }),
-    lowerThird({ id: "first-evidence", kicker: definition.evidence[0]!.type, headline: definition.evidence[0]!.title, summary: definition.evidence[0]!.shortSummary, validFrom: boundary(.24), validUntil: boundary(.48) }),
-    lowerThird({ id: "second-evidence", kicker: definition.evidence[1]!.type, headline: definition.evidence[1]!.title, summary: definition.evidence[1]!.shortSummary, validFrom: boundary(.48), validUntil: boundary(.76) }),
-    lowerThird({ id: "synthesis", kicker: "ZUSAMMENFÜHRUNG", headline: definition.evidence[2]!.title, summary: definition.evidence[2]!.shortSummary, validFrom: boundary(.76), validUntil: boundary(.89) }),
-    lowerThird({ id: "cta", kicker: "NÄCHSTER SCHRITT", headline: definition.cta, summary: definition.proposition, validFrom: boundary(.89), validUntil: end }),
-  ];
+
+  const lowerThirdTimeline = input.filmId === "edebatte"
+    ? [
+        lowerThird({
+          id: "opening",
+          kicker: "MEDIEN-CHECK",
+          headline: "Die Schlagzeile ist der Anfang",
+          summary: "Nicht nur lesen, was behauptet wird – zurück zur Primärquelle.",
+          validFrom: 0,
+          validUntil: boundary(0.24),
+        }),
+        lowerThird({
+          id: "first-evidence",
+          kicker: "QUELLENPRÜFUNG",
+          headline: "Wer sagt was – und worauf beruht es?",
+          summary: "Akteur, Datum, Originalquelle und relevante Passage bleiben sichtbar.",
+          validFrom: boundary(0.24),
+          validUntil: boundary(0.48),
+        }),
+        lowerThird({
+          id: "second-evidence",
+          kicker: "MEDIENFORENSIK",
+          headline: "Quelle ist nicht Interpretation",
+          summary: "Zitat, Zahl, Studie und Einordnung werden getrennt behandelt.",
+          validFrom: boundary(0.48),
+          validUntil: boundary(0.76),
+        }),
+        lowerThird({
+          id: "synthesis",
+          kicker: "NACHPRÜFBARKEIT",
+          headline: "Wo endet der Beleg?",
+          summary: "Gegenposition und offene Frage gehören zur Recherche dazu.",
+          validFrom: boundary(0.76),
+          validUntil: boundary(0.89),
+        }),
+        lowerThird({
+          id: "cta",
+          kicker: "eDEBATTE",
+          headline: definition.cta,
+          summary: definition.proposition,
+          validFrom: boundary(0.89),
+          validUntil: end,
+        }),
+      ]
+    : [
+        lowerThird({
+          id: "opening",
+          kicker: "WAHLTAG",
+          headline: "Eine Wahl dauert einen Tag",
+          summary: "Die politische Wirkung entsteht in den Jahren danach.",
+          validFrom: 0,
+          validUntil: boundary(0.24),
+        }),
+        lowerThird({
+          id: "first-evidence",
+          kicker: "DANACH",
+          headline: "Programm ist nicht Beschluss",
+          summary: "Verhandlung, Kompromiss, Entscheidung und Umsetzung verändern den Weg.",
+          validFrom: boundary(0.24),
+          validUntil: boundary(0.48),
+        }),
+        lowerThird({
+          id: "second-evidence",
+          kicker: "ZWISCHEN DEN WAHLEN",
+          headline: "Was genau hast du gewählt?",
+          summary: "Ein Wahlversprechen ist kein Gesetz – Nachvollziehbarkeit zeigt den Status.",
+          validFrom: boundary(0.48),
+          validUntil: boundary(0.76),
+        }),
+        lowerThird({
+          id: "synthesis",
+          kicker: "DEMOPHOBIE?",
+          headline: "Wie viel Entscheidung trauen wir Bürgern zu?",
+          summary: "Direkte Demokratie ist eine Gestaltungsfrage – keine einfache Ja-Nein-Antwort.",
+          validFrom: boundary(0.76),
+          validUntil: boundary(0.89),
+        }),
+        lowerThird({
+          id: "cta",
+          kicker: "VOICEOPENGOV",
+          headline: definition.cta,
+          summary: "Deine Stimme ist mehr als ein Kreuz.",
+          validFrom: boundary(0.89),
+          validUntil: end,
+        }),
+      ];
+
   const sourceIds = new Set<string>(definition.sourceIds);
   const marketedOfferIds = new Set<string>(definition.marketedOfferIds);
   const sources = VOXY_HOMEPAGE_SOURCE_REGISTRY.filter((source) => sourceIds.has(source.id));
-  const marketedOffers = VOXY_CURRENT_OFFER_INVENTORY.filter((offer) => marketedOfferIds.has(offer.id));
+  const marketedOffers = VOXY_CURRENT_OFFER_INVENTORY.filter((offer) =>
+    marketedOfferIds.has(offer.id),
+  );
+
   return {
     schemaVersion: VOXY_HOMEPAGE_REFERENCE_FILMS_SCHEMA_VERSION,
     filmId: input.filmId,
     title: definition.title,
     proposition: definition.proposition,
     cta: definition.cta,
+    visualLanguage: definition.visualLanguage,
     contextMode: input.contextMode,
     exactHeadSha: input.exactHeadSha,
     visualMasterHeadSha: VOXY_FIRST_PARTY_VISUAL_BINDING.visualMasterHeadSha,
-    output: { ...VOXY_HOMEPAGE_REFERENCE_FILMS_OUTPUT[input.filmId], width: 1920, height: 1080, fps: 24, durationMs: totalDurationMs, frameCount: Math.ceil(totalDurationMs * 24 / 1_000) },
+    output: {
+      ...VOXY_HOMEPAGE_REFERENCE_FILMS_OUTPUT[input.filmId],
+      width: 1920,
+      height: 1080,
+      fps: 24,
+      durationMs: totalDurationMs,
+      frameCount: Math.ceil((totalDurationMs * 24) / 1_000),
+    },
     broadcastMeta: definition.broadcastMeta,
     speakerTimeline,
     visualStateTimeline,
@@ -350,21 +724,69 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
     canonicalVoxyVoice: "D1 Conversational Dynamic",
     canonicalEditorialVoice: "W1 Natural Editorial / parked optional layer",
     captions: { sidecarsOnly: true, burnedIn: false, languages: ["de"] },
-    objectContinuity: { sameEvidenceId: true, sameVisualIdentity: true, scaleAndTranslation: true, hardSubstitution: false, crossfadeToDifferentObject: false },
-    mouth: { profile: VOXY_FIRST_PARTY_VISUAL_BINDING.mouthProfile, shapesChanged: false, anchorChanged: false, pivotChanged: false, syncSpeakerRole: "voxy", activeForEverySpokenSegment: true, editorialMouth: "not_applicable_single_voice" },
+    objectContinuity: {
+      sameEvidenceId: true,
+      sameVisualIdentity: true,
+      scaleAndTranslation: true,
+      hardSubstitution: false,
+      crossfadeToDifferentObject: false,
+    },
+    mouth: {
+      profile: VOXY_FIRST_PARTY_VISUAL_BINDING.mouthProfile,
+      shapesChanged: false,
+      anchorChanged: false,
+      pivotChanged: false,
+      syncSpeakerRole: "voxy",
+      activeForEverySpokenSegment: true,
+      editorialMouth: "not_applicable_single_voice",
+    },
     waveform: { count: 1, reactsToActiveVoice: true, secondWaveform: false },
     broadcastLayout: {
-      stableGrid: true, hostZone: "center_left", topicDateZone: "top_right",
+      stableGrid: true,
+      hostZone: "center_left",
+      topicDateZone: "top_right",
       jacketBranding: { lapelPin: "VOG", pocketMark: "eDebatte", pocketMarkCount: 1 },
       memoryAnchor: { top: true, right: true, bottom: false, safeMarginPx: 56 },
       focusDockDestination: "upper_right_memory_slot",
-      lowerThird: { persistent: true, avoidsEvidenceColumn: true, semanticEditorialCondensation: true, captionMirror: false },
-      dynamicEvidence: { dataDriven: true, maximumFullCards: 3, overflowBehavior: "compact_older_by_priority_and_recency", fixedEvidenceCount: false },
-      textMotion: { blinking: false, flashing: false, typewriter: false, wordByWordReveal: false, transitionMs: 360 },
+      lowerThird: {
+        persistent: true,
+        avoidsEvidenceColumn: true,
+        semanticEditorialCondensation: true,
+        captionMirror: false,
+      },
+      dynamicEvidence: {
+        dataDriven: true,
+        maximumFullCards: 3,
+        overflowBehavior: "compact_older_by_priority_and_recency",
+        fixedEvidenceCount: false,
+      },
+      textMotion: {
+        blinking: false,
+        flashing: false,
+        typewriter: false,
+        wordByWordReveal: false,
+        transitionMs: 360,
+      },
     },
-    contextArchitecture: { supportedModes: ["evergreen", "election_window"], renderedMode: input.contextMode, modeSwitchRequiresResynthesis: true },
-    motionPolicy: { adaptiveMotion: true, firstTwelveSecondsMaxGapSeconds: 2.5, laterMaxGapSeconds: 3.5, pilotEvidenceDwellTimesCanonical: false, slideshowMode: false, reducedMotionInformationEquivalent: true },
-    privacy: { privateRawVoiceInRepository: false, privateReferencePathInManifest: false, publicArtifact: false, upload: false },
+    contextArchitecture: {
+      supportedModes: ["evergreen", "election_window"],
+      renderedMode: input.contextMode,
+      modeSwitchRequiresResynthesis: true,
+    },
+    motionPolicy: {
+      adaptiveMotion: true,
+      firstTwelveSecondsMaxGapSeconds: 2.5,
+      laterMaxGapSeconds: 3.5,
+      pilotEvidenceDwellTimesCanonical: false,
+      slideshowMode: false,
+      reducedMotionInformationEquivalent: true,
+    },
+    privacy: {
+      privateRawVoiceInRepository: false,
+      privateReferencePathInManifest: false,
+      publicArtifact: false,
+      upload: false,
+    },
     homepageIntegrationIncluded: false,
     humanHomepageFilmAcceptance: "pending",
     humanNews5VisualAcceptance: "pending",
@@ -373,54 +795,242 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
   } as const;
 }
 
-export type VoxyHomepageReferenceFilmPlan = ReturnType<typeof buildVoxyHomepageReferenceFilmPlan>;
+export type VoxyHomepageReferenceFilmPlan = ReturnType<
+  typeof buildVoxyHomepageReferenceFilmPlan
+>;
 
-export function validateVoxyHomepageReferenceFilmPlan(plan: VoxyHomepageReferenceFilmPlan): string[] {
+export function validateVoxyHomepageReferenceFilmPlan(
+  plan: VoxyHomepageReferenceFilmPlan,
+): string[] {
   const errors: string[] = [];
   const expected = VOXY_HOMEPAGE_REFERENCE_FILMS[plan.filmId];
   const duration = plan.output.durationMs / 1_000;
+
   if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) errors.push("exact_head_invalid");
-  if (plan.output.width !== 1920 || plan.output.height !== 1080 || plan.output.fps !== 24 || duration < plan.output.durationSeconds.min || duration > plan.output.durationSeconds.max) errors.push("media_contract_invalid");
-  if (plan.speakerTimeline.some((entry) => entry.speakerRole !== "voxy" || entry.voiceId !== VOXY_SIGNATURE.voiceId) || Object.keys(plan.activeVoiceBindings).length !== 1) errors.push("d1_only_gate_invalid");
-  if (plan.speakerTimeline.filter((entry) => entry.text.includes("Hallo Nachbar")).length !== 1) errors.push("greeting_count_invalid");
-  if (plan.visualStateTimeline.map((entry) => entry.state).join(",") !== "HOST,FOCUS,EXPLAIN,DOCK,HOST,FOCUS,EXPLAIN,DOCK,SYNTHESIS,HOST") errors.push("news_5_sequence_invalid");
-  if (plan.waveform.count !== 1 || plan.waveform.secondWaveform || !plan.waveform.reactsToActiveVoice) errors.push("waveform_contract_invalid");
-  if (plan.broadcastLayout.jacketBranding.lapelPin !== "VOG" || plan.broadcastLayout.jacketBranding.pocketMark !== "eDebatte" || plan.broadcastLayout.jacketBranding.pocketMarkCount !== 1) errors.push("brand_mark_contract_invalid");
-  if (!plan.broadcastLayout.memoryAnchor.top || !plan.broadcastLayout.memoryAnchor.right || plan.broadcastLayout.memoryAnchor.bottom) errors.push("memory_anchor_invalid");
-  if (plan.evidenceTimeline.filter((entry) => entry.action === "continuous_scale_translation_to_memory").length !== 2 || !plan.objectContinuity.sameEvidenceId || !plan.objectContinuity.sameVisualIdentity || !plan.objectContinuity.scaleAndTranslation) errors.push("focus_dock_continuity_invalid");
-  const firstMotionGaps = plan.motionTimeline.filter((entry) => entry.at <= 12).slice(1).map((entry, index) => entry.at - plan.motionTimeline[index]!.at);
+  if (
+    plan.output.width !== 1920 ||
+    plan.output.height !== 1080 ||
+    plan.output.fps !== 24 ||
+    duration < plan.output.durationSeconds.min ||
+    duration > plan.output.durationSeconds.max
+  ) {
+    errors.push("media_contract_invalid");
+  }
+  if (
+    plan.speakerTimeline.some(
+      (entry) => entry.speakerRole !== "voxy" || entry.voiceId !== VOXY_SIGNATURE.voiceId,
+    ) ||
+    Object.keys(plan.activeVoiceBindings).length !== 1
+  ) {
+    errors.push("d1_only_gate_invalid");
+  }
+  if (plan.speakerTimeline.filter((entry) => entry.text.includes("Hallo Nachbar")).length !== 1) {
+    errors.push("greeting_count_invalid");
+  }
+  if (
+    plan.visualStateTimeline.map((entry) => entry.state).join(",") !==
+    "HOST,FOCUS,EXPLAIN,DOCK,HOST,FOCUS,EXPLAIN,DOCK,SYNTHESIS,HOST"
+  ) {
+    errors.push("news_5_sequence_invalid");
+  }
+  if (plan.waveform.count !== 1 || plan.waveform.secondWaveform || !plan.waveform.reactsToActiveVoice) {
+    errors.push("waveform_contract_invalid");
+  }
+  if (
+    plan.broadcastLayout.jacketBranding.lapelPin !== "VOG" ||
+    plan.broadcastLayout.jacketBranding.pocketMark !== "eDebatte" ||
+    plan.broadcastLayout.jacketBranding.pocketMarkCount !== 1
+  ) {
+    errors.push("brand_mark_contract_invalid");
+  }
+  if (
+    !plan.broadcastLayout.memoryAnchor.top ||
+    !plan.broadcastLayout.memoryAnchor.right ||
+    plan.broadcastLayout.memoryAnchor.bottom
+  ) {
+    errors.push("memory_anchor_invalid");
+  }
+  if (
+    plan.evidenceTimeline.filter(
+      (entry) => entry.action === "continuous_scale_translation_to_memory",
+    ).length !== 2 ||
+    !plan.objectContinuity.sameEvidenceId ||
+    !plan.objectContinuity.sameVisualIdentity ||
+    !plan.objectContinuity.scaleAndTranslation
+  ) {
+    errors.push("focus_dock_continuity_invalid");
+  }
+
+  const firstMotionGaps = plan.motionTimeline
+    .filter((entry) => entry.at <= 12)
+    .slice(1)
+    .map((entry, index) => entry.at - plan.motionTimeline[index]!.at);
   const later = plan.motionTimeline.filter((entry) => entry.at >= 12);
-  const laterGaps = later.slice(1).map((entry, index) => entry.at - later[index]!.at);
-  if (!plan.motionPolicy.adaptiveMotion || plan.motionPolicy.pilotEvidenceDwellTimesCanonical || plan.motionPolicy.slideshowMode || firstMotionGaps.some((gap) => gap > 2.5) || laterGaps.some((gap) => gap > 3.5) || plan.motionTimeline.some((entry) => entry.decorativeOnly)) errors.push("adaptive_motion_contract_invalid");
-  if (!plan.captions.sidecarsOnly || plan.captions.burnedIn || plan.lowerThirdTimeline.some((entry) => entry.captionMirror || entry.blinking || entry.wordByWordAnimation)) errors.push("caption_or_lower_third_contract_invalid");
-  if (!plan.contextArchitecture.supportedModes.includes("evergreen") || !plan.contextArchitecture.supportedModes.includes("election_window")) errors.push("context_mode_contract_invalid");
-  if (plan.sources.some((source) => !source.url.startsWith("https://") || !source.publisher || !source.retrievedAt || !source.revision) || plan.sources.length !== expected.sourceIds.length) errors.push("source_integrity_invalid");
-  if (plan.marketedOffers.some((offer) => offer.classification !== "current_capability" || !offer.marketable || Array.from(offer.sourceIds).length < 1)) errors.push("current_offer_fail_closed_invalid");
-  if (plan.currentOfferInventory.some((offer) => offer.classification === "future_intent" && offer.marketable)) errors.push("future_intent_marketed_invalid");
-  if (plan.contextMode === "election_window" && (!plan.sources.some((source) => source.id === "federal-election-calendar-2026") || !plan.sources.some((source) => source.id === "berlin-election-2026-faq"))) errors.push("official_election_source_missing");
-  const electionWindowOnlySegmentIds = new Set(["edebatte-election-noise", "vog-election-calendar", "vog-berlin-sixteen"]);
-  if (plan.contextMode === "evergreen" && plan.speakerTimeline.some((entry) => electionWindowOnlySegmentIds.has(entry.id))) errors.push("evergreen_contains_election_window_copy");
-  if (plan.homepageIntegrationIncluded || plan.productionEligible || plan.autoPublish || plan.privacy.publicArtifact || plan.privacy.upload || plan.humanHomepageFilmAcceptance !== "pending") errors.push("release_gate_invalid");
+  const laterGaps = later
+    .slice(1)
+    .map((entry, index) => entry.at - later[index]!.at);
+  if (
+    !plan.motionPolicy.adaptiveMotion ||
+    plan.motionPolicy.pilotEvidenceDwellTimesCanonical ||
+    plan.motionPolicy.slideshowMode ||
+    firstMotionGaps.some((gap) => gap > 2.5) ||
+    laterGaps.some((gap) => gap > 3.5) ||
+    plan.motionTimeline.some((entry) => entry.decorativeOnly)
+  ) {
+    errors.push("adaptive_motion_contract_invalid");
+  }
+  if (
+    !plan.captions.sidecarsOnly ||
+    plan.captions.burnedIn ||
+    plan.lowerThirdTimeline.some(
+      (entry) => entry.captionMirror || entry.blinking || entry.wordByWordAnimation,
+    )
+  ) {
+    errors.push("caption_or_lower_third_contract_invalid");
+  }
+  if (
+    !plan.contextArchitecture.supportedModes.includes("evergreen") ||
+    !plan.contextArchitecture.supportedModes.includes("election_window")
+  ) {
+    errors.push("context_mode_contract_invalid");
+  }
+  if (
+    plan.sources.some(
+      (source) =>
+        !source.url.startsWith("https://") ||
+        !source.publisher ||
+        !source.retrievedAt ||
+        !source.revision,
+    ) ||
+    plan.sources.length !== expected.sourceIds.length
+  ) {
+    errors.push("source_integrity_invalid");
+  }
+  if (
+    plan.marketedOffers.some(
+      (offer) =>
+        offer.classification !== "current_capability" ||
+        !offer.marketable ||
+        Array.from(offer.sourceIds).length < 1,
+    )
+  ) {
+    errors.push("current_offer_fail_closed_invalid");
+  }
+  if (
+    plan.currentOfferInventory.some(
+      (offer) => offer.classification === "future_intent" && offer.marketable,
+    )
+  ) {
+    errors.push("future_intent_marketed_invalid");
+  }
+  if (
+    plan.filmId === "voiceopengov" &&
+    plan.contextMode === "election_window" &&
+    (!plan.sources.some((source) => source.id === "federal-election-calendar-2026") ||
+      !plan.sources.some((source) => source.id === "berlin-election-2026-faq"))
+  ) {
+    errors.push("official_election_source_missing");
+  }
+  if (
+    plan.filmId === "voiceopengov" &&
+    !plan.sources.some((source) => source.id === "luebbe-wolff-demophobie-2023")
+  ) {
+    errors.push("demophobie_source_missing");
+  }
+
+  const electionWindowOnlySegmentIds = new Set([
+    "edebatte-election-noise",
+    "vog-election-calendar",
+    "vog-berlin-sixteen",
+  ]);
+  if (
+    plan.contextMode === "evergreen" &&
+    plan.speakerTimeline.some((entry) => electionWindowOnlySegmentIds.has(entry.id))
+  ) {
+    errors.push("evergreen_contains_election_window_copy");
+  }
+  if (
+    plan.homepageIntegrationIncluded ||
+    plan.productionEligible ||
+    plan.autoPublish ||
+    plan.privacy.publicArtifact ||
+    plan.privacy.upload ||
+    plan.humanHomepageFilmAcceptance !== "pending"
+  ) {
+    errors.push("release_gate_invalid");
+  }
+  if (
+    plan.filmId === "edebatte" &&
+    (plan.visualLanguage !== "media_forensics" ||
+      !plan.motionTimeline.some((entry) => entry.motion === "source_scan"))
+  ) {
+    errors.push("edebatte_visual_language_invalid");
+  }
+  if (
+    plan.filmId === "voiceopengov" &&
+    (plan.visualLanguage !== "democratic_journey" ||
+      !plan.motionTimeline.some((entry) => entry.motion === "ballot_cast") ||
+      !plan.speakerTimeline.some((entry) => entry.id === "vog-demophobie"))
+  ) {
+    errors.push("voiceopengov_visual_language_invalid");
+  }
+
   return [...new Set(errors)];
 }
 
 function captionTime(value: number, separator: "." | ","): string {
   const ms = Math.round(value * 1_000);
-  return `${String(Math.floor(ms / 3_600_000)).padStart(2, "0")}:${String(Math.floor(ms % 3_600_000 / 60_000)).padStart(2, "0")}:${String(Math.floor(ms % 60_000 / 1_000)).padStart(2, "0")}${separator}${String(ms % 1_000).padStart(3, "0")}`;
+  return `${String(Math.floor(ms / 3_600_000)).padStart(2, "0")}:${String(
+    Math.floor((ms % 3_600_000) / 60_000),
+  ).padStart(2, "0")}:${String(Math.floor((ms % 60_000) / 1_000)).padStart(
+    2,
+    "0",
+  )}${separator}${String(ms % 1_000).padStart(3, "0")}`;
 }
 
-export function buildVoxyHomepageFilmVtt(timeline: readonly VoxyDualVoicePilotSpeakerEntry[]): string {
-  return `WEBVTT\n\n${timeline.map((entry) => `${captionTime(entry.start, ".")} --> ${captionTime(entry.end, ".")}\n<v Voxy>${entry.text}`).join("\n\n")}\n`;
+export function buildVoxyHomepageFilmVtt(
+  timeline: readonly VoxyDualVoicePilotSpeakerEntry[],
+): string {
+  return `WEBVTT\n\n${timeline
+    .map(
+      (entry) =>
+        `${captionTime(entry.start, ".")} --> ${captionTime(entry.end, ".")}\n<v Voxy>${entry.text}`,
+    )
+    .join("\n\n")}\n`;
 }
 
-export function buildVoxyHomepageFilmSrt(timeline: readonly VoxyDualVoicePilotSpeakerEntry[]): string {
-  return `${timeline.map((entry, index) => `${index + 1}\n${captionTime(entry.start, ",")} --> ${captionTime(entry.end, ",")}\n[Voxy] ${entry.text}`).join("\n\n")}\n`;
+export function buildVoxyHomepageFilmSrt(
+  timeline: readonly VoxyDualVoicePilotSpeakerEntry[],
+): string {
+  return `${timeline
+    .map(
+      (entry, index) =>
+        `${index + 1}\n${captionTime(entry.start, ",")} --> ${captionTime(
+          entry.end,
+          ",",
+        )}\n[Voxy] ${entry.text}`,
+    )
+    .join("\n\n")}\n`;
 }
 
-export function homepageVisualStateAt(plan: VoxyHomepageReferenceFilmPlan, atSeconds: number) {
-  return plan.visualStateTimeline.find((entry) => atSeconds >= entry.start && atSeconds < entry.end) ?? plan.visualStateTimeline.at(-1)!;
+export function homepageVisualStateAt(
+  plan: VoxyHomepageReferenceFilmPlan,
+  atSeconds: number,
+) {
+  return (
+    plan.visualStateTimeline.find(
+      (entry) => atSeconds >= entry.start && atSeconds < entry.end,
+    ) ?? plan.visualStateTimeline.at(-1)!
+  );
 }
 
-export function homepageLowerThirdAt(plan: VoxyHomepageReferenceFilmPlan, atSeconds: number) {
-  return plan.lowerThirdTimeline.find((entry) => atSeconds >= entry.validFrom && atSeconds < entry.validUntil) ?? plan.lowerThirdTimeline.at(-1)!;
+export function homepageLowerThirdAt(
+  plan: VoxyHomepageReferenceFilmPlan,
+  atSeconds: number,
+) {
+  return (
+    plan.lowerThirdTimeline.find(
+      (entry) => atSeconds >= entry.validFrom && atSeconds < entry.validUntil,
+    ) ?? plan.lowerThirdTimeline.at(-1)!
+  );
 }
