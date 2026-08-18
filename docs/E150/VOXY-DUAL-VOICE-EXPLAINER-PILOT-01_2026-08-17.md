@@ -1,7 +1,7 @@
 # VOXY-DUAL-VOICE-EXPLAINER-PILOT-01
 
 Stand: 2026-08-18
-Status: `review` — Narrationsarchitektur und Voice-Auswahl angenommen; menschliche Pilot- und NEWS-5.0-Visual-Abnahme offen
+Status: `done` — Narrationsarchitektur, Voice-Auswahl, Pilot und NEWS-5.0-Visual-Canon menschlich angenommen
 
 ## Verbindliche Narrationsarchitektur
 
@@ -678,3 +678,55 @@ Der Gate-Stand nach v1.4 lautet:
 Der Task bleibt `review`. Der technische Pass ist keine menschliche
 Pilot-/NEWS-5.0-Visual-Abnahme und autorisiert weder Merge, Ready-for-Review,
 Upload, Deployment, Publishing noch Production.
+
+## Human Final Visual Acceptance und Closing — 2026-08-18
+
+Der Human-Final-Kommentar auf PR #621 akzeptiert den v1.4-Final-Layout-Piloten
+als Design- und Format-Canon. Die Entscheidung bezieht sich auf das private,
+revisionsgebundene Artefakt
+`voxy-democracy-pilot-v1-4-final-layout-279ea0f9596f` und erlaubt den
+technischen Closing-Pass:
+
+- `humanPilotAcceptance = accepted`;
+- `humanNews5VisualAcceptance = accepted`;
+- `canonicalNarrationArchitecture = single_voice_default`;
+- `canonicalVoxyVoice = D1`;
+- `humanVoxyVoiceAcceptance = accepted`;
+- `canonicalEditorialVoice = W1 / accepted_optional_layer`;
+- `w1ProductionPathStatus = parked`;
+- `productionEligible = false`;
+- `autoPublish = false`.
+
+W1 bleibt als menschlich akzeptierte optionale Editorial-Evidence erhalten,
+ist im aktuell kanonischen Produktionspfad jedoch nicht aktiv. Es gibt keinen
+Fallback, keine Mischung und keine versteckte zweite Spur.
+
+Der Human-Hinweis zu den relativ langen Evidence-/Slide-Standzeiten ist kein
+Blocker für PR #621 und keine nachträgliche Einschränkung der visuellen
+Acceptance. Verbindlich gilt:
+
+- `pilotEvidenceDwellTimesCanonical = false`;
+- `visualStillnessMustNotEqualNarrationDuration = true`;
+- `adaptiveEvidenceDwellTimesRequiredForProduction = true`;
+- `adaptiveVisualProgressionRequiredForProduction = true`.
+
+Die Demo-Timings aus v1.4 dürfen deshalb nicht unverändert als Homepage-,
+Social- oder allgemeiner Produktionsstandard übernommen werden. Während eines
+Narrationsblocks müssen semantisch sinnvolle Micro-Progressions möglich sein,
+etwa Quellenfokus, Markierung, Chartaufbau, Vergleich, Statusableitung,
+Relation, Docking oder Memory-Reorganisation. Diese Folgeanforderung verändert
+weder die akzeptierte v1.4-Datei noch deren Human-Gate.
+
+Der Closing-Preflight auf PR-Head
+`a9de72e8e9505a629f04542a97a1a0323b335de0` bestätigt:
+
+- 0 Commits hinter `origin/main`;
+- PR offen, Draft und `MERGEABLE`;
+- Web Contracts, Web Quality, Web Security und Vercel erfolgreich;
+- keine offenen, nicht veralteten Reviewthreads;
+- Privacy- und Git-Tracking-Gates erfolgreich;
+- private Voice- und Renderartefakte außerhalb von Git.
+
+Damit ist `VOXY-DUAL-VOICE-EXPLAINER-PILOT-01` fachlich und technisch `done`.
+Merge, Ready-for-Review, Homepage-Integration, Deployment und Publishing
+bleiben außerhalb dieses Closing-Passes.
