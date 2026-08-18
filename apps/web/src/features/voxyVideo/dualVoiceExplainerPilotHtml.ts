@@ -129,16 +129,18 @@ function renderActiveEvidence(plan: VoxyExplainerPilotPlan, state: VoxyDualVoice
 }
 
 function renderSynthesis(plan: VoxyExplainerPilotPlan): string {
-  return `<section class="synthesis-stage" data-synthesis-uses="democracy-trust democracy-participation" data-derived-evidence-id="democracy-open-question">
-    <div class="fixture-label">DEMO · ILLUSTRATION</div>
+  const [first, second, derived] = evidenceForPlan(plan);
+  if (!first || !second || !derived) return "";
+  return `<section class="synthesis-stage" data-synthesis-uses="${escapeHtml(`${first.id} ${second.id}`)}" data-derived-evidence-id="${escapeHtml(derived.id)}">
+    <div class="fixture-label">${escapeHtml(derived.provenance)}</div>
     <small class="evidence-kind">ZUSAMMENFÜHRUNG</small>
     <h1>Erst die Beziehung ergibt ein Bild.</h1>
     <div class="synthesis-flow">
-      <div class="synthesis-source">${renderEvidenceCore(plan, "democracy-trust")}</div>
+      <div class="synthesis-source">${renderEvidenceCore(plan, first.id)}</div>
       <div class="relationship-line"><i></i><span>zusammen betrachten</span><i></i></div>
-      <div class="synthesis-source">${renderEvidenceCore(plan, "democracy-participation")}</div>
+      <div class="synthesis-source">${renderEvidenceCore(plan, second.id)}</div>
     </div>
-    <div class="derived-question">${renderEvidenceCore(plan, "democracy-open-question")}</div>
+    <div class="derived-question">${renderEvidenceCore(plan, derived.id)}</div>
   </section>`;
 }
 
