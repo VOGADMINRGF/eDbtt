@@ -10,16 +10,21 @@ import {
   VOXY_DUAL_VOICE_PILOT_OUTPUT,
   VOXY_DUAL_VOICE_PILOT_VOICE_BINDINGS,
   VOXY_CANONICAL_NARRATION_AUDIO_SEGMENTS,
+  VOXY_FINAL_LAYOUT_OUTPUT,
   VOXY_SINGLE_VOICE_REVIEW_AUDIO_SEGMENTS,
   VOXY_SINGLE_VOICE_REVIEW_OUTPUT,
   assertVoxyPilotVoiceBinding,
   buildVoxyCanonicalNarrationPlan,
+  buildVoxyDemocracyBroadcastMeta,
   buildVoxyDualVoicePilotPlan,
+  buildVoxyFinalLayoutPlan,
   buildVoxySingleVoiceReviewPlan,
   buildVoxyDualVoicePilotSrt,
   buildVoxyDualVoicePilotVtt,
   speakerAt,
+  lowerThirdAt,
   validateVoxyDualVoicePilotPlan,
+  validateVoxyFinalLayoutPlan,
   validateVoxySingleVoiceReviewPlan,
   visualStateAt,
 } from "../src/features/voxyVideo/dualVoiceExplainerPilot";
@@ -38,6 +43,11 @@ const singleVoicePlan = buildVoxySingleVoiceReviewPlan(
 const canonicalNarrationPlan = buildVoxyCanonicalNarrationPlan(
   exactHead,
   [9_000, 4_500, 6_500, 6_000, 3_500, 5_500, 5_000, 6_500, 3_500],
+);
+const finalLayoutPlan = buildVoxyFinalLayoutPlan(
+  exactHead,
+  [9_000, 4_500, 6_500, 6_000, 3_500, 5_500, 5_000, 6_500, 3_500],
+  buildVoxyDemocracyBroadcastMeta("18. August 2026"),
 );
 const assets = {
   canonStageDataUrl: "data:image/png;base64,AA==",
@@ -148,7 +158,7 @@ describe("VOXY dual-voice democracy pilot v1.3 evidence A", () => {
     expect(synthesisHtml).toContain('data-synthesis-uses="democracy-trust democracy-participation"');
     expect(synthesisHtml).toContain('data-derived-evidence-id="democracy-open-question"');
     expect(synthesisHtml).toContain(".synthesis-stage{--build:1;");
-    expect(synthesisHtml).not.toContain('data-memory-object="true"');
+    expect(synthesisHtml).toContain('data-memory-object="true"');
   });
 
   it("removes burned-in speech text while keeping semantic evidence text", () => {
@@ -157,7 +167,7 @@ describe("VOXY dual-voice democracy pilot v1.3 evidence A", () => {
     expect(html).toContain('data-burned-in-captions="false"');
     expect(html).toContain(".caption-bar,.portrait-caption,.editorial-cue{display:none!important}");
     expect(html).not.toContain(editorial.text);
-    expect(html).toContain("DEMO · ILLUSTRATION");
+    expect(html).toContain("DEMO / ILLUSTRATION");
   });
 
   it("keeps Editorial mouth closed while the one waveform remains audio-reactive", () => {
@@ -286,5 +296,76 @@ describe("VOXY canonical single-voice narration and preserved evidence B", () =>
       comparisonNotes: "ab-comparison-notes.md",
     });
     expect(VOXY_SINGLE_VOICE_REVIEW_OUTPUT.directory).not.toBe(VOXY_DUAL_VOICE_PILOT_OUTPUT.directory);
+  });
+});
+
+describe("VOXY v1.4 final target layout", () => {
+  it("anchors topic/date and the dynamic memory stack at the upper right", () => {
+    const hostHtml = renderVoxyDualVoicePilotFrameHtml({ plan: finalLayoutPlan, assets, frameIndex: 24, amplitude: 0.4 });
+    expect(hostHtml).toContain('data-topic-date-zone="true"');
+    expect(hostHtml).toContain("Demokratie &amp; politische Wirksamkeit");
+    expect(hostHtml).toContain("18. August 2026");
+    expect(hostHtml).toContain('data-column-anchor="top-right"');
+    expect(hostHtml).toContain('data-memory-anchor="top-right"');
+    expect(hostHtml).toContain(".broadcast-right-column{position:absolute;z-index:28;top:52px;right:56px");
+    expect(hostHtml).not.toContain(".evidence-memory");
+    expect(finalLayoutPlan.broadcastLayout.memoryAnchor).toEqual({ top: true, right: true, bottom: false, safeMarginPx: 56 });
+  });
+
+  it("docks the same active evidence object into its upper-right memory slot", () => {
+    const dock = finalLayoutPlan.visualStateTimeline.find((entry) => entry.state === "DOCK")!;
+    const html = renderVoxyDualVoicePilotFrameHtml({ plan: finalLayoutPlan, assets, frameIndex: Math.floor(((dock.start + dock.end) / 2) * finalLayoutPlan.output.fps), amplitude: 0.5 });
+    expect(html).toContain('data-object-continuity="same-object-scale-translation"');
+    expect(html).toContain('data-dock-destination="upper-right-memory-slot"');
+    expect(html).toContain('data-evidence-id="democracy-trust"');
+    expect(finalLayoutPlan.objectContinuity).toMatchObject({ sameEvidenceId: true, scaleAndTranslation: true, hardSubstitution: false });
+  });
+
+  it("uses a persistent semantic lower third without caption mirroring or blinking", () => {
+    expect(finalLayoutPlan.lowerThirdTimeline).toHaveLength(6);
+    expect(finalLayoutPlan.lowerThirdTimeline.every((entry) => entry.validUntil - entry.validFrom >= entry.minimumDwellSeconds)).toBe(true);
+    expect(finalLayoutPlan.lowerThirdTimeline.every((entry) => entry.transitionMs >= 250 && entry.transitionMs <= 450 && !entry.wordByWordAnimation && !entry.blinking && !entry.captionMirror)).toBe(true);
+    const explain = finalLayoutPlan.visualStateTimeline.find((entry) => entry.state === "EXPLAIN")!;
+    const at = explain.start + 1;
+    const lowerThird = lowerThirdAt(finalLayoutPlan, at);
+    const spokenText = finalLayoutPlan.speakerTimeline.find((entry) => at >= entry.start && at < entry.end)?.text;
+    expect([lowerThird.kicker, lowerThird.headline, lowerThird.summary]).not.toContain(spokenText);
+    const html = renderVoxyDualVoicePilotFrameHtml({ plan: finalLayoutPlan, assets, frameIndex: Math.floor(at * finalLayoutPlan.output.fps), amplitude: 0.7 });
+    expect(html).toContain('data-lower-third="semantic"');
+    expect(html).toContain('data-caption-mirror="false"');
+    expect(html).toContain('data-word-by-word="false"');
+    expect(html).toContain('data-blinking="false"');
+    expect(html).toContain('data-text-transition="semantic-soft-fade"');
+    expect(html).not.toContain(spokenText ?? "__missing_spoken_text__");
+  });
+
+  it("supports data-driven evidence counts while preserving D1 and sidecar captions", () => {
+    const finalHost = finalLayoutPlan.visualStateTimeline.at(-1)!;
+    const html = renderVoxyDualVoicePilotFrameHtml({ plan: finalLayoutPlan, assets, frameIndex: Math.floor((finalHost.start + 1) * finalLayoutPlan.output.fps), amplitude: 0.6 });
+    expect(html).toContain('data-dynamic-evidence="true"');
+    expect(html).toContain('data-memory-count="3"');
+    expect(html.match(/data-memory-object="true"/g)).toHaveLength(3);
+    expect(finalLayoutPlan.broadcastLayout.dynamicEvidence).toMatchObject({ dataDriven: true, maximumFullCards: 3, fixedEvidenceCount: false });
+    expect(finalLayoutPlan.speakerTimeline.every((entry) => entry.speakerRole === "voxy" && entry.voiceId === VOXY_SIGNATURE.voiceId)).toBe(true);
+    expect(finalLayoutPlan.audioReusedWithoutModification).toBe(true);
+    expect(finalLayoutPlan.voiceSynthesisPerformed).toBe(false);
+    expect(finalLayoutPlan.captions).toEqual({ sidecarsOnly: true, burnedIn: false, languages: ["de"] });
+  });
+
+  it("writes v1.4 separately and keeps the final human and release gates pending", () => {
+    expect(VOXY_FINAL_LAYOUT_OUTPUT).toMatchObject({
+      directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.4-final-layout",
+      mp4: "voxy-democracy-pilot-v1.4-final-layout.mp4",
+      webm: "voxy-democracy-pilot-v1.4-final-layout.webm",
+      lowerThirdTimeline: "lower-third-timeline.json",
+    });
+    expect(finalLayoutPlan).toMatchObject({
+      sourceSingleVoiceArtifact: "voxy-democracy-pilot-v1-3-single-voice-e6363026303b",
+      humanPilotAcceptance: "pending_final_layout_review",
+      humanNews5VisualAcceptance: "pending_final_layout_review",
+      productionEligible: false,
+      autoPublish: false,
+    });
+    expect(validateVoxyFinalLayoutPlan(finalLayoutPlan)).toEqual([]);
   });
 });
