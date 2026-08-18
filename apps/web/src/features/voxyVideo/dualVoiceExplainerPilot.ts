@@ -45,6 +45,9 @@ export const VOXY_SINGLE_VOICE_REVIEW_OUTPUT = {
 export const VOXY_FINAL_LAYOUT_SCHEMA_VERSION =
   "voxy-single-voice-final-layout-v1.4" as const;
 
+export const VOXY_FINAL_LAYOUT_VOG_PIN_PATH =
+  "apps/web/public/brands/voxy/overlays/vog-pin.svg" as const;
+
 export const VOXY_FINAL_LAYOUT_OUTPUT = {
   ...VOXY_SINGLE_VOICE_REVIEW_OUTPUT,
   directory: "artifacts/voxy-dual-voice-explainer-pilot-01/v1.4-final-layout",
@@ -499,6 +502,11 @@ export function buildVoxyFinalLayoutPlan(
       stableGrid: true,
       hostZone: "center_left",
       topicDateZone: "top_right",
+      jacketBranding: {
+        lapelPin: "VOG",
+        pocketMark: "eDebatte",
+        pocketMarkCount: 1,
+      },
       memoryAnchor: { top: true, right: true, bottom: false, safeMarginPx: 56 },
       focusDockDestination: "upper_right_memory_slot",
       lowerThird: {
@@ -549,6 +557,7 @@ export function validateVoxyFinalLayoutPlan(plan: VoxyFinalLayoutPlan): string[]
   if (plan.schemaVersion !== VOXY_FINAL_LAYOUT_SCHEMA_VERSION || plan.reviewVariant !== "single_voice_final_layout_human_review") errors.push("final_layout_schema_invalid");
   if (!plan.speakerTimeline.every((entry) => entry.speakerRole === "voxy" && entry.voiceId === VOXY_SIGNATURE.voiceId)) errors.push("final_layout_single_d1_gate_invalid");
   if (!plan.broadcastMeta.topicLabel || !plan.broadcastMeta.topicTitle || !plan.broadcastMeta.kicker || !plan.broadcastMeta.headline || !plan.broadcastMeta.summary) errors.push("broadcast_content_model_incomplete");
+  if (plan.broadcastLayout.jacketBranding.lapelPin !== "VOG" || plan.broadcastLayout.jacketBranding.pocketMark !== "eDebatte" || plan.broadcastLayout.jacketBranding.pocketMarkCount !== 1) errors.push("jacket_branding_invalid");
   if (!plan.broadcastLayout.memoryAnchor.top || !plan.broadcastLayout.memoryAnchor.right || plan.broadcastLayout.memoryAnchor.bottom) errors.push("memory_anchor_invalid");
   if (plan.broadcastLayout.focusDockDestination !== "upper_right_memory_slot" || !plan.broadcastLayout.dynamicEvidence.dataDriven || plan.broadcastLayout.dynamicEvidence.fixedEvidenceCount) errors.push("dynamic_memory_contract_invalid");
   if (!plan.broadcastLayout.lowerThird.persistent || !plan.broadcastLayout.lowerThird.avoidsEvidenceColumn || plan.broadcastLayout.lowerThird.captionMirror) errors.push("lower_third_layout_invalid");

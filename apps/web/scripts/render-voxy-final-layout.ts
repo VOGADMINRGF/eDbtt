@@ -7,6 +7,7 @@ import path from "node:path";
 
 import {
   VOXY_FINAL_LAYOUT_OUTPUT,
+  VOXY_FINAL_LAYOUT_VOG_PIN_PATH,
   VOXY_SIGNATURE,
   buildVoxyDemocracyBroadcastMeta,
   buildVoxyFinalLayoutPlan,
@@ -211,7 +212,7 @@ async function main(): Promise<void> {
     const sourcePaths = {
       canonStage: path.resolve(repositoryRoot, VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath),
       studioLockup: path.resolve(repositoryRoot, VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH),
-      lapelPin: path.resolve(repositoryRoot, VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin),
+      lapelPin: path.resolve(repositoryRoot, VOXY_FINAL_LAYOUT_VOG_PIN_PATH),
       edebattePocketMark: path.resolve(repositoryRoot, VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark),
     };
     const assets: VoxyMotionV4EmbeddedAssets = {
@@ -222,7 +223,7 @@ async function main(): Promise<void> {
     };
     const frozenInputs = [
       VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
-      VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
+      VOXY_FINAL_LAYOUT_VOG_PIN_PATH,
       VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
       "apps/web/src/features/voxyVideo/mouthRig.ts",
       "apps/web/src/features/voxyVideo/mouthV41.ts",

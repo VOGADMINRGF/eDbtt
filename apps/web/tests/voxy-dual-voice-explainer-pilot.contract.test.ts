@@ -310,6 +310,9 @@ describe("VOXY v1.4 final target layout", () => {
     expect(hostHtml).toContain(".broadcast-right-column{position:absolute;z-index:28;top:52px;right:56px");
     expect(hostHtml).not.toContain(".evidence-memory");
     expect(finalLayoutPlan.broadcastLayout.memoryAnchor).toEqual({ top: true, right: true, bottom: false, safeMarginPx: 56 });
+    expect(finalLayoutPlan.broadcastLayout.jacketBranding).toEqual({ lapelPin: "VOG", pocketMark: "eDebatte", pocketMarkCount: 1 });
+    expect(hostHtml).toContain('class="character-mark lapel-pin"');
+    expect(hostHtml).toContain('alt="VOG"');
   });
 
   it("docks the same active evidence object into its upper-right memory slot", () => {

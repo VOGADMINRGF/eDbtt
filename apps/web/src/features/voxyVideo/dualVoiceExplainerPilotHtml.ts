@@ -282,6 +282,7 @@ export function renderVoxyDualVoicePilotFrameHtml(input: {
 `;
 
   return baseHtml
+    .replace('alt="VOXY"', 'alt="VOG"')
     .replace("</style>", `${css}</style>`)
     .replace('<div class="frame"></div>', `${injected}<div class="frame"></div>`)
     .replace(
