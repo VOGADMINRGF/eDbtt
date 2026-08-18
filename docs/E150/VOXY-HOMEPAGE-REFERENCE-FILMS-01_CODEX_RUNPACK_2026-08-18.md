@@ -2,12 +2,21 @@
 
 Stand: 2026-08-18
 
-Status: `blocked`
+Status: `codex_ready`
 
 Priorität: `P0`
 
-Blocker: PR #621 und `VOXY-DUAL-VOICE-EXPLAINER-PILOT-01` müssen in
-`origin/main` enthalten sein.
+Ursprünglicher Blocker: PR #621 und
+`VOXY-DUAL-VOICE-EXPLAINER-PILOT-01` mussten in `origin/main` enthalten sein.
+
+Blocker-Status: `resolved`. PR #621 wurde als Merge-Commit
+`c53982becf100d851aebb8b87ed1b7ae69b4be77` in `origin/main` integriert;
+`VOXY-DUAL-VOICE-EXPLAINER-PILOT-01` ist `done`.
+
+Post-Merge-Nachweis: Der erste Preflight auf sauberem `main` wurde vor dem
+SSOT-Sync ausgeführt und endete gemäß Run-Pack erwartungsgemäß mit
+`task_status_not_executable:blocked`. Filmimplementierung ist erst nach einem
+erfolgreichen `codex_ready`-Preflight auf sauberem `main` erlaubt.
 
 ## 1. Zweck und Ausführungsgrenze
 
@@ -15,10 +24,12 @@ Dieser Run-Pack manifestiert den nächsten kanonischen Voxy-Produktionsslice.
 Er autorisiert in PR #621 weder Filmimplementierung noch Render, Homepage-
 Integration, Upload, Deployment oder Publishing.
 
-Nach Merge von PR #621 muss ein sauberer Main-Preflight zunächst belegen, dass
-der akzeptierte v1.4-Canon vollständig in `origin/main` vorhanden ist. Erst ein
-anschließender OpenTasks-SSOT-Sync darf den Task von `blocked` auf
-`codex_ready` setzen. Danach ist der normale Preflight auszuführen:
+PR #621 ist gemergt; sein Merge-Commit und der akzeptierte v1.4-Canon sind in
+`origin/main` enthalten. Der erste saubere Main-Preflight hat vor diesem
+SSOT-Sync wie vorgesehen `task_status_not_executable:blocked` geliefert. Der
+anschließende OpenTasks-SSOT-Sync setzt den Task von `blocked` auf
+`codex_ready`. Nachdem dieser Sync in `main` enthalten ist, muss vor jedem
+Implementierungsstart der normale Preflight erfolgreich ausgeführt werden:
 
 ```bash
 node scripts/codex-task-preflight.mjs VOXY-HOMEPAGE-REFERENCE-FILMS-01
