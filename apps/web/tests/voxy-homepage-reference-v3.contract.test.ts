@@ -60,7 +60,7 @@ function htmlAtSegment(
   });
 }
 
-describe("VOXY homepage reference V3 — human-review corrections", () => {
+describe("VOXY homepage reference V3.1 — surgical human-review corrections", () => {
   it("01 strips election-only evidence and sources from the evergreen VOG render plan", () => {
     const current = plan("voiceopengov", "evergreen");
     const serialized = JSON.stringify(current);
@@ -103,24 +103,29 @@ describe("VOXY homepage reference V3 — human-review corrections", () => {
     expect(html).not.toContain("VOXY_LEGACY_PIN");
   });
 
-  it("04 reserves a face-safe host corridor and moves active evidence to the right", () => {
+  it("04 makes the face-safe corridor a hard render policy and routes synthesis outside it", () => {
     const current = plan("edebatte", "election_window");
-    const html = htmlAtSegment(current, "edebatte-source-questions");
+    const source = htmlAtSegment(current, "edebatte-source-questions");
+    const synthesis = htmlAtSegment(current, "edebatte-synthesis-questions");
 
-    expect(html).toContain('data-host-face-safe-zone="x610-900:y150-520"');
-    expect(html).toContain(".information-stage{left:970px!important;top:220px!important;width:350px!important;height:255px!important");
-    expect(html).toContain(".source-pull-scene .case-headline-object{left:-18px;top:130px");
-    expect(html).toContain(".source-pull-scene .case-source-object{right:15px;top:76px");
-    expect(html).toContain(".case-resolution-scene{position:absolute;left:555px;top:92px;width:430px");
+    expect(source).toContain('data-host-face-safe-zone="x610-900:y150-520"');
+    expect(source).toContain('data-host-face-safe-policy="hard-no-lines-or-large-objects"');
+    expect(source).toContain(".information-stage{left:1030px!important;top:165px!important;width:340px!important;height:92px!important");
+    expect(synthesis).toContain('data-face-safe-route="outside-host-corridor"');
+    expect(synthesis).toContain('data-face-safe-routes="left-and-right-only"');
+    expect(synthesis).toContain('M120 135 C165 140 195 158 225 185');
+    expect(synthesis).not.toContain('M150 160 C300 70 580 70 745 155');
   });
 
-  it("05 reduces lower-third competition while FOCUS and EXPLAIN carry the dominant object", () => {
+  it("05 fixes the duplicate-class selector bug and actually quiets FOCUS and EXPLAIN lower thirds", () => {
     const current = plan("edebatte", "election_window");
     const html = htmlAtSegment(current, "edebatte-media-forensics");
 
-    expect(html).toContain('[data-homepage-visual-state="FOCUS"] .broadcast-lower-third');
-    expect(html).toContain('[data-homepage-visual-state="EXPLAIN"] .broadcast-lower-third');
-    expect(html).toContain(".homepage-reference-v3[data-homepage-visual-state=\"FOCUS\"] .lower-copy p");
+    expect(html).toContain('data-pilot-version="homepage-reference-v3-1-surgical"');
+    expect(html).not.toContain('class="homepage-reference-v3"');
+    expect(html).toContain('[data-pilot-version="homepage-reference-v3-1-surgical"][data-homepage-visual-state="FOCUS"] .lower-copy p');
+    expect(html).toContain('[data-pilot-version="homepage-reference-v3-1-surgical"][data-homepage-visual-state="EXPLAIN"] .lower-meta');
+    expect(html).toContain('min-height:86px!important');
   });
 
   it("06 keeps the evergreen VOG HTML free of election-calendar artifacts", () => {
