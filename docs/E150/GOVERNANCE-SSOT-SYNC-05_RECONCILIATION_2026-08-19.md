@@ -54,3 +54,16 @@ PR #588 ist reserviert, weiterhin `OPEN`/`DRAFT`, `mergeable=false` und enthält
 - `git diff --check` grün;
 - Scope ausschließlich `OpenTasks.md` plus diese Evidence-Datei;
 - keine reservierte Voxy-Arbeit, kein Produktcode, kein Deployment, keine Provider-/Secret-Aktion.
+
+## Launchkritische zusätzliche Serialisierung
+
+Der finale Single-Writer-Patch serialisiert zusätzlich die bereits dokumentierten launchkritischen Deltas:
+
+- `MAIL-COMMUNICATION-CANON-01` = `done` nach Merge von PR #539; Production-Sender-Gate bleibt `manual_gate`.
+- `AI-CREATE-ORCHESTRATOR-LIVE-SMOKE-01` / #617 = `codex_ready`.
+- `AUTH-REGISTRATION-RUNTIME-TIMING-AUDIT-01` / #601 = `codex_ready`.
+- `OBSERVABILITY-INVENTORY-01` / #611 = `codex_ready`; kein externer Export.
+- `PUBLIC-BALLOT-VOTES-RUNTIME-01` / #615 = `manual_gate`; dedizierter VOTES-Store, kein CORE-Fallback.
+- `MAIL-VISUAL-DESIGN-POLISH-02` / #618 = `codex_ready`.
+- #619 und #622 bleiben als Governance-/Assurance-Eltern fail-closed und sind keine Big-Bang-Implementierungsfreigabe.
+- Die reservierte #588-Wahrheit `VOXY-200PCT-VISUAL-QA-CHECKPOINT-01 = review` wird nur im SSOT erhalten; PR #588 selbst bleibt unberührt.
