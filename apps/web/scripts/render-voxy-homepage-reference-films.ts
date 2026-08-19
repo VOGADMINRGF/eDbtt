@@ -58,6 +58,7 @@ async function renderFilm(input: {
   assets: VoxyMotionV4EmbeddedAssets;
 }): Promise<Record<string, unknown>> {
   const { filmId, repositoryRoot } = input;
+  const contextMode = filmId === "voiceopengov" ? "evergreen" : "election_window";
   const outputContract = VOXY_HOMEPAGE_REFERENCE_FILMS_OUTPUT[filmId];
   const outputRoot = path.resolve(input.outputBase, outputContract.directory);
   await rm(outputRoot, { recursive: true, force: true });
@@ -70,8 +71,8 @@ async function renderFilm(input: {
   const standframesRoot = path.resolve(outputRoot, "standframes");
   await Promise.all([rawRoot, finishedRoot, framesRoot, standframesRoot].map((directory) => mkdir(directory, { recursive: true })));
   try {
-    const segments = filmSegments(filmId, "election_window") as readonly PilotAudioSegment[];
-    console.info(`homepage_film_progress:${filmId}:synthesize_d1`);
+    const segments = filmSegments(filmId, contextMode) as readonly PilotAudioSegment[];
+    console.info(`homepage_film_progress:${filmId}:${contextMode}:synthesize_d1`);
     const rawById = await synthesizeVoxySegments({
       python: input.python,
       modelDir: input.modelDir,
@@ -93,7 +94,7 @@ async function renderFilm(input: {
     const masterAudio = path.resolve(outputRoot, outputContract.masterAudio);
     await concatenateMaster({ finishedById, output: masterAudio, temporaryRoot, segments });
     const audioAssembly = await verifyMasterAudioAssembly({ finishedById, masterAudio, segments });
-    const plan = buildVoxyHomepageReferenceFilmPlan({ filmId, contextMode: "election_window", exactHeadSha: input.exactHeadSha, speechDurationsMs });
+    const plan = buildVoxyHomepageReferenceFilmPlan({ filmId, contextMode, exactHeadSha: input.exactHeadSha, speechDurationsMs });
     const planErrors = validateVoxyHomepageReferenceFilmPlan(plan);
     if (planErrors.length) throw new Error(`${filmId}_plan_invalid:${planErrors.join(",")}`);
     if (Math.abs(durationMs(masterAudio) - plan.output.durationMs) > 120) throw new Error(`${filmId}_master_audio_duration_drift`);
@@ -214,7 +215,7 @@ async function renderFilm(input: {
       autoPublish: false,
     };
     await writeFile(path.resolve(outputRoot, outputContract.manifest), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-    console.info(JSON.stringify({ filmId, status: "TECHNICAL_PASS", output: mp4, durationMs: plan.output.durationMs, frameCount: plan.output.frameCount, sourceCount: plan.sources.length, evidenceCount: plan.evidenceTimeline.length, motionEventCount: plan.motionTimeline.length }));
+    console.info(JSON.stringify({ filmId, status: "TECHNICAL_PASS", output: mp4, contextMode: plan.contextMode, durationMs: plan.output.durationMs, frameCount: plan.output.frameCount, sourceCount: plan.sources.length, evidenceCount: plan.evidenceTimeline.length, motionEventCount: plan.motionTimeline.length }));
     return { filmId, outputRoot, mp4, manifest };
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
