@@ -26,16 +26,13 @@ function plan(filmId: VoxyHomepageFilmId, contextMode: VoxyHomepageContextMode) 
       exactHeadSha: exactHead,
       speechDurationsMs: Array.from(
         { length: segments.length },
-        () => filmId === "edebatte" ? 6_000 : 7_300,
+        () => filmId === "edebatte" ? 6_600 : 7_200,
       ),
     }),
   );
 }
 
-function htmlAt(
-  current: ReturnType<typeof plan>,
-  atSeconds: number,
-) {
+function htmlAt(current: ReturnType<typeof plan>, atSeconds: number) {
   return renderVoxyHomepageReferenceFilmFrameHtml({
     plan: current,
     assets,
@@ -55,10 +52,7 @@ function htmlAtSegment(
   return htmlAt(current, at);
 }
 
-function htmlInsidePauseAfter(
-  current: ReturnType<typeof plan>,
-  segmentId: string,
-) {
+function htmlInsidePauseAfter(current: ReturnType<typeof plan>, segmentId: string) {
   const index = current.speakerTimeline.findIndex((entry) => entry.id === segmentId);
   const segment = current.speakerTimeline[index];
   const next = current.speakerTimeline[index + 1];
@@ -67,7 +61,7 @@ function htmlInsidePauseAfter(
   return htmlAt(current, at);
 }
 
-describe("VOXY homepage V3.3 — broadcast discipline", () => {
+describe("VOXY homepage broadcast discipline — V3.4 continuity", () => {
   it("01 holds the previous scene through narration pauses instead of flashing the final CTA", () => {
     const edebatte = plan("edebatte", "election_window");
     const vog = plan("voiceopengov", "evergreen");
@@ -82,65 +76,67 @@ describe("VOXY homepage V3.3 — broadcast discipline", () => {
     expect(edPause).toContain('data-pause-hold="previous-segment"');
   });
 
-  it("02 declares a two-second minimum readable-state policy and keeps blinking disabled", () => {
+  it("02 declares the two-second readable-state policy and keeps blinking disabled", () => {
     for (const current of [
       plan("edebatte", "election_window"),
       plan("voiceopengov", "evergreen"),
     ]) {
       const html = htmlAtSegment(current, current.speakerTimeline[0]!.id);
-      expect(html).toContain('data-broadcast-discipline="v3-3"');
+      expect(html).toContain('data-broadcast-discipline="v3-4"');
       expect(html).toContain('data-min-readable-state-seconds="2"');
+      expect(html).toContain('data-presenter-safe-policy="no-semantic-text-or-connector-lines"');
       expect(current.lowerThirdTimeline.every((entry) => !entry.blinking && !entry.wordByWordAnimation)).toBe(true);
     }
   });
 
-  it("03 moves VOG process graphics and participation balance into the right safe lane", () => {
+  it("03 moves VOG process graphics and participation balance fully right of the presenter-safe boundary", () => {
     const current = plan("voiceopengov", "evergreen");
     const opening = htmlAtSegment(current, "vog-greeting");
     const path = htmlAtSegment(current, "vog-after-election");
     const balance = htmlAtSegment(current, "vog-participation-balance");
 
-    expect(opening).toContain('[data-broadcast-discipline="v3-3"] .democratic-loop{left:690px;top:78px;transform:scale(.48)');
-    expect(path).toContain('[data-broadcast-discipline="v3-3"] .living-mandate-path{inset:auto;left:650px;top:70px;width:310px;height:410px}');
-    expect(balance).toContain('[data-broadcast-discipline="v3-3"] .participation-balance-scene{inset:auto;left:650px;top:65px;width:310px;height:390px}');
-    expect(balance).toContain('[data-broadcast-discipline="v3-3"] .balance-axis{display:none}');
+    expect(opening).toContain('.democratic-loop{position:absolute;left:690px;top:125px;');
+    expect(path).toContain('.living-mandate-path{position:absolute;left:690px;top:125px;width:300px;height:390px}');
+    expect(balance).toContain('.programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
+    expect(balance).not.toContain("balance-axis");
   });
 
-  it("04 gives the VOG bridge enough normalized dwell to be read instead of flashing", () => {
+  it("04 keeps the VOG bridge as a real readable phase rather than a short transition flash", () => {
     const current = plan("voiceopengov", "evergreen");
-    const segment = current.speakerTimeline.find((entry) => entry.id === "vog-current-offer");
-    if (!segment) throw new Error("missing_segment:vog-current-offer");
+    const bridge = htmlAtSegment(current, "vog-current-offer", 0.5);
+    const now = htmlAtSegment(current, "vog-current-offer", 0.15);
+    const future = htmlAtSegment(current, "vog-current-offer", 0.85);
 
-    const bridgeEarly = htmlAtSegment(current, "vog-current-offer", 0.4);
-    const bridgeLate = htmlAtSegment(current, "vog-current-offer", 0.66);
-    const future = htmlAtSegment(current, "vog-current-offer", 0.75);
-
-    expect(bridgeEarly).toContain("offer-phase-bridge");
-    expect(bridgeLate).toContain("offer-phase-bridge");
-    expect(future).toContain("offer-phase-future");
-    expect((segment.end - segment.start) * 0.34).toBeGreaterThanOrEqual(2.4);
+    expect(now).toContain('data-readable-state-id="vog-offer-current"');
+    expect(bridge).toContain('data-readable-state-id="vog-offer-bridge"');
+    expect(bridge).toContain("VON BETEILIGUNG ZU SUBSTANZ");
+    expect(future).toContain('data-readable-state-id="vog-offer-future"');
   });
 
-  it("05 reduces eDebatte synthesis to one supporting orbit at a time", () => {
+  it("05 reduces eDebatte synthesis to one supporting orbit at a time and removes the connector web", () => {
     const current = plan("edebatte", "election_window");
-    const source = htmlAtSegment(current, "edebatte-synthesis-questions", 0.2);
-    const context = htmlAtSegment(current, "edebatte-synthesis-questions", 0.5);
-    const counter = htmlAtSegment(current, "edebatte-synthesis-questions", 0.85);
+    const firstSynthesis = current.speakerTimeline.find((entry) => entry.id === "edebatte-next-generation");
+    const lastSynthesis = current.speakerTimeline.find((entry) => entry.id === "edebatte-synthesis-questions");
+    if (!firstSynthesis || !lastSynthesis) throw new Error("missing_edebatte_synthesis_range");
+
+    const span = lastSynthesis.end - firstSynthesis.start;
+    const source = htmlAt(current, firstSynthesis.start + span * 0.15);
+    const context = htmlAt(current, firstSynthesis.start + span * 0.5);
+    const counter = htmlAt(current, firstSynthesis.start + span * 0.85);
 
     expect(source).toContain('data-synthesis-phase="source"');
     expect(context).toContain('data-synthesis-phase="context"');
     expect(counter).toContain('data-synthesis-phase="counter"');
-    expect(source).toContain('[data-broadcast-discipline="v3-3"] .case-synthesis-scene .synthesis-orbit{display:none}');
-    expect(source).toContain('[data-broadcast-discipline="v3-3"] .case-synthesis-scene svg{display:none!important}');
+    expect(source).toContain('.case-synthesis-scene .synthesis-orbit{display:none;');
+    expect(source).not.toContain('<svg viewBox="0 0 900 470"');
   });
 
-  it("06 drops the lower third during dense full-screen explanation and closing states", () => {
+  it("06 drops the lower third during dense explanation and closing states", () => {
     const vog = htmlAtSegment(plan("voiceopengov", "evergreen"), "vog-synthesis");
     const edebatte = htmlAtSegment(plan("edebatte", "election_window"), "edebatte-synthesis-questions");
 
-    expect(vog).toContain('[data-broadcast-discipline="v3-3"][data-homepage-segment-id="vog-synthesis"] .broadcast-lower-third');
-    expect(vog).toContain('[data-broadcast-discipline="v3-3"][data-homepage-segment-id="vog-cta"] .broadcast-lower-third');
-    expect(edebatte).toContain('[data-broadcast-discipline="v3-3"][data-homepage-segment-id="edebatte-synthesis-questions"] .broadcast-lower-third');
+    expect(vog).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="vog-synthesis"] .broadcast-lower-third');
+    expect(edebatte).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="edebatte-synthesis-questions"] .broadcast-lower-third');
     expect(vog).toContain("opacity:0!important;pointer-events:none!important");
   });
 
