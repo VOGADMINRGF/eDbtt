@@ -24,8 +24,13 @@ function replaceHomepageLapelPin(html: string): string {
 }
 
 function currentSegment(plan: VoxyHomepageReferenceFilmPlan, at: number) {
-  return plan.speakerTimeline.find((entry) => at >= entry.start && at < entry.end)
-    ?? plan.speakerTimeline.at(-1)!;
+  const active = plan.speakerTimeline.find((entry) => at >= entry.start && at < entry.end);
+  if (active) return active;
+
+  const previous = [...plan.speakerTimeline]
+    .reverse()
+    .find((entry) => at >= entry.end);
+  return previous ?? plan.speakerTimeline[0]!;
 }
 
 function segmentProgress(plan: VoxyHomepageReferenceFilmPlan, at: number): number {
@@ -62,6 +67,7 @@ function renderEdebateForensics(
     5,
     Math.max(0, Math.round((ordinal / Math.max(1, plan.speakerTimeline.length - 1)) * 5)),
   );
+  const synthesisPhase = progress < .34 ? "source" : progress < .67 ? "context" : "counter";
 
   const sourceObject = `<article class="case-source-object" data-illustrative-source="true">
     <header><span>ILLUSTRATIVER QUELLENCHECK</span><b>PRIMÄRQUELLE</b></header>
@@ -82,9 +88,9 @@ function renderEdebateForensics(
       </div>`
     : `<div class="headline-freeze-scene"><div class="freeze-ring"><b>STOPP.</b><span>Zurück zur Quelle.</span></div></div>`;
 
-  const sourceScene = progress < .34
+  const sourceScene = progress < .33
     ? `<div class="source-pull-scene source-phase-claim">${headlineObject}</div>`
-    : progress < .58
+    : progress < .66
       ? `<div class="source-pull-scene source-phase-link"><div class="source-claim-chip">DIE HEADLINE</div><div class="evidence-beam"><i></i><span>BELEGEN</span></div>${sourceObject}</div>`
       : `<div class="source-pull-scene source-phase-primary">${sourceObject}</div>`;
 
@@ -102,7 +108,7 @@ function renderEdebateForensics(
     <div class="trace-copy"><small>eDEBATTE · PRÜFPFAD</small><strong>${segment.id === "edebatte-current-offer" ? "Öffentliche Themen zurück zum Beleg verfolgen." : "Nicht nur das Ergebnis zeigen. Den Weg dorthin zeigen."}</strong></div>
   </div>`;
 
-  const synthesisScene = `<div class="case-synthesis-scene" data-face-safe-route="outside-host-corridor">
+  const synthesisScene = `<div class="case-synthesis-scene" data-face-safe-route="outside-host-corridor" data-synthesis-phase="${synthesisPhase}">
     <div class="synthesis-orbit source"><small>QUELLE</small><b>01</b></div>
     <div class="synthesis-orbit context"><small>KONTEXT</small><b>02</b></div>
     <div class="synthesis-orbit counter"><small>GEGENPOSITION</small><b>03</b></div>
@@ -175,9 +181,9 @@ function renderVoiceOpenGovJourney(
     <div class="balance-axis"><i></i></div>
   </div>`;
 
-  const offerScene = progress < .44
+  const offerScene = progress < .36
     ? `<div class="vog-offer-scene offer-phase-current"><div class="current-layer"><small>HEUTE · CURRENT CAPABILITY</small><strong>MITMACHEN · INFORMIERT BLEIBEN</strong><span>Eintragen oder freiwillig unterstützen. Keine Stimmvorteile.</span></div></div>`
-    : progress < .58
+    : progress < .70
       ? `<div class="vog-offer-scene offer-phase-bridge"><div class="bridge"><i></i><span>VON BETEILIGUNG ZU SUBSTANZ</span></div></div>`
       : `<div class="vog-offer-scene offer-phase-future"><div class="future-layer"><small>ZIELBILD · NICHT ALS PRODUKTFUNKTION BEHAUPTET</small><strong>STIMME → FOLGE → RECHENSCHAFT → WIRKUNG</strong><span>Die demokratische Designfrage bleibt offen und prüfbar.</span></div></div>`;
 
@@ -255,6 +261,15 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .participation-balance-scene{position:absolute;inset:95px 35px 45px 35px}.extreme{position:absolute;width:210px;padding:17px;border:1px solid rgba(91,145,197,.34);border-radius:16px;background:rgba(5,22,45,.72);text-align:center}.extreme.left{left:0;top:95px}.extreme.right{left:0;top:225px;right:auto}.extreme small{color:#718fa9;font-size:8px;font-weight:900}.extreme strong{display:block;margin-top:8px;font-size:17px}.balance-core{position:absolute;left:auto;right:0;top:65px;width:310px;height:275px;display:grid;place-content:center;text-align:center;border:1px solid rgba(73,213,203,.5);border-radius:50%;background:radial-gradient(circle,rgba(24,111,146,.19),rgba(4,20,44,.68))}.balance-core i{position:absolute;inset:28px;border:1px solid rgba(90,177,230,.28);border-radius:50%;transform:scale(calc(.84 + var(--segment-progress)*.18))}.balance-core strong{font-size:20px}.balance-core span{max-width:230px;margin:10px auto 0;color:#9ab6ca;font-size:10px}.balance-axis{position:absolute;left:210px;right:385px;top:390px;z-index:-1}.balance-axis i{display:block;height:3px;background:linear-gradient(90deg,#54708a,#2fcfc4)}
     .vog-offer-scene{position:absolute;inset:75px 55px 45px 55px}.current-layer,.future-layer{position:absolute;left:650px;right:5px;height:132px;padding:20px 22px;border-radius:17px}.current-layer{top:105px;border:1px solid rgba(77,162,225,.46);background:linear-gradient(135deg,rgba(9,41,78,.88),rgba(5,20,45,.84))}.future-layer{top:105px;border:1px dashed rgba(66,211,201,.5);background:rgba(4,26,44,.5)}.current-layer strong,.future-layer strong{display:block;margin-top:8px;font-size:17px}.current-layer span,.future-layer span{display:block;margin-top:7px;color:#9bb4c8;font-size:9px}.bridge{position:absolute;left:650px;top:175px;width:250px;display:flex;align-items:center;gap:10px;color:#62d8d0;font-size:9px;font-weight:900;letter-spacing:.08em}.bridge i{height:2px;flex:1;background:linear-gradient(90deg,#478fe0,#37d5cb)}
     .vog-closing-scene{position:absolute;inset:30px 20px 20px 10px}.vog-closing-scene .democratic-loop{transform:scale(.78);transform-origin:44% 45%;opacity:.74}.closing-copy{position:absolute;right:35px;top:190px;width:350px;padding:18px;border-left:3px solid #64b1ff;background:linear-gradient(90deg,rgba(3,19,43,.84),transparent)}.closing-copy strong{display:block;margin-top:10px;font-size:23px;line-height:1.06}.closing-copy span{display:block;margin-top:9px;color:#9db4c7;font-size:10px}
+
+    [data-broadcast-discipline="v3-3"] .headline-swarm .case-headline-object{left:-145px;top:165px}[data-broadcast-discipline="v3-3"] .source-pull-scene .case-headline-object{left:-145px;top:145px}[data-broadcast-discipline="v3-3"] .source-claim-chip{left:-125px;top:180px}
+    [data-broadcast-discipline="v3-3"] .case-synthesis-scene svg{display:none!important}[data-broadcast-discipline="v3-3"] .case-synthesis-scene .synthesis-orbit{display:none}[data-broadcast-discipline="v3-3"] .case-synthesis-scene[data-synthesis-phase="source"] .synthesis-orbit.source,[data-broadcast-discipline="v3-3"] .case-synthesis-scene[data-synthesis-phase="context"] .synthesis-orbit.context,[data-broadcast-discipline="v3-3"] .case-synthesis-scene[data-synthesis-phase="counter"] .synthesis-orbit.counter{display:grid}[data-broadcast-discipline="v3-3"] .case-synthesis-scene .synthesis-orbit.source{left:-135px;top:150px}[data-broadcast-discipline="v3-3"] .case-synthesis-scene .synthesis-orbit.context{right:0;top:45px}[data-broadcast-discipline="v3-3"] .case-synthesis-scene .synthesis-orbit.counter{left:725px;bottom:20px}
+    [data-broadcast-discipline="v3-3"] .democratic-loop{left:690px;top:78px;transform:scale(.48);transform-origin:0 0}[data-broadcast-discipline="v3-3"] .living-mandate-path{inset:auto;left:650px;top:70px;width:310px;height:410px}[data-broadcast-discipline="v3-3"] .mandate-origin{left:0;top:0;width:72px;height:72px}[data-broadcast-discipline="v3-3"] .mandate-track{left:94px;right:0;top:28px}[data-broadcast-discipline="v3-3"] .mandate-track i{display:none}[data-broadcast-discipline="v3-3"] .mandate-step{left:0!important;top:calc(100px + var(--step)*54px)!important;width:285px;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:11px;text-align:left;font-size:10px}[data-broadcast-discipline="v3-3"] .mandate-step i{margin:0}[data-broadcast-discipline="v3-3"] .moving-mandate{left:190px;top:20px;transform:none!important}
+    [data-broadcast-discipline="v3-3"] .programme-gap-scene{inset:auto;left:650px;top:80px;width:310px;height:365px}[data-broadcast-discipline="v3-3"] .promise-object,[data-broadcast-discipline="v3-3"] .decision-object{left:0;right:auto;width:265px;top:70px}[data-broadcast-discipline="v3-3"] .gap-field{left:0;right:auto;top:100px;width:285px}[data-broadcast-discipline="v3-3"] .status-ruler{left:0;right:0;bottom:12px}
+    [data-broadcast-discipline="v3-3"] .demophobie-space{inset:auto;left:650px;top:70px;width:310px;height:365px}[data-broadcast-discipline="v3-3"] .demophobie-source{left:0;top:70px;width:270px}[data-broadcast-discipline="v3-3"] .design-question{left:0;right:auto;top:65px;width:265px}[data-broadcast-discipline="v3-3"] .guardrail-row{left:0;right:0;bottom:15px;justify-content:flex-start}
+    [data-broadcast-discipline="v3-3"] .participation-balance-scene{inset:auto;left:650px;top:65px;width:310px;height:390px}[data-broadcast-discipline="v3-3"] .extreme{width:135px;padding:12px}[data-broadcast-discipline="v3-3"] .extreme.left{left:0;top:0}[data-broadcast-discipline="v3-3"] .extreme.right{left:158px;top:0}[data-broadcast-discipline="v3-3"] .extreme strong{font-size:14px}[data-broadcast-discipline="v3-3"] .balance-core{left:0;right:auto;top:105px;width:300px;height:220px}[data-broadcast-discipline="v3-3"] .balance-axis{display:none}
+    [data-broadcast-discipline="v3-3"] .vog-closing-scene .democratic-loop{left:690px;top:70px;transform:scale(.40)!important;transform-origin:0 0!important;opacity:.22!important}[data-broadcast-discipline="v3-3"] .closing-copy{right:10px;top:205px;width:310px}
+    [data-broadcast-discipline="v3-3"][data-homepage-segment-id="vog-after-election"] .broadcast-lower-third,[data-broadcast-discipline="v3-3"][data-homepage-segment-id="vog-participation-balance"] .broadcast-lower-third,[data-broadcast-discipline="v3-3"][data-homepage-segment-id="vog-synthesis"] .broadcast-lower-third,[data-broadcast-discipline="v3-3"][data-homepage-segment-id="vog-cta"] .broadcast-lower-third,[data-broadcast-discipline="v3-3"][data-homepage-segment-id="edebatte-next-generation"] .broadcast-lower-third,[data-broadcast-discipline="v3-3"][data-homepage-segment-id="edebatte-synthesis-questions"] .broadcast-lower-third,[data-broadcast-discipline="v3-3"][data-homepage-segment-id="edebatte-verifiability"] .broadcast-lower-third,[data-broadcast-discipline="v3-3"][data-homepage-segment-id="edebatte-cta"] .broadcast-lower-third{opacity:0!important;pointer-events:none!important}
   </style>`;
 
   const contextDateReplacement = plan.filmId === "voiceopengov" && plan.contextMode === "evergreen"
@@ -269,7 +284,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     )
     .replace(
       'data-pilot-version="1.4-final-layout"',
-      `data-pilot-version="homepage-reference-v3-2-geometry-sync" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-host-face-safe-zone="x560-1030:y135-535" data-host-face-safe-policy="hard-no-lines-or-large-objects"`,
+      `data-pilot-version="homepage-reference-v3-2-geometry-sync" data-broadcast-discipline="v3-3" data-pause-hold="previous-segment" data-min-readable-state-seconds="2" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-host-face-safe-zone="x560-1030:y135-535" data-host-face-safe-policy="hard-no-lines-or-large-objects"`,
     );
   if (contextDateReplacement) html = html.replaceAll("SEPTEMBER 2026", contextDateReplacement);
   return html;
