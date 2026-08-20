@@ -177,11 +177,11 @@ describe("VOXY homepage reference films — contract gates", () => {
     });
   });
 
-  it("12 uses semantic lower thirds and sidecar captions only", () => {
+  it("12 burns stable Voxy captions into the homepage film while retaining caption sidecars", () => {
     const current = plan("edebatte");
     expect(current.captions).toEqual({
-      sidecarsOnly: true,
-      burnedIn: false,
+      sidecarsOnly: false,
+      burnedIn: true,
       languages: ["de"],
     });
     expect(
@@ -286,7 +286,7 @@ describe("VOXY homepage reference films — contract gates", () => {
     }
   });
 
-  it("19 renders explicit semantic motion metadata without burned-in speech", () => {
+  it("19 renders explicit semantic motion metadata with stable burned-in speech", () => {
     const current = plan("edebatte");
     const html = renderVoxyHomepageReferenceFilmFrameHtml({
       plan: current,
@@ -296,8 +296,9 @@ describe("VOXY homepage reference films — contract gates", () => {
     });
     expect(html).toContain('data-homepage-film="edebatte"');
     expect(html).toContain('data-motion-event-id="motion-02"');
-    expect(html).toContain('data-burned-in-captions="false"');
-    expect(html).not.toContain(current.speakerTimeline[0]!.text);
+    expect(html).toContain('data-burned-in-captions="true"');
+    expect(html).toContain("homepage-voxy-subtitle");
+    expect(html).toContain(current.speakerTimeline[0]!.text);
   });
 
   it("20 gives the two brands genuinely different visual grammars", () => {
@@ -328,15 +329,22 @@ describe("VOXY homepage reference films — contract gates", () => {
     expect(vogHtml).not.toContain("edebatte-forensics");
   });
 
-  it("21 treats Demophobie as sourced discussion input, not a product claim", () => {
+  it("21 treats participation design as an editorial question rather than a named product claim", () => {
     const current = plan("voiceopengov");
     expect(current.speakerTimeline.some((entry) => entry.id === "vog-demophobie")).toBe(true);
+    expect(current.speakerTimeline.map((entry) => entry.text).join(" ")).not.toMatch(
+      /Gertrude|Lübbe-Wolff|Klostermann|Demophobie/,
+    );
     expect(
-      current.sources.find((source) => source.id === "luebbe-wolff-demophobie-2023"),
-    ).toMatchObject({ publisher: "Vittorio Klostermann" });
+      current.sources.some((source) => source.id === "luebbe-wolff-demophobie-2023"),
+    ).toBe(false);
+    expect(VOXY_HOMEPAGE_REFERENCE_FILMS.voiceopengov.evidence[2]).toMatchObject({
+      type: "GESTALTUNGSFRAGE",
+      provenance: "REDAKTIONELLES PRINZIP",
+    });
     expect(
       VOXY_CURRENT_OFFER_INVENTORY.find((entry) => entry.id === "direct-democracy-question"),
-    ).toMatchObject({ classification: "editorial_principle", marketable: false });
+    ).toMatchObject({ classification: "editorial_principle", marketable: false, sourceIds: [] });
   });
 
   it("22 passes every film/context contract without drift", () => {
