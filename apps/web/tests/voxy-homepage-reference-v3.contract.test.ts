@@ -60,7 +60,7 @@ function htmlAtSegment(
   });
 }
 
-describe("VOXY homepage reference V3.1 — surgical human-review corrections", () => {
+describe("VOXY homepage reference V3.2 — geometry and editorial sync", () => {
   it("01 strips election-only evidence and sources from the evergreen VOG render plan", () => {
     const current = plan("voiceopengov", "evergreen");
     const serialized = JSON.stringify(current);
@@ -103,32 +103,52 @@ describe("VOXY homepage reference V3.1 — surgical human-review corrections", (
     expect(html).not.toContain("VOXY_LEGACY_PIN");
   });
 
-  it("04 makes the face-safe corridor a hard render policy and routes synthesis outside it", () => {
+  it("04 expands the host silhouette safe zone and moves large right-side objects beyond it", () => {
     const current = plan("edebatte", "election_window");
     const source = htmlAtSegment(current, "edebatte-source-questions");
+    const trace = htmlAtSegment(current, "edebatte-product-model");
     const synthesis = htmlAtSegment(current, "edebatte-synthesis-questions");
 
-    expect(source).toContain('data-host-face-safe-zone="x610-900:y150-520"');
+    expect(source).toContain('data-host-face-safe-zone="x560-1030:y135-535"');
     expect(source).toContain('data-host-face-safe-policy="hard-no-lines-or-large-objects"');
-    expect(source).toContain(".information-stage{left:1030px!important;top:165px!important;width:340px!important;height:92px!important");
+    expect(source).toContain('data-homepage-segment-id="edebatte-source-questions"');
+    expect(source).toContain(".information-stage{left:1060px!important;top:165px!important;width:320px!important;height:92px!important");
+    expect(source).toContain(".source-pull-scene .case-source-object{right:-12px;top:76px;transform:translateX(calc((1 - var(--segment-progress))*18px)) scale(.78)");
+    expect(source).toContain(".evidence-beam{position:absolute;left:250px;top:395px;width:360px");
+    expect(trace).toContain(".trace-axis{position:absolute;left:5px;right:5px;top:385px");
+    expect(trace).toContain(".trace-copy{position:absolute;left:680px;top:195px;width:290px");
     expect(synthesis).toContain('data-face-safe-route="outside-host-corridor"');
     expect(synthesis).toContain('data-face-safe-routes="left-and-right-only"');
-    expect(synthesis).toContain('M120 135 C165 140 195 158 225 185');
-    expect(synthesis).not.toContain('M150 160 C300 70 580 70 745 155');
+    expect(synthesis).toContain(".synthesis-core{position:absolute;left:680px;top:150px;width:290px");
   });
 
-  it("05 fixes the duplicate-class selector bug and actually quiets FOCUS and EXPLAIN lower thirds", () => {
-    const current = plan("edebatte", "election_window");
-    const html = htmlAtSegment(current, "edebatte-media-forensics");
+  it("05 keeps lower-third chrome stable but suppresses competing editorial headlines in object-dominant segments", () => {
+    const current = plan("voiceopengov", "evergreen");
+    const programme = htmlAtSegment(current, "vog-program-not-contract");
+    const currentOffer = htmlAtSegment(current, "vog-current-offer");
 
-    expect(html).toContain('data-pilot-version="homepage-reference-v3-1-surgical"');
-    expect(html).not.toContain('class="homepage-reference-v3"');
-    expect(html).toContain('[data-pilot-version="homepage-reference-v3-1-surgical"][data-homepage-visual-state="FOCUS"] .lower-copy p');
-    expect(html).toContain('[data-pilot-version="homepage-reference-v3-1-surgical"][data-homepage-visual-state="EXPLAIN"] .lower-meta');
-    expect(html).toContain('min-height:86px!important');
+    expect(programme).toContain('data-pilot-version="homepage-reference-v3-2-geometry-sync"');
+    expect(programme).toContain('[data-homepage-segment-id="vog-program-not-contract"] .lower-copy strong');
+    expect(programme).toContain('[data-homepage-segment-id="vog-demophobie"] .lower-copy strong');
+    expect(currentOffer).toContain('[data-homepage-segment-id="vog-current-offer"] .lower-copy strong');
+    expect(programme).toContain('min-height:86px!important');
   });
 
-  it("06 keeps the evergreen VOG HTML free of election-calendar artifacts", () => {
+  it("06 pushes the VOG design and current-capability objects clear of the host silhouette", () => {
+    const current = plan("voiceopengov", "evergreen");
+    const demophobie = htmlAtSegment(current, "vog-demophobie", 0.5);
+    const offer = htmlAtSegment(current, "vog-current-offer", 0.2);
+    const programme = htmlAtSegment(current, "vog-program-not-contract", 0.5);
+
+    expect(demophobie).toContain(".design-question{position:absolute;right:-5px;top:70px;width:300px");
+    expect(demophobie).toContain(".guardrail-row{position:absolute;left:650px");
+    expect(offer).toContain(".current-layer,.future-layer{position:absolute;left:650px;right:5px");
+    expect(offer).toContain(".bridge{position:absolute;left:650px;top:175px;width:250px");
+    expect(programme).toContain(".gap-field{position:absolute;right:0;top:115px;width:300px");
+    expect(programme).toContain(".status-ruler{position:absolute;left:650px;right:15px");
+  });
+
+  it("07 keeps the evergreen VOG HTML free of election-calendar artifacts", () => {
     const current = plan("voiceopengov", "evergreen");
     const html = htmlAtSegment(current, "vog-after-election");
 
@@ -139,7 +159,7 @@ describe("VOXY homepage reference V3.1 — surgical human-review corrections", (
     expect(html).not.toContain("Bundeswahlleiterin");
   });
 
-  it("07 makes the private renderer fail closed on context isolation", () => {
+  it("08 makes the private renderer fail closed on context isolation", () => {
     const renderer = readFileSync(
       new URL("../scripts/render-voxy-homepage-reference-films.ts", import.meta.url),
       "utf8",
@@ -150,7 +170,7 @@ describe("VOXY homepage reference V3.1 — surgical human-review corrections", (
     expect(renderer).toContain("contextIsolationGate: \"passed\"");
   });
 
-  it("08 preserves the release gates pending a fresh human review", () => {
+  it("09 preserves the release gates pending a fresh human review", () => {
     for (const current of [
       plan("edebatte", "election_window"),
       plan("voiceopengov", "evergreen"),
