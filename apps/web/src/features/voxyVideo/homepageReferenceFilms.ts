@@ -160,8 +160,8 @@ export const VOXY_CURRENT_OFFER_INVENTORY = [
     id: "direct-democracy-question",
     classification: "editorial_principle",
     product: "VoiceOpenGov",
-    claim: "Die Frage nach mehr direkter Beteiligung wird als offene demokratische Gestaltungsfrage behandelt, nicht als bereits vorhandene Produktfunktion.",
-    sourceIds: ["luebbe-wolff-demophobie-2023"],
+    claim: "Wie Beteiligung zwischen Wahlen nachvollziehbare politische Wirkung entfalten kann, bleibt eine offene demokratische Gestaltungsfrage und wird nicht als vorhandene Produktfunktion behauptet.",
+    sourceIds: [],
     marketable: false,
   },
   {
@@ -343,7 +343,7 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
       "timeline_extend",
       "coalition_transform",
       "status_chain_advance",
-      "demophobie_question_reveal",
+      "participation_design_reveal",
       "citizen_network_expand",
       "equal_voice_pulse",
       "participation_path",
@@ -394,15 +394,15 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
       },
       {
         id: "vog-demophobie",
-        text: "Die frühere Verfassungsrichterin Gertrude Lübbe-Wolff fragt in ‚Demophobie‘: Muss man direkte Demokratie wirklich fürchten?",
-        spokenText: "Die frühere Verfassungsrichterin Gertrude Lübbe-Wolff fragt in Demophobie: Muss man direkte Demokratie wirklich fürchten?",
+        text: "Wenn Beteiligung keine definierte Folge hat, ist sie noch keine Mitbestimmung. Die entscheidende Frage lautet: Wie wird aus einer Stimme nachvollziehbare politische Wirkung?",
+        spokenText: "Wenn Beteiligung keine definierte Folge hat, ist sie noch keine Mitbestimmung. Die entscheidende Frage lautet: Wie wird aus einer Stimme nachvollziehbare politische Wirkung?",
         pauseAfterMs: 150,
         contexts: bothModes,
       },
       {
         id: "vog-participation-balance",
-        text: "Die Antwort muss nicht heißen, über alles direkt abzustimmen. Aber sie sollte auch nicht heißen: wählen – und danach nur zuschauen.",
-        spokenText: "Die Antwort muss nicht heißen, über alles direkt abzustimmen. Aber sie sollte auch nicht heißen: wählen, und danach nur zuschauen.",
+        text: "Das muss nicht heißen, über alles direkt abzustimmen. Aber es sollte auch nicht heißen: wählen – und danach nur zuschauen. Wirkung braucht Grundrechte, Minderheitenschutz und klare Verantwortung.",
+        spokenText: "Das muss nicht heißen, über alles direkt abzustimmen. Aber es sollte auch nicht heißen: wählen, und danach nur zuschauen. Wirkung braucht Grundrechte, Minderheitenschutz und klare Verantwortung.",
         pauseAfterMs: 150,
         contexts: bothModes,
       },
@@ -453,12 +453,12 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
       },
       {
         id: "vog-open-question",
-        type: "DEMOPHOBIE?",
-        title: "Wie viel direkte Entscheidung trauen wir Bürgern zu?",
-        shortSummary: "Lübbe-Wolff untersucht Einwände gegen direkte Demokratie – die Ausgestaltung entscheidet über Chancen und Risiken.",
-        sourceLabel: "Gertrude Lübbe-Wolff · Demophobie · Klostermann 2023",
-        provenance: "BUCH / DISKUSSIONSIMPULS",
-        visualIdentity: "democracy-journey-amber-demophobie-question",
+        type: "GESTALTUNGSFRAGE",
+        title: "Wie wird aus Beteiligung nachvollziehbare Wirkung?",
+        shortSummary: "Mehr Mitbestimmung braucht definierte Folgen und demokratische Leitplanken.",
+        sourceLabel: "VoiceOpenGov · demokratische Gestaltungsfrage",
+        provenance: "REDAKTIONELLES PRINZIP",
+        visualIdentity: "democracy-journey-amber-design-question",
         visualPayload: { kind: "open_question" },
         memoryPriority: 110,
       },
@@ -469,7 +469,6 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
       "edebatte-statements",
       "federal-election-calendar-2026",
       "berlin-election-2026-faq",
-      "luebbe-wolff-demophobie-2023",
     ],
     marketedOfferIds: ["voiceopengov-double-opt-in", "voiceopengov-voluntary-support"],
   },
@@ -667,9 +666,9 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
         }),
         lowerThird({
           id: "synthesis",
-          kicker: "DEMOPHOBIE?",
-          headline: "Wie viel Entscheidung trauen wir Bürgern zu?",
-          summary: "Direkte Demokratie ist eine Gestaltungsfrage – keine einfache Ja-Nein-Antwort.",
+          kicker: "MITBESTIMMUNG",
+          headline: "Was soll aus deiner Stimme folgen?",
+          summary: "Beteiligung wird erst dann substanziell, wenn ihre mögliche politische Folge nachvollziehbar ist.",
           validFrom: boundary(0.76),
           validUntil: boundary(0.89),
         }),
@@ -723,7 +722,7 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
     canonicalNarrationArchitecture: "single_voice_default",
     canonicalVoxyVoice: "D1 Conversational Dynamic",
     canonicalEditorialVoice: "W1 Natural Editorial / parked optional layer",
-    captions: { sidecarsOnly: true, burnedIn: false, languages: ["de"] },
+    captions: { sidecarsOnly: false, burnedIn: true, languages: ["de"] },
     objectContinuity: {
       sameEvidenceId: true,
       sameVisualIdentity: true,
@@ -880,8 +879,8 @@ export function validateVoxyHomepageReferenceFilmPlan(
     errors.push("adaptive_motion_contract_invalid");
   }
   if (
-    !plan.captions.sidecarsOnly ||
-    plan.captions.burnedIn ||
+    plan.captions.sidecarsOnly ||
+    !plan.captions.burnedIn ||
     plan.lowerThirdTimeline.some(
       (entry) => entry.captionMirror || entry.blinking || entry.wordByWordAnimation,
     )
@@ -930,12 +929,6 @@ export function validateVoxyHomepageReferenceFilmPlan(
       !plan.sources.some((source) => source.id === "berlin-election-2026-faq"))
   ) {
     errors.push("official_election_source_missing");
-  }
-  if (
-    plan.filmId === "voiceopengov" &&
-    !plan.sources.some((source) => source.id === "luebbe-wolff-demophobie-2023")
-  ) {
-    errors.push("demophobie_source_missing");
   }
 
   const electionWindowOnlySegmentIds = new Set([
