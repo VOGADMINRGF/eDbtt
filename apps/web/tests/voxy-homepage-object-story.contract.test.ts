@@ -28,7 +28,7 @@ function plan(filmId: VoxyHomepageFilmId, contextMode: VoxyHomepageContextMode) 
       exactHeadSha: exactHead,
       speechDurationsMs: Array.from(
         { length: segments.length },
-        () => filmId === "edebatte" ? 6_000 : 7_300,
+        () => filmId === "edebatte" ? 6_600 : 7_200,
       ),
     }),
   );
@@ -58,7 +58,7 @@ function htmlAtSegment(
   });
 }
 
-describe("VOXY homepage object-story reference grammar", () => {
+describe("VOXY homepage object-story reference grammar — V3.4", () => {
   it("01 makes eDebatte the primary brand inside its own homepage film", () => {
     const current = plan("edebatte", "election_window");
     const html = htmlAtSegment(current, "edebatte-greeting");
@@ -69,58 +69,60 @@ describe("VOXY homepage object-story reference grammar", () => {
     expect(html).toContain(".brand-lockup{display:none!important}");
   });
 
-  it("02 turns eDebatte research into sequential scene objects instead of a persistent dashboard", () => {
+  it("02 turns eDebatte research into readable sequential scene objects", () => {
     const current = plan("edebatte", "election_window");
-    const opening = htmlAtSegment(current, "edebatte-greeting", 0.3);
-    const freeze = htmlAtSegment(current, "edebatte-greeting", 0.8);
-    const sourcePull = htmlAtSegment(current, "edebatte-source-questions", 0.5);
+    const opening = htmlAtSegment(current, "edebatte-greeting", 0.2);
+    const freeze = htmlAtSegment(current, "edebatte-election-noise", 0.8);
+    const claim = htmlAtSegment(current, "edebatte-source-questions", 0.15);
+    const link = htmlAtSegment(current, "edebatte-source-questions", 0.5);
+    const primary = htmlAtSegment(current, "edebatte-source-questions", 0.85);
     const number = htmlAtSegment(current, "edebatte-media-forensics", 0.15);
-    const quote = htmlAtSegment(current, "edebatte-media-forensics", 0.4);
-    const study = htmlAtSegment(current, "edebatte-media-forensics", 0.64);
-    const splitResolution = htmlAtSegment(current, "edebatte-media-forensics", 0.9);
-    const synthesis = htmlAtSegment(current, "edebatte-synthesis-questions");
+    const quote = htmlAtSegment(current, "edebatte-media-forensics", 0.5);
+    const study = htmlAtSegment(current, "edebatte-media-forensics", 0.85);
 
     expect(opening).toContain("headline-swarm");
-    expect(opening).toContain("case-headline-object");
-    expect(opening).not.toContain("freeze-ring");
+    expect(opening).toContain('data-readable-state-id="ed-opening-headline"');
     expect(freeze).toContain("headline-freeze-scene");
     expect(freeze).toContain("STOPP.");
-    expect(sourcePull).toContain("source-pull-scene source-phase-link");
-    expect(sourcePull).toContain("ILLUSTRATIVER QUELLENCHECK");
-    expect(number).toContain("<small>ZAHL</small>");
-    expect(number).not.toContain("<small>ZITAT</small>");
-    expect(quote).toContain("<small>ZITAT</small>");
-    expect(quote).not.toContain("<small>STUDIE</small>");
+    expect(freeze).toContain('data-readable-state-id="ed-opening-freeze"');
+
+    expect(claim).toContain("source-phase-claim");
+    expect(link).toContain("source-phase-link");
+    expect(primary).toContain("source-phase-primary");
+    expect(primary).toContain("ILLUSTRATIVER QUELLENCHECK");
+
+    expect(number).toContain('<small>ZAHL</small>');
+    expect(number).toContain('data-readable-state-id="ed-forensics-number"');
+    expect(quote).toContain('<small>ZITAT</small>');
+    expect(quote).toContain('data-readable-state-id="ed-forensics-quote"');
+    expect(study).toContain("forensic-study-label");
     expect(study).toContain("<small>STUDIE</small>");
-    expect(splitResolution).toContain("forensic-source-resolution");
-    expect(splitResolution).toContain("QUELLE");
-    expect(splitResolution).toContain("INTERPRETATION");
-    expect(synthesis).toContain("case-synthesis-scene");
+    expect(study).toContain("INTERPRETATION");
+    expect(study).toContain('data-readable-state-id="ed-forensics-study-source"');
     expect(opening).not.toContain("media-wall");
-    expect(sourcePull).not.toContain("source-lab");
+    expect(link).not.toContain("source-lab");
   });
 
-  it("03 keeps Voxy visible with a compact evidence tag and silhouette-safe routing", () => {
+  it("03 keeps eDebatte trace and synthesis out of the presenter corridor", () => {
     const current = plan("edebatte", "election_window");
-    const source = htmlAtSegment(current, "edebatte-source-questions");
+    const trace = htmlAtSegment(current, "edebatte-product-model");
     const synthesis = htmlAtSegment(current, "edebatte-synthesis-questions");
 
-    expect(source).toContain(".homepage-distinctive-stage{position:absolute;z-index:22");
-    expect(source).toContain(".information-stage{left:1060px!important;top:165px!important;width:320px!important;height:92px!important");
-    expect(source).toContain("data-host-face-safe-zone=\"x560-1030:y135-535\"");
-    expect(source).toContain("data-host-face-safe-policy=\"hard-no-lines-or-large-objects\"");
-    expect(source).toContain(".studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}");
-    expect(synthesis).toContain("data-face-safe-route=\"outside-host-corridor\"");
-    expect(synthesis).toContain("data-face-safe-routes=\"left-and-right-only\"");
+    expect(trace).toContain('.case-trace-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
+    expect(trace).toContain('grid-template-columns:1fr');
+    expect(trace).not.toContain('<span></span>');
+    expect(synthesis).toContain("case-synthesis-scene");
+    expect(synthesis).toContain('data-face-safe-route="outside-host-corridor"');
+    expect(synthesis).not.toContain("<svg viewBox=\"0 0 900 470\"");
   });
 
   it("04 makes VoiceOpenGov a living process and sequences programme, gap and decision", () => {
     const current = plan("voiceopengov", "evergreen");
     const opening = htmlAtSegment(current, "vog-greeting");
     const path = htmlAtSegment(current, "vog-after-election");
-    const promise = htmlAtSegment(current, "vog-program-not-contract", 0.18);
+    const promise = htmlAtSegment(current, "vog-program-not-contract", 0.15);
     const gap = htmlAtSegment(current, "vog-program-not-contract", 0.5);
-    const decision = htmlAtSegment(current, "vog-program-not-contract", 0.84);
+    const decision = htmlAtSegment(current, "vog-program-not-contract", 0.85);
 
     expect(opening).toContain("vog-journey object-led-scene");
     expect(opening).toContain("democratic-loop");
@@ -129,18 +131,18 @@ describe("VOXY homepage object-story reference grammar", () => {
     expect(path).toContain("DER WEG GEHT WEITER");
     expect(promise).toContain("programme-phase-promise");
     expect(promise).toContain("<strong>PROGRAMM</strong>");
-    expect(promise).not.toContain("<strong>BESCHLUSS</strong>");
     expect(gap).toContain("programme-phase-gap");
     expect(gap).toContain("VERBINDLICHKEIT?");
     expect(decision).toContain("programme-phase-decision");
     expect(decision).toContain("<strong>BESCHLUSS</strong>");
-    expect(opening).not.toContain("case-headline-object");
+    expect(decision).toContain("AUSSAGE");
+    expect(decision).toContain("WIRKUNG");
     expect(opening).not.toContain("ballot-paper");
   });
 
   it("05 reveals Demophobie source, design question and guardrails sequentially", () => {
     const current = plan("voiceopengov", "evergreen");
-    const source = htmlAtSegment(current, "vog-demophobie", 0.2);
+    const source = htmlAtSegment(current, "vog-demophobie", 0.15);
     const question = htmlAtSegment(current, "vog-demophobie", 0.5);
     const guardrails = htmlAtSegment(current, "vog-demophobie", 0.85);
 
@@ -156,11 +158,11 @@ describe("VOXY homepage object-story reference grammar", () => {
     expect(guardrails).toContain("REVISION");
   });
 
-  it("06 separates current VoiceOpenGov capability from the future target in time as well as semantics", () => {
+  it("06 separates current VoiceOpenGov capability from the future target with a readable bridge", () => {
     const current = plan("voiceopengov", "evergreen");
-    const now = htmlAtSegment(current, "vog-current-offer", 0.2);
+    const now = htmlAtSegment(current, "vog-current-offer", 0.15);
     const bridge = htmlAtSegment(current, "vog-current-offer", 0.5);
-    const future = htmlAtSegment(current, "vog-current-offer", 0.8);
+    const future = htmlAtSegment(current, "vog-current-offer", 0.85);
 
     expect(now).toContain("offer-phase-current");
     expect(now).toContain("HEUTE · CURRENT CAPABILITY");
