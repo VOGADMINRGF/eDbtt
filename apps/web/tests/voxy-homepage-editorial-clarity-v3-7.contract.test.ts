@@ -58,7 +58,7 @@ describe("VOXY homepage V3.7 — editorial clarity and muted-first lock", () => 
     expect(vog).toContain('<strong>VoiceOpenGov</strong><b class="brand-descriptor">DEMOKRATIE IN BEWEGUNG</b>');
     expect(edebatte).toContain('<strong>eDebatte</strong><b class="brand-descriptor">PRÜFEN STATT GLAUBEN</b>');
     expect(vog).toContain('.homepage-brand-hierarchy .brand-descriptor{');
-    expect(vog).toContain('font-size:16px;');
+    expect(vog).toContain('font-size:19px;');
   });
 
   it("02 keeps the VoiceOpenGov loop below the slide lane and gives it deterministic semantic movement", () => {
@@ -67,7 +67,7 @@ describe("VOXY homepage V3.7 — editorial clarity and muted-first lock", () => 
     const later = htmlAtSegment(current, "vog-greeting", 0.75);
 
     expect(early).toContain('.democratic-loop{position:absolute;left:735px;top:330px;');
-    expect(early).toContain('<div class="loop-heading">DER WEG GEHT WEITER</div>');
+    expect(early).toContain('<div class="loop-heading"><small>WAS PASSIERT DANACH?</small><strong>DER WEG GEHT WEITER</strong></div>');
     expect(early).toContain('loop-node n1 active');
     expect(later).toContain('loop-node n5 active');
     expect(early).toContain('stroke-dashoffset:calc((1 - var(--loop))*80)');
