@@ -60,7 +60,7 @@ function htmlAtSegment(
   });
 }
 
-describe("VOXY homepage reference V3.4 — broadcast readability lock", () => {
+describe("VOXY homepage reference V3.7 — preserved geometry and context locks", () => {
   it("01 strips election-only evidence and sources from the evergreen VOG render plan", () => {
     const current = plan("voiceopengov", "evergreen");
     const serialized = JSON.stringify(current);
@@ -103,7 +103,7 @@ describe("VOXY homepage reference V3.4 — broadcast readability lock", () => {
     expect(html).not.toContain("VOXY_LEGACY_PIN");
   });
 
-  it("04 declares face-safe and presenter-safe exclusion zones and keeps semantic objects outside them", () => {
+  it("04 declares presenter-safe exclusion zones and keeps eDebatte semantic objects outside them", () => {
     const current = plan("edebatte", "election_window");
     const source = htmlAtSegment(current, "edebatte-source-questions");
     const trace = htmlAtSegment(current, "edebatte-product-model");
@@ -113,36 +113,36 @@ describe("VOXY homepage reference V3.4 — broadcast readability lock", () => {
     expect(source).toContain('data-host-presenter-safe-zone="x540-1030:y125-760"');
     expect(source).toContain('data-presenter-safe-policy="no-semantic-text-or-connector-lines"');
     expect(source).toContain('.information-stage{left:1060px!important;top:165px!important;width:320px!important;height:92px!important');
-    expect(trace).toContain('.case-trace-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
+    expect(trace).toContain('.case-trace-scene{position:absolute;left:770px;top:125px;width:260px;height:390px}');
     expect(trace).toContain('grid-template-columns:1fr');
     expect(synthesis).toContain('data-face-safe-route="outside-host-corridor"');
     expect(synthesis).toContain('.case-synthesis-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
     expect(synthesis).not.toContain('data-face-safe-routes="left-and-right-only"');
   });
 
-  it("05 drops the lower third instead of competing with dense object-led scenes", () => {
+  it("05 drops the legacy lower third so burned-in subtitles own the muted-first reading lane", () => {
     const current = plan("voiceopengov", "evergreen");
     const programme = htmlAtSegment(current, "vog-program-not-contract");
     const offer = htmlAtSegment(current, "vog-current-offer");
 
     expect(programme).toContain('data-pilot-version="homepage-reference-v3-4-broadcast-readability"');
     expect(programme).toContain('data-broadcast-discipline="v3-4"');
-    expect(programme).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="vog-program-not-contract"] .broadcast-lower-third');
-    expect(offer).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="vog-current-offer"] .broadcast-lower-third');
-    expect(programme).toContain('opacity:0!important;pointer-events:none!important');
+    expect(programme).toContain('data-muted-first-captions="v3-7"');
+    expect(programme).toContain('[data-muted-first-captions="v3-7"] .broadcast-lower-third{opacity:0!important;pointer-events:none!important}');
+    expect(offer).toContain("homepage-voxy-subtitle");
   });
 
-  it("06 starts VOG semantic scenes to the right of the presenter-safe zone and raises semantic type sizes", () => {
+  it("06 keeps process panels right of the presenter while moving the democratic loop to the bottom-right", () => {
     const current = plan("voiceopengov", "evergreen");
     const opening = htmlAtSegment(current, "vog-greeting");
     const programme = htmlAtSegment(current, "vog-program-not-contract");
-    const demophobie = htmlAtSegment(current, "vog-demophobie");
+    const participation = htmlAtSegment(current, "vog-participation-balance");
     const offer = htmlAtSegment(current, "vog-current-offer");
 
-    expect(opening).toContain('.democratic-loop{position:absolute;left:690px;top:125px;');
+    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:330px;');
     expect(programme).toContain('.programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;');
-    expect(demophobie).toContain('.guardrail{padding:9px 11px;');
-    expect(demophobie).toContain('font-size:11px;font-weight:900');
+    expect(participation).toContain('.participation-balance-scene{left:810px;width:220px}');
+    expect(participation).toContain('.guardrail{padding:9px 11px;');
     expect(offer).toContain('.current-layer span,.future-layer span{display:block;margin-top:9px;color:#b1c5d4;font-size:11px;');
     expect(offer).toContain('.bridge{position:absolute;left:0;top:150px;width:280px;');
   });
