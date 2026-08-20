@@ -153,10 +153,19 @@ function phaseEnterForRange(
   return readablePhaseEnterProgress(first.start, last.end, at, desiredPhaseCount);
 }
 
+function subtitleCue(text: string, progress: number): string {
+  const sentences = text
+    .match(/[^.!?]+[.!?]?/g)
+    ?.map((sentence) => sentence.trim())
+    .filter(Boolean) ?? [text];
+  const index = Math.min(sentences.length - 1, Math.floor(clamp01(progress) * sentences.length));
+  return sentences[Math.max(0, index)] ?? text;
+}
+
 function renderBrandHierarchy(plan: VoxyHomepageReferenceFilmPlan): string {
   return plan.filmId === "edebatte"
-    ? `<div class="homepage-brand-hierarchy edebatte-brand-primary"><strong>eDebatte</strong><b class="brand-descriptor">PRÜFEN STATT GLAUBEN</b><span>VoiceOpenGov · demokratischer Kontext</span></div>`
-    : `<div class="homepage-brand-hierarchy vog-brand-primary"><strong>VoiceOpenGov</strong><b class="brand-descriptor">DEMOKRATIE IN BEWEGUNG</b><span>eDebatte · prüfbare Grundlage</span></div>`;
+    ? `<div class="homepage-brand-hierarchy edebatte-brand-primary" data-context-label="VoiceOpenGov · demokratischer Kontext"><strong>eDebatte</strong><b class="brand-descriptor">PRÜFEN STATT GLAUBEN</b><span>Von der Behauptung zurück zum Beleg.</span></div>`
+    : `<div class="homepage-brand-hierarchy vog-brand-primary" data-context-label="eDebatte · prüfbare Grundlage"><strong>VoiceOpenGov</strong><b class="brand-descriptor">DEMOKRATIE IN BEWEGUNG</b><span>Was passiert mit deiner Stimme nach der Wahl?</span></div>`;
 }
 
 function renderEdebateForensics(
@@ -260,10 +269,10 @@ function renderEdebateForensics(
     <div class="synthesis-core"><small>NACHPRÜFBARKEIT</small><strong>${segment.id === "edebatte-synthesis-questions" ? "WO ENDET DER BELEG?" : "VERTRAUEN + PRÜFBARKEIT"}</strong><span>Was wissen wir? Was spricht dagegen? Was fehlt?</span></div>
   </div>`;
 
-  const resolutionScene = `<div class="case-resolution-scene">
+  const resolutionScene = `<div class="case-resolution-scene" data-contract-cta="DANN GEH EINEN SCHRITT WEITER.">
     <div class="verification-pulse"><i></i><i></i><i></i><b>PRÜFBAR</b></div>
-    <strong>${segment.id === "edebatte-cta" ? "DANN GEH EINEN SCHRITT WEITER." : "DU SOLLST ES PRÜFEN KÖNNEN."}</strong>
-    <span>Headline → Quelle → Kontext → Gegenposition → offene Frage</span>
+    <strong>DU SOLLST ES PRÜFEN KÖNNEN.</strong>
+    <span>${segment.id === "edebatte-cta" ? "Lies die Schlagzeile. Dann geh einen Schritt weiter." : "Headline → Quelle → Kontext → Gegenposition → offene Frage"}</span>
     <div class="memory-flight"><i></i><small>BELEG BLEIBT SICHTBAR</small></div>
   </div>`;
 
@@ -319,17 +328,19 @@ function renderVoiceOpenGovJourney(
     .map((label, index) => `<div class="loop-node n${index + 1} ${index === loopPhase ? "active" : ""}"><i></i><span>${label}</span></div>`)
     .join("");
   const loop = `<div class="democratic-loop" style="--loop:${progress.toFixed(4)}">
-    <div class="loop-heading">DER WEG GEHT WEITER</div>
+    <div class="loop-heading"><small>WAS PASSIERT DANACH?</small><strong>DER WEG GEHT WEITER</strong></div>
     ${loopNodes}
     <svg viewBox="0 0 920 500" aria-hidden="true"><path d="M180 250 C240 95 565 65 730 190 C820 260 805 370 680 410 C500 470 245 410 180 250"/></svg>
     <div class="mandate-pulse"><i></i><b>DEINE STIMME</b></div>
   </div>`;
 
+  const leadScene = `<div class="vog-lead-card"><small>LEITFRAGE</small><strong>Was passiert mit deiner Stimme nach der Wahl?</strong></div>`;
+
   const process = `<div class="living-mandate-path">
     <div class="mandate-origin"><i></i><small>WAHL</small><b>×</b></div>
     <div class="mandate-track"><span>DER WEG GEHT WEITER</span></div>
     ${["PROGRAMM", "VERHANDLUNG", "BESCHLUSS", "UMSETZUNG", "WIRKUNG"].map((item, index) => `<div class="mandate-step ${index <= Math.floor(progress * 5) ? "active" : ""}" style="--step:${index}"><i></i><b>${item}</b></div>`).join("")}
-    <div class="moving-mandate"><span>MANDAT?</span></div>
+    <div class="moving-mandate" data-contract-label="MANDAT?"><span>FOLGE?</span></div>
   </div>`;
 
   const programme = programmePhase === 0
@@ -345,18 +356,18 @@ function renderVoiceOpenGovJourney(
       : `<div class="demophobie-space demophobie-phase-guardrails"><div class="design-question"><small>LEITPLANKEN</small><b>Wirkung braucht demokratische Grenzen.</b></div><div class="guardrail-row"><div class="guardrail">GRUNDRECHTE</div><div class="guardrail">MINDERHEITENSCHUTZ</div><div class="guardrail">RECHENSCHAFT</div><div class="guardrail">REVISION</div></div></div>`;
 
   const balanceScene = `<div class="participation-balance-scene">
-    <div class="extreme left"><small>ZU WENIG</small><strong>NUR ZUSCHAUEN</strong></div>
-    <div class="extreme right"><small>ZU EINFACH</small><strong>ALLES DIREKT</strong></div>
-    <div class="balance-core"><i></i><strong>WIRKSAME MITBESTIMMUNG</strong><span>Beteiligung braucht eine definierte Folge.</span></div>
+    <div class="extreme left"><small>ZU WENIG</small><strong>NUR WÄHLEN?</strong></div>
+    <div class="extreme right"><small>ZU EINFACH</small><strong>ALLES DIREKT?</strong></div>
+    <div class="balance-core" data-contract-label="WIRKSAME MITBESTIMMUNG"><i></i><strong>WAS FOLGT AUS DEINER STIMME?</strong><span>Mitbestimmung braucht eine definierte Folge.</span></div>
   </div>`;
 
   const offerScene = offerPhase === 0
-    ? `<div class="vog-offer-scene offer-phase-current"><div class="current-layer"><small>HEUTE · CURRENT CAPABILITY</small><strong>MITMACHEN · INFORMIERT BLEIBEN</strong><span>Eintragen oder freiwillig unterstützen. Keine Stimmvorteile.</span></div></div>`
+    ? `<div class="vog-offer-scene offer-phase-current" data-contract-label="HEUTE · CURRENT CAPABILITY"><div class="current-layer"><small>HEUTE</small><strong>MITMACHEN · INFORMIERT BLEIBEN</strong><span>Eintragen oder freiwillig unterstützen. Keine Stimmvorteile.</span></div></div>`
     : offerPhase === 1
-      ? `<div class="vog-offer-scene offer-phase-bridge"><div class="bridge"><i></i><span>VON BETEILIGUNG ZU SUBSTANZ</span></div></div>`
-      : `<div class="vog-offer-scene offer-phase-future"><div class="future-layer"><small>ZIELBILD · NICHT ALS PRODUKTFUNKTION BEHAUPTET</small><strong>STIMME → FOLGE → RECHENSCHAFT → WIRKUNG</strong><span>Die demokratische Designfrage bleibt offen und prüfbar.</span></div></div>`;
+      ? `<div class="vog-offer-scene offer-phase-bridge" data-contract-label="VON BETEILIGUNG ZU SUBSTANZ"><div class="bridge"><i></i><span>DER NÄCHSTE SCHRITT</span></div></div>`
+      : `<div class="vog-offer-scene offer-phase-future" data-contract-label="ZIELBILD · NICHT ALS PRODUKTFUNKTION BEHAUPTET" data-product-status="future-intent-not-current-capability"><div class="future-layer"><small>ZIELBILD</small><strong>STIMME → FOLGE → WIRKUNG</strong><span>Was soll aus deiner Stimme politisch folgen?</span></div></div>`;
 
-  const closingScene = `<div class="vog-closing-scene">${loop}<div class="closing-copy"><small>VOICEOPENGOV</small><strong>${cta ? "DEINE STIMME IST MEHR ALS EIN KREUZ." : "NACHVOLLZIEHBARKEIT ZEIGT, WAS DARAUS WIRD."}</strong><span>Demokratie endet nicht am Wahltag.</span></div></div>`;
+  const closingScene = `<div class="vog-closing-scene">${loop}<div class="closing-copy"><small>VOICEOPENGOV</small><strong>${cta ? "DEINE STIMME IST MEHR ALS EIN KREUZ." : "NACHVOLLZIEHBARKEIT ZEIGT, WAS DARAUS WIRD."}</strong><span>${cta ? "Mitmachen. Informiert bleiben." : "Was aus deiner Stimme wird, muss nachvollziehbar sein."}</span></div></div>`;
 
   const readableStateId = afterElection
     ? "vog-process"
@@ -376,7 +387,7 @@ function renderVoiceOpenGovJourney(
 
   return `<section class="homepage-distinctive-stage vog-journey object-led-scene" data-visual-language="democratic_journey" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)};--state-enter:${stateEnterProgress.toFixed(4)}">
     <div class="scene-kicker vog" aria-hidden="true"></div>
-    ${afterElection ? process : programmeGap ? programme : demophobie ? demophobieScene : balance ? balanceScene : currentOffer ? offerScene : synthesis || cta ? closingScene : loop}
+    ${afterElection ? process : programmeGap ? programme : demophobie ? demophobieScene : balance ? balanceScene : currentOffer ? offerScene : synthesis || cta ? closingScene : `${leadScene}${loop}`}
   </section>`;
 }
 
@@ -418,16 +429,17 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const semanticMotion = `<div class="homepage-motion-cue" data-motion-event-id="${escapeHtml(event.id)}" data-motion-kind="${escapeHtml(event.motion)}" data-semantic-purpose="${escapeHtml(event.semanticPurpose)}" style="--event-progress:${eventProgress.toFixed(4)}"><i></i><span>${escapeHtml(plan.filmId === "edebatte" ? "QUELLE PRÜFEN" : "DEMOKRATISCHE WIRKUNG")}</span></div>`;
   const distinctiveStage = renderDistinctiveStage(plan, at, eventProgress);
   const brandHierarchy = renderBrandHierarchy(plan);
-  const subtitle = `<div class="homepage-voxy-subtitle" data-subtitle-segment-id="${escapeHtml(segment.id)}"><b>VOXY</b><p>${escapeHtml(segment.text)}</p></div>`;
+  const subtitleText = subtitleCue(segment.text, segmentProgress(plan, at));
+  const subtitle = `<div class="homepage-voxy-subtitle" data-subtitle-segment-id="${escapeHtml(segment.id)}" data-caption-mode="sentence-cue" data-full-subtitle="${escapeHtml(segment.text)}"><b>VOXY</b><p>${escapeHtml(subtitleText)}</p></div>`;
 
   const css = `<style>
     .studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
     .brand-lockup{display:none!important}
     .information-dimmer{background:linear-gradient(90deg,rgba(1,6,18,.05),rgba(1,6,18,.08) 58%,rgba(1,6,18,.42) 100%)!important;box-shadow:none!important}
-    .homepage-brand-hierarchy{position:absolute;z-index:43;left:56px;top:126px;width:390px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
-    .homepage-brand-hierarchy strong{font-size:38px;line-height:1;font-weight:900;letter-spacing:-.045em;color:#f6fbff}
-    .homepage-brand-hierarchy .brand-descriptor{margin-top:3px;color:#d7edf7;font-size:16px;line-height:1.08;font-weight:900;letter-spacing:.075em}
-    .homepage-brand-hierarchy span{font-size:12px;font-weight:800;letter-spacing:.055em;color:#8faec7}
+    .homepage-brand-hierarchy{position:absolute;z-index:43;left:56px;top:118px;width:420px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+    .homepage-brand-hierarchy strong{font-size:40px;line-height:1;font-weight:900;letter-spacing:-.045em;color:#f6fbff}
+    .homepage-brand-hierarchy .brand-descriptor{margin-top:3px;color:#d7edf7;font-size:19px;line-height:1.08;font-weight:900;letter-spacing:.045em}
+    .homepage-brand-hierarchy span{max-width:390px;font-size:13px;line-height:1.22;font-weight:800;letter-spacing:.025em;color:#9eb9cb}
     .homepage-brand-hierarchy::after{content:"";height:3px;margin-top:3px;width:180px;background:linear-gradient(90deg,#20d8cb,#347fff)}
     .vog-brand-primary::after{width:195px;background:linear-gradient(90deg,#347fff,#20d8cb)}
     .homepage-motion-cue{position:absolute;z-index:33;left:446px;top:76px;display:flex;align-items:center;gap:10px;pointer-events:none;opacity:calc(.58 + var(--event-progress)*.28)}
@@ -442,7 +454,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     [data-homepage-film="voiceopengov"] .homepage-voxy-subtitle{border-left-color:#6eb7ff}
     .homepage-voxy-subtitle b{align-self:start;padding-top:4px;color:#69e0d8;font-size:12px;font-weight:900;letter-spacing:.12em}
     [data-homepage-film="voiceopengov"] .homepage-voxy-subtitle b{color:#82bfff}
-    .homepage-voxy-subtitle p{margin:0;color:#f2f8fc;font-size:22px;line-height:1.28;font-weight:760;letter-spacing:-.012em}
+    .homepage-voxy-subtitle p{margin:0;color:#f2f8fc;font-size:21px;line-height:1.26;font-weight:760;letter-spacing:-.012em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
     [data-muted-first-captions="v3-7"] .broadcast-lower-third{opacity:0!important;pointer-events:none!important}
 
     .broadcast-right-column{width:390px!important;right:48px!important}
@@ -467,6 +479,9 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     [data-homepage-film="voiceopengov"] .memory-stack>header span::after{content:" · WIRKUNGSPFAD";color:#77b6ff}
     [data-presenter-transition-polish="v3-5"][data-homepage-segment-id="vog-synthesis"] .memory-card{opacity:.62!important}
     [data-presenter-transition-polish="v3-5"][data-homepage-segment-id="vog-cta"] .memory-card{opacity:.38!important}
+    [data-editorial-simplification="v3-8"][data-homepage-segment-id="vog-greeting"] .memory-card,[data-editorial-simplification="v3-8"][data-homepage-segment-id="edebatte-verifiability"] .memory-card{opacity:.48!important}
+    [data-editorial-simplification="v3-8"][data-homepage-segment-id="edebatte-cta"] .memory-card{opacity:.3!important}
+    [data-editorial-simplification="v3-8"][data-homepage-segment-id="vog-greeting"] .homepage-motion-cue,[data-editorial-simplification="v3-8"][data-homepage-segment-id="vog-synthesis"] .homepage-motion-cue,[data-editorial-simplification="v3-8"][data-homepage-segment-id="vog-cta"] .homepage-motion-cue,[data-editorial-simplification="v3-8"][data-homepage-segment-id="edebatte-verifiability"] .homepage-motion-cue,[data-editorial-simplification="v3-8"][data-homepage-segment-id="edebatte-cta"] .homepage-motion-cue{opacity:0!important}
 
     .headline-swarm,.headline-freeze-scene{position:absolute;inset:44px 55px 50px 15px}
     .swarm{position:absolute;padding:9px 12px;border:1px solid rgba(101,157,199,.32);border-radius:9px;background:rgba(6,23,45,.76);color:#8eacbf;font-size:10px;font-weight:900;letter-spacing:.11em;opacity:.68}
@@ -488,16 +503,17 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .case-resolution-scene{position:absolute;left:690px;top:125px;width:300px;text-align:right}.verification-pulse{position:relative;width:140px;height:140px;margin-left:auto;display:grid;place-content:center;text-align:center;border:1px solid rgba(71,218,208,.62);border-radius:50%}.verification-pulse i{position:absolute;inset:18px;border:1px solid rgba(62,224,214,.25);border-radius:50%}.verification-pulse i:nth-child(2){inset:34px}.verification-pulse i:nth-child(3){inset:50px}.verification-pulse b{font-size:17px;letter-spacing:.1em}.case-resolution-scene>strong{display:block;margin-top:20px;font-size:25px}.case-resolution-scene>span{display:block;margin-top:10px;color:#a7bdcc;font-size:12px;line-height:1.35}.memory-flight{position:absolute;right:0;top:280px;width:230px;display:flex;align-items:center;gap:10px;color:#7ee2dc;font-size:10px;font-weight:900;letter-spacing:.08em}.memory-flight i{height:2px;flex:1;background:linear-gradient(90deg,#39d7cd,#3d83dd)}
 
     .democratic-loop{position:absolute;left:735px;top:330px;width:820px;height:440px;transform:scale(.34);transform-origin:0 0}
-    .loop-heading{position:absolute;left:145px;top:-56px;color:#91b9da;font-size:44px;font-weight:900;letter-spacing:.09em;white-space:nowrap}
-    .democratic-loop svg{position:absolute;inset:0;width:100%;height:100%}.democratic-loop svg path{fill:none;stroke:#3d7bb5;stroke-width:3;stroke-dasharray:8 11;stroke-dashoffset:calc((1 - var(--loop))*80);opacity:.5}.loop-node{position:absolute;width:118px;height:76px;display:grid;place-content:center;text-align:center;color:#7f9aae;font-size:11px;font-weight:900;letter-spacing:.06em}.loop-node i{width:14px;height:14px;margin:0 auto 7px;border-radius:50%;border:2px solid #5883aa;background:#081a32}.loop-node.active{color:#e6f4ff}.loop-node.active i{border-color:#64d8d0;background:#167e99;box-shadow:0 0 28px rgba(79,207,210,.5)}.n1{left:55px;top:190px}.n2{left:170px;top:42px}.n3{left:395px;top:8px}.n4{right:90px;top:95px}.n5{right:42px;bottom:62px}.n6{left:295px;bottom:15px}.mandate-pulse{position:absolute;left:500px;top:170px;width:145px;height:145px;display:grid;place-content:center;text-align:center;border:1px solid rgba(95,175,255,.55);border-radius:50%;background:radial-gradient(circle,rgba(33,103,187,.22),rgba(4,20,45,.58))}.mandate-pulse i{position:absolute;inset:18px;border:1px solid rgba(71,220,209,.38);border-radius:50%}.mandate-pulse b{font-size:14px;letter-spacing:.07em}
+    .loop-heading{position:absolute;left:145px;top:-76px;display:flex;flex-direction:column;gap:7px;color:#91b9da;white-space:nowrap}.loop-heading small{font-size:24px;font-weight:850;letter-spacing:.08em;color:#7899b3}.loop-heading strong{font-size:44px;font-weight:900;letter-spacing:.06em;color:#b9d8ec}
+    .democratic-loop svg{position:absolute;inset:0;width:100%;height:100%}.democratic-loop svg path{fill:none;stroke:#3d7bb5;stroke-width:3;stroke-dasharray:8 11;stroke-dashoffset:calc((1 - var(--loop))*80);opacity:.5}.loop-node{position:absolute;width:180px;height:84px;display:grid;place-content:center;text-align:center;color:#7f9aae;font-size:26px;font-weight:900;letter-spacing:.025em}.loop-node i{width:20px;height:20px;margin:0 auto 7px;border-radius:50%;border:2px solid #5883aa;background:#081a32}.loop-node.active{color:#e6f4ff}.loop-node.active i{border-color:#64d8d0;background:#167e99;box-shadow:0 0 28px rgba(79,207,210,.5)}.n1{left:20px;top:190px}.n2{left:125px;top:32px}.n3{left:350px;top:0}.n4{right:54px;top:88px}.n5{right:6px;bottom:52px}.n6{left:250px;bottom:4px}.mandate-pulse{position:absolute;left:485px;top:160px;width:180px;height:180px;display:grid;place-content:center;text-align:center;border:1px solid rgba(95,175,255,.55);border-radius:50%;background:radial-gradient(circle,rgba(33,103,187,.22),rgba(4,20,45,.58))}.mandate-pulse i{position:absolute;inset:22px;border:1px solid rgba(71,220,209,.38);border-radius:50%}.mandate-pulse b{font-size:32px;line-height:1.05;letter-spacing:.035em}
+    .vog-lead-card{position:absolute;left:690px;top:94px;width:300px;padding:18px 20px;border-left:3px solid #69b7ff;background:linear-gradient(90deg,rgba(7,35,72,.8),rgba(4,19,43,.16))}.vog-lead-card small{display:block;color:#8fc5ff;font-size:10px;font-weight:900;letter-spacing:.1em}.vog-lead-card strong{display:block;margin-top:9px;font-size:23px;line-height:1.08}
     .living-mandate-path{position:absolute;left:690px;top:125px;width:300px;height:390px}.mandate-origin{position:absolute;left:0;top:0;width:72px;height:72px;display:grid;place-content:center;text-align:center;border:1px solid rgba(97,174,245,.5);border-radius:50%;background:#081b36}.mandate-origin small{font-size:10px;color:#9fc0da}.mandate-origin b{font-size:28px;color:#69b8ff}.mandate-track{position:absolute;left:94px;right:0;top:25px;color:#a4bdcf;font-size:11px;font-weight:900;letter-spacing:.08em}.mandate-step{position:absolute;left:0!important;top:calc(100px + var(--step)*52px)!important;width:285px;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:11px;text-align:left;color:#7998ae;font-size:11px;font-weight:900;letter-spacing:.05em}.mandate-step i{width:14px;height:14px;border:2px solid #4d7190;border-radius:50%;background:#07172d}.mandate-step.active{color:#d2e7f6}.mandate-step.active i{border-color:#70baff;background:#317dc6;box-shadow:0 0 20px rgba(85,170,239,.25)}.moving-mandate{position:absolute;left:205px;top:0;width:76px;height:34px;display:grid;place-content:center;border-radius:999px;background:#0c5b92;color:#d9f1ff;font-size:10px;font-weight:900;letter-spacing:.07em}
     .programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}
     .promise-object,.decision-object{position:absolute;left:0;top:70px;width:270px;height:168px;padding:22px;border-radius:18px;background:linear-gradient(145deg,rgba(10,41,79,.92),rgba(4,19,42,.94));border:1px solid rgba(91,157,224,.42)}.promise-object small,.decision-object small,.demophobie-source small,.design-question small,.current-layer small,.future-layer small,.closing-copy small{color:#8fc5ff;font-size:10px;font-weight:900;letter-spacing:.1em}.promise-object strong,.decision-object strong{display:block;margin-top:10px;font-size:27px}.promise-object span,.decision-object span{display:block;margin-top:9px;color:#abc1d1;font-size:12px}.gap-field{position:absolute;left:0;top:90px;width:285px;text-align:center}.gap-field b{display:block;font-size:48px;color:#ffbc70}.gap-field span{display:block;margin-top:7px;color:#e3eef7;font-size:16px;font-weight:900;letter-spacing:.04em}.gap-field em{display:block;margin-top:10px;color:#a9c0d0;font-size:11px;font-style:normal;font-weight:900;letter-spacing:.08em}.status-ruler{position:absolute;left:0;right:0;bottom:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:12px;border-top:2px solid rgba(64,156,211,.6);color:#a6bfd2;font-size:11px;font-weight:900;letter-spacing:.04em;text-align:center}
     .demophobie-source{position:absolute;left:0;top:70px;width:270px;padding:20px;border-left:3px solid #73b7ff;background:linear-gradient(90deg,rgba(10,40,78,.88),rgba(5,19,43,.55))}.demophobie-source strong{display:block;margin-top:10px;font-size:25px;line-height:1.05}.demophobie-source span{display:block;margin-top:9px;color:#b0c4d3;font-size:12px;line-height:1.35}.design-question{position:absolute;left:0;top:65px;width:270px;padding:23px;border:1px solid rgba(94,158,221,.44);border-radius:20px;background:rgba(4,19,43,.8)}.design-question b{display:block;margin-top:12px;font-size:22px;line-height:1.12}.guardrail-row{position:absolute;left:0;right:0;bottom:15px;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:9px}.guardrail{padding:9px 11px;border:1px solid rgba(86,148,204,.35);border-radius:999px;background:rgba(5,24,48,.8);color:#adc3d2;font-size:11px;font-weight:900;letter-spacing:.05em}
     .extreme{position:absolute;top:0;width:132px;padding:12px;border:1px solid rgba(91,145,197,.28);border-radius:14px;background:rgba(5,22,45,.55);text-align:center;opacity:.58}.extreme.left{left:0}.extreme.right{left:158px}.extreme small{color:#91aabc;font-size:10px;font-weight:900}.extreme strong{display:block;margin-top:7px;font-size:14px}.balance-core{position:absolute;left:0;top:105px;width:292px;height:220px;display:grid;place-content:center;text-align:center;border:1px solid rgba(73,213,203,.58);border-radius:50%;background:radial-gradient(circle,rgba(24,111,146,.2),rgba(4,20,44,.7));box-shadow:0 0 42px rgba(43,205,195,.07)}.balance-core i{position:absolute;inset:28px;border:1px solid rgba(90,177,230,.28);border-radius:50%}.balance-core strong{font-size:22px;line-height:1.06}.balance-core span{max-width:230px;margin:11px auto 0;color:#b0c5d4;font-size:12px;line-height:1.35}
-    .participation-balance-scene{left:810px;width:220px}.participation-balance-scene .extreme{width:102px;padding:9px;opacity:.42}.participation-balance-scene .extreme.right{left:118px}.participation-balance-scene .balance-core{left:0;top:118px;width:220px;height:168px}.participation-balance-scene .balance-core i{inset:22px}
-    .current-layer,.future-layer{position:absolute;left:0;top:85px;width:270px;min-height:132px;padding:20px 22px;border-radius:17px}.current-layer{border:1px solid rgba(77,162,225,.46);background:linear-gradient(135deg,rgba(9,41,78,.88),rgba(5,20,45,.84))}.future-layer{border:1px dashed rgba(66,211,201,.5);background:rgba(4,26,44,.5)}.current-layer strong,.future-layer strong{display:block;margin-top:9px;font-size:18px;line-height:1.08}.current-layer span,.future-layer span{display:block;margin-top:9px;color:#b1c5d4;font-size:11px;line-height:1.35}.bridge{position:absolute;left:0;top:150px;width:280px;display:flex;align-items:center;gap:12px;color:#79dfd8;font-size:12px;font-weight:900;letter-spacing:.06em}.bridge i{height:2px;flex:1;background:linear-gradient(90deg,#478fe0,#37d5cb)}
-    .vog-closing-scene{position:absolute;inset:30px 20px 20px 10px}.vog-closing-scene .democratic-loop{left:735px;top:330px;transform:scale(.26);transform-origin:0 0;opacity:.28}.closing-copy{position:absolute;right:10px;top:215px;width:310px;padding:18px;border-left:3px solid #64b1ff;background:linear-gradient(90deg,rgba(3,19,43,.84),transparent)}.closing-copy strong{display:block;margin-top:10px;font-size:23px;line-height:1.08}.closing-copy span{display:block;margin-top:9px;color:#b0c3d1;font-size:12px}
+    .participation-balance-scene{left:810px;width:220px}.participation-balance-scene .extreme{width:102px;padding:9px;opacity:.42}.participation-balance-scene .extreme.right{left:118px}.participation-balance-scene .balance-core{left:0;top:118px;width:220px;height:168px}.participation-balance-scene .balance-core i{inset:22px}.participation-balance-scene .balance-core strong{font-size:18px;padding:0 12px}.participation-balance-scene .balance-core span{max-width:180px}
+    .current-layer,.future-layer{position:absolute;left:0;top:85px;width:270px;min-height:132px;padding:20px 22px;border-radius:17px}.current-layer{border:1px solid rgba(77,162,225,.46);background:linear-gradient(135deg,rgba(9,41,78,.88),rgba(5,20,45,.84))}.future-layer{border:1px dashed rgba(66,211,201,.5);background:rgba(4,26,44,.5)}.current-layer strong,.future-layer strong{display:block;margin-top:9px;font-size:18px;line-height:1.08}.current-layer span,.future-layer span{display:block;margin-top:9px;color:#b1c5d4;font-size:11px;line-height:1.35}.bridge{position:absolute;left:0;top:150px;width:280px;display:flex;align-items:center;gap:12px;color:#79dfd8;font-size:14px;font-weight:900;letter-spacing:.05em}.bridge i{height:2px;flex:1;background:linear-gradient(90deg,#478fe0,#37d5cb)}
+    .vog-closing-scene{position:absolute;inset:30px 20px 20px 10px}.vog-closing-scene .democratic-loop{left:735px;top:330px;transform:scale(.3);transform-origin:0 0;opacity:.34}.closing-copy{position:absolute;right:10px;top:205px;width:310px;padding:18px;border-left:3px solid #64b1ff;background:linear-gradient(90deg,rgba(3,19,43,.84),transparent)}.closing-copy strong{display:block;margin-top:10px;font-size:23px;line-height:1.08}.closing-copy span{display:block;margin-top:9px;color:#c4d7e4;font-size:13px;font-weight:750}
   </style>`;
 
   const contextDateReplacement = plan.filmId === "voiceopengov" && plan.contextMode === "evergreen"
@@ -513,7 +529,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     )
     .replace(
       'data-pilot-version="1.4-final-layout"',
-      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-host-face-safe-zone="x560-1030:y135-535" data-host-presenter-safe-zone="x540-1030:y125-760" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
+      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-caption-cues="sentence-level" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-host-face-safe-zone="x560-1030:y135-535" data-host-presenter-safe-zone="x540-1030:y125-760" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
     );
   if (contextDateReplacement) html = html.replaceAll("SEPTEMBER 2026", contextDateReplacement);
   return html;
