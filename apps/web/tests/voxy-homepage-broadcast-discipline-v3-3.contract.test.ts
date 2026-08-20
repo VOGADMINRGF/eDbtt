@@ -61,8 +61,8 @@ function htmlInsidePauseAfter(current: ReturnType<typeof plan>, segmentId: strin
   return htmlAt(current, at);
 }
 
-describe("VOXY homepage broadcast discipline — V3.4 continuity", () => {
-  it("01 holds the previous scene through narration pauses instead of flashing the final CTA", () => {
+describe("VOXY homepage broadcast discipline — V3.7 continuity", () => {
+  it("01 holds the previous scene and subtitle through narration pauses instead of flashing the final CTA", () => {
     const edebatte = plan("edebatte", "election_window");
     const vog = plan("voiceopengov", "evergreen");
 
@@ -71,8 +71,10 @@ describe("VOXY homepage broadcast discipline — V3.4 continuity", () => {
 
     expect(edPause).toContain('data-homepage-segment-id="edebatte-source-questions"');
     expect(edPause).not.toContain('data-homepage-segment-id="edebatte-cta"');
+    expect(edPause).toContain(edebatte.speakerTimeline.find((entry) => entry.id === "edebatte-source-questions")!.text);
     expect(vogPause).toContain('data-homepage-segment-id="vog-after-election"');
     expect(vogPause).not.toContain('data-homepage-segment-id="vog-cta"');
+    expect(vogPause).toContain(vog.speakerTimeline.find((entry) => entry.id === "vog-after-election")!.text);
     expect(edPause).toContain('data-pause-hold="previous-segment"');
   });
 
@@ -89,15 +91,17 @@ describe("VOXY homepage broadcast discipline — V3.4 continuity", () => {
     }
   });
 
-  it("03 moves VOG process graphics and participation balance fully right of the presenter-safe boundary", () => {
+  it("03 keeps process graphics right of the presenter and puts the living loop below the slide lane", () => {
     const current = plan("voiceopengov", "evergreen");
     const opening = htmlAtSegment(current, "vog-greeting");
     const path = htmlAtSegment(current, "vog-after-election");
     const balance = htmlAtSegment(current, "vog-participation-balance");
 
-    expect(opening).toContain('.democratic-loop{position:absolute;left:690px;top:125px;');
+    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:330px;');
+    expect(opening).toContain("loop-heading");
     expect(path).toContain('.living-mandate-path{position:absolute;left:690px;top:125px;width:300px;height:390px}');
     expect(balance).toContain('.programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
+    expect(balance).toContain('.participation-balance-scene{left:810px;width:220px}');
     expect(balance).not.toContain("balance-axis");
   });
 
@@ -131,12 +135,13 @@ describe("VOXY homepage broadcast discipline — V3.4 continuity", () => {
     expect(source).not.toContain('<svg viewBox="0 0 900 470"');
   });
 
-  it("06 drops the lower third during dense explanation and closing states", () => {
+  it("06 gives muted-first subtitles the lower reading lane instead of competing lower thirds", () => {
     const vog = htmlAtSegment(plan("voiceopengov", "evergreen"), "vog-synthesis");
     const edebatte = htmlAtSegment(plan("edebatte", "election_window"), "edebatte-synthesis-questions");
 
-    expect(vog).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="vog-synthesis"] .broadcast-lower-third');
-    expect(edebatte).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="edebatte-synthesis-questions"] .broadcast-lower-third');
+    expect(vog).toContain('[data-muted-first-captions="v3-7"] .broadcast-lower-third');
+    expect(edebatte).toContain('[data-muted-first-captions="v3-7"] .broadcast-lower-third');
+    expect(vog).toContain("homepage-voxy-subtitle");
     expect(vog).toContain("opacity:0!important;pointer-events:none!important");
   });
 
