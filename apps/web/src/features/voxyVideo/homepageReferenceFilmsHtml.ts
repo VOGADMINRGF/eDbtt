@@ -7,6 +7,7 @@ import {
 import type { VoxyMotionV4EmbeddedAssets } from "./motionV4Html";
 
 const MIN_READABLE_STATE_SECONDS = 2;
+const STATE_SETTLE_SECONDS = 0.25;
 
 const escapeHtml = (value: string): string => value
   .replaceAll("&", "&amp;")
@@ -57,6 +58,21 @@ function rangeProgress(
   return clamp01((at - first.start) / Math.max(0.001, last.end - first.start));
 }
 
+function availableReadablePhaseCount(
+  start: number,
+  end: number,
+  desiredPhaseCount: number,
+): number {
+  const duration = Math.max(0.001, end - start);
+  return Math.max(
+    1,
+    Math.min(
+      desiredPhaseCount,
+      Math.floor((duration + 1e-6) / MIN_READABLE_STATE_SECONDS),
+    ),
+  );
+}
+
 function readablePhaseIndex(
   start: number,
   end: number,
@@ -64,13 +80,7 @@ function readablePhaseIndex(
   desiredPhaseCount: number,
 ): number {
   const duration = Math.max(0.001, end - start);
-  const availablePhaseCount = Math.max(
-    1,
-    Math.min(
-      desiredPhaseCount,
-      Math.floor((duration + 1e-6) / MIN_READABLE_STATE_SECONDS),
-    ),
-  );
+  const availablePhaseCount = availableReadablePhaseCount(start, end, desiredPhaseCount);
   const progress = clamp01((at - start) / duration);
   const compactIndex = Math.min(
     availablePhaseCount - 1,
@@ -82,6 +92,23 @@ function readablePhaseIndex(
   );
 }
 
+function readablePhaseEnterProgress(
+  start: number,
+  end: number,
+  at: number,
+  desiredPhaseCount: number,
+): number {
+  const duration = Math.max(0.001, end - start);
+  const availablePhaseCount = availableReadablePhaseCount(start, end, desiredPhaseCount);
+  const progress = clamp01((at - start) / duration);
+  const compactIndex = Math.min(
+    availablePhaseCount - 1,
+    Math.floor(progress * availablePhaseCount),
+  );
+  const phaseStart = start + (duration * compactIndex) / availablePhaseCount;
+  return clamp01((at - phaseStart) / STATE_SETTLE_SECONDS);
+}
+
 function phaseIndexForSegment(
   plan: VoxyHomepageReferenceFilmPlan,
   at: number,
@@ -89,6 +116,15 @@ function phaseIndexForSegment(
 ): number {
   const segment = currentSegment(plan, at);
   return readablePhaseIndex(segment.start, segment.end, at, desiredPhaseCount);
+}
+
+function phaseEnterForSegment(
+  plan: VoxyHomepageReferenceFilmPlan,
+  at: number,
+  desiredPhaseCount: number,
+): number {
+  const segment = currentSegment(plan, at);
+  return readablePhaseEnterProgress(segment.start, segment.end, at, desiredPhaseCount);
 }
 
 function phaseIndexForRange(
@@ -102,6 +138,19 @@ function phaseIndexForRange(
   const last = plan.speakerTimeline.find((entry) => entry.id === lastId) ?? first;
   if (!first || !last) return phaseIndexForSegment(plan, at, desiredPhaseCount);
   return readablePhaseIndex(first.start, last.end, at, desiredPhaseCount);
+}
+
+function phaseEnterForRange(
+  plan: VoxyHomepageReferenceFilmPlan,
+  at: number,
+  firstId: string,
+  lastId: string,
+  desiredPhaseCount: number,
+): number {
+  const first = plan.speakerTimeline.find((entry) => entry.id === firstId);
+  const last = plan.speakerTimeline.find((entry) => entry.id === lastId) ?? first;
+  if (!first || !last) return phaseEnterForSegment(plan, at, desiredPhaseCount);
+  return readablePhaseEnterProgress(first.start, last.end, at, desiredPhaseCount);
 }
 
 function renderBrandHierarchy(plan: VoxyHomepageReferenceFilmPlan): string {
@@ -151,6 +200,21 @@ function renderEdebateForensics(
       )
     : 0;
   const synthesisPhase = ["source", "context", "counter"][synthesisPhaseIndex]!;
+  const stateEnterProgress = opening
+    ? phaseEnterForRange(plan, at, "edebatte-greeting", openingLastId, 2)
+    : sourcePull
+      ? phaseEnterForSegment(plan, at, 3)
+      : forensicSplit
+        ? phaseEnterForSegment(plan, at, 3)
+        : synthesis
+          ? phaseEnterForRange(
+              plan,
+              at,
+              "edebatte-next-generation",
+              "edebatte-synthesis-questions",
+              3,
+            )
+          : clamp01((at - segment.start) / STATE_SETTLE_SECONDS);
 
   const sourceObject = `<article class="case-source-object" data-illustrative-source="true">
     <header><span>ILLUSTRATIVER QUELLENCHECK</span><b>PRIMÄRQUELLE</b></header>
@@ -217,7 +281,7 @@ function renderEdebateForensics(
               ? `ed-resolution-${segment.id}`
               : `ed-${segment.id}`;
 
-  return `<section class="homepage-distinctive-stage edebatte-forensics object-led-scene" data-visual-language="media_forensics" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)}">
+  return `<section class="homepage-distinctive-stage edebatte-forensics object-led-scene" data-visual-language="media_forensics" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)};--state-enter:${stateEnterProgress.toFixed(4)}">
     <div class="scene-kicker"><b>eDEBATTE · MEDIENFORENSIK</b><span>RECHERCHE WIRD ZUR SZENE</span></div>
     ${opening ? openingScene : sourcePull ? sourceScene : forensicSplit ? splitScene : trace ? traceScene : synthesis ? synthesisScene : resolution ? resolutionScene : openingScene}
   </section>`;
@@ -241,6 +305,13 @@ function renderVoiceOpenGovJourney(
   const programmePhase = programmeGap ? phaseIndexForSegment(plan, at, 3) : 0;
   const demophobiePhase = demophobie ? phaseIndexForSegment(plan, at, 3) : 0;
   const offerPhase = currentOffer ? phaseIndexForSegment(plan, at, 3) : 0;
+  const stateEnterProgress = programmeGap
+    ? phaseEnterForSegment(plan, at, 3)
+    : demophobie
+      ? phaseEnterForSegment(plan, at, 3)
+      : currentOffer
+        ? phaseEnterForSegment(plan, at, 3)
+        : clamp01((at - segment.start) / STATE_SETTLE_SECONDS);
 
   const loop = `<div class="democratic-loop" style="--loop:${progress.toFixed(4)}">
     <div class="loop-node n1"><i></i><span>STIMME</span></div>
@@ -302,7 +373,7 @@ function renderVoiceOpenGovJourney(
                 ? "vog-closing-cta"
                 : "vog-loop";
 
-  return `<section class="homepage-distinctive-stage vog-journey object-led-scene" data-visual-language="democratic_journey" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)}">
+  return `<section class="homepage-distinctive-stage vog-journey object-led-scene" data-visual-language="democratic_journey" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)};--state-enter:${stateEnterProgress.toFixed(4)}">
     <div class="scene-kicker vog"><b>VOICEOPENGOV · DEMOKRATIE IN BEWEGUNG</b><span>DER WEG GEHT WEITER</span></div>
     ${afterElection ? process : programmeGap ? programme : demophobie ? demophobieScene : balance ? balanceScene : currentOffer ? offerScene : synthesis || cta ? closingScene : loop}
   </section>`;
@@ -360,6 +431,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .homepage-motion-cue i{width:8px;height:8px;border-radius:50%;background:#3ee0d6;box-shadow:0 0 18px rgba(62,224,214,.55)}
     .homepage-motion-cue span{color:#a5cad7;font-size:10px;font-weight:900;letter-spacing:.14em}
     .homepage-distinctive-stage{position:absolute;z-index:22;left:360px;top:132px;width:1060px;height:570px;pointer-events:none;font-family:Inter,Arial,sans-serif;color:#f6fbff;overflow:visible}
+    .homepage-distinctive-stage>:not(.scene-kicker){opacity:calc(.72 + var(--state-enter)*.28)}
     .scene-kicker{position:absolute;left:0;top:0;right:20px;display:flex;justify-content:space-between;align-items:center;color:#8da9bc;font-size:10px;font-weight:800;letter-spacing:.13em}
     .scene-kicker b{color:#58e7df}.scene-kicker.vog b{color:#76b7ff}
 
@@ -383,6 +455,8 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     [data-homepage-film="edebatte"] .memory-stack>header span::after{content:" · QUELLENAKTE";color:#5fe4dc}
     [data-homepage-film="voiceopengov"] .memory-card{border-left-color:#5fa8ff!important;background:linear-gradient(135deg,rgba(11,38,82,.96),rgba(5,20,48,.95))!important}
     [data-homepage-film="voiceopengov"] .memory-stack>header span::after{content:" · WIRKUNGSPFAD";color:#77b6ff}
+    [data-presenter-transition-polish="v3-5"][data-homepage-segment-id="vog-synthesis"] .memory-card{opacity:.62!important}
+    [data-presenter-transition-polish="v3-5"][data-homepage-segment-id="vog-cta"] .memory-card{opacity:.38!important}
 
     .headline-swarm,.headline-freeze-scene{position:absolute;inset:44px 55px 50px 15px}
     .swarm{position:absolute;padding:9px 12px;border:1px solid rgba(101,157,199,.32);border-radius:9px;background:rgba(6,23,45,.76);color:#8eacbf;font-size:10px;font-weight:900;letter-spacing:.11em;opacity:.68}
@@ -396,10 +470,10 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .source-pull-scene .case-source-object{right:-12px;top:76px;transform:scale(.78);transform-origin:100% 0}.case-source-object header,.case-source-object footer{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.08em}.case-source-object header b{color:#006e76}.case-source-object footer{position:absolute;left:20px;right:20px;bottom:14px;color:#526e81;border-top:1px solid rgba(31,71,94,.15);padding-top:8px}
     .source-line{display:block;width:86%;height:6px;margin-top:11px;border-radius:5px;background:rgba(38,66,82,.14)}.source-line.wide{width:100%;margin-top:20px}.source-line.medium{width:70%}.source-line.short{width:48%}
     .source-passage{height:34px;margin:13px -3px 0;padding-left:12px;display:flex;align-items:center;border-left:4px solid #00a9a0;background:linear-gradient(90deg,rgba(0,169,160,.2) calc(var(--passage)*100%),rgba(40,72,91,.06) calc(var(--passage)*100%))}.source-passage span{font-size:10px;font-weight:900;letter-spacing:.1em;color:#006c70}
-    .evidence-beam{position:absolute;left:260px;top:405px;width:350px;display:flex;align-items:center;gap:9px;color:#5be0d6;font-size:10px;font-weight:900;letter-spacing:.1em}.evidence-beam i{height:2px;flex:1;background:linear-gradient(90deg,#38d6cc,#3788e3)}
+    .evidence-beam{position:absolute;left:700px;top:350px;width:230px;display:flex;justify-content:flex-end;align-items:center;gap:9px;color:#5be0d6;font-size:10px;font-weight:900;letter-spacing:.1em}.evidence-beam i{height:2px;flex:0 0 78px;background:linear-gradient(90deg,#38d6cc,#3788e3)}
     .forensic-split-scene{position:absolute;inset:48px 28px 30px 10px}.claim-token{position:absolute;left:690px;top:155px;width:220px;height:126px;padding:18px 20px;border:1px solid rgba(76,156,209,.42);border-radius:14px;background:rgba(5,27,51,.94);box-shadow:0 18px 40px rgba(0,0,0,.22)}.claim-token b{display:block;margin-top:8px;font-size:30px}.claim-token span{display:block;margin-top:8px;color:#a4bbcb;font-size:12px}
     .forensic-source-resolution .case-source-object{left:auto;right:-5px;top:76px;transform:scale(.76);transform-origin:100% 0}.forensic-study-label{position:absolute;left:700px;top:28px;color:#8fb3c8}.forensic-study-label small{display:block;font-size:10px;font-weight:900;letter-spacing:.12em}.forensic-study-label b{display:block;margin-top:4px;font-size:17px;color:#e7f5fb}.split-rule{position:absolute;left:690px;bottom:34px;width:300px;display:grid;grid-template-columns:auto 1fr auto;gap:13px;align-items:center;color:#bfd2df;font-size:11px;font-weight:900;letter-spacing:.08em}.split-rule i{height:2px;background:linear-gradient(90deg,#45d9d0,#ffb45e)}
-    .case-trace-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}.trace-axis{position:absolute;left:0;top:0;width:285px;display:grid;grid-template-columns:1fr;gap:8px;padding-left:16px;border-left:2px solid rgba(62,134,184,.42)}.trace-node{display:flex;align-items:center;gap:11px;min-height:36px;color:#7192a9;font-size:11px;font-weight:900;letter-spacing:.06em}.trace-node i{width:16px;height:16px;margin-left:-25px;border:2px solid #496b87;border-radius:50%;background:#07172b}.trace-node.reached{color:#d3eeec}.trace-node.reached i{border-color:#49ded4;background:#169a95;box-shadow:0 0 18px rgba(59,220,210,.2)}.trace-copy{position:absolute;left:0;top:310px;width:290px;text-align:left}.trace-copy strong{display:block;margin-top:9px;font-size:20px;line-height:1.1}.trace-copy small{color:#63dcd4}
+    .case-trace-scene{position:absolute;left:770px;top:125px;width:260px;height:390px}.trace-axis{position:absolute;left:0;top:0;width:245px;display:grid;grid-template-columns:1fr;gap:8px;padding-left:16px;border-left:2px solid rgba(62,134,184,.42)}.trace-node{display:flex;align-items:center;gap:11px;min-height:36px;color:#7192a9;font-size:11px;font-weight:900;letter-spacing:.06em}.trace-node i{width:16px;height:16px;margin-left:-25px;border:2px solid #496b87;border-radius:50%;background:#07172b}.trace-node.reached{color:#d3eeec}.trace-node.reached i{border-color:#49ded4;background:#169a95;box-shadow:0 0 18px rgba(59,220,210,.2)}.trace-copy{position:absolute;left:0;top:310px;width:260px;text-align:left}.trace-copy strong{display:block;margin-top:9px;font-size:20px;line-height:1.1}.trace-copy small{color:#63dcd4}
     .case-synthesis-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}.case-synthesis-scene .synthesis-orbit{display:none;position:absolute;right:0;top:0;width:112px;height:112px;place-content:center;text-align:center;border:1px solid rgba(87,162,215,.45);border-radius:50%;background:rgba(4,23,45,.82);box-shadow:0 0 45px rgba(41,119,183,.09)}.case-synthesis-scene[data-synthesis-phase="source"] .synthesis-orbit.source,.case-synthesis-scene[data-synthesis-phase="context"] .synthesis-orbit.context,.case-synthesis-scene[data-synthesis-phase="counter"] .synthesis-orbit.counter{display:grid}.synthesis-orbit small{color:#a7c0d1;font-size:10px;font-weight:900;letter-spacing:.08em}.synthesis-orbit b{font-size:24px;margin-top:4px}.synthesis-core{position:absolute;left:0;top:150px;width:300px;text-align:right}.synthesis-core strong{display:block;margin-top:10px;font-size:25px;line-height:1.04}.synthesis-core span{display:block;margin-top:11px;color:#aec2d0;font-size:12px;line-height:1.35}
     .case-resolution-scene{position:absolute;left:690px;top:125px;width:300px;text-align:right}.verification-pulse{position:relative;width:140px;height:140px;margin-left:auto;display:grid;place-content:center;text-align:center;border:1px solid rgba(71,218,208,.62);border-radius:50%}.verification-pulse i{position:absolute;inset:18px;border:1px solid rgba(62,224,214,.25);border-radius:50%}.verification-pulse i:nth-child(2){inset:34px}.verification-pulse i:nth-child(3){inset:50px}.verification-pulse b{font-size:17px;letter-spacing:.1em}.case-resolution-scene>strong{display:block;margin-top:20px;font-size:25px}.case-resolution-scene>span{display:block;margin-top:10px;color:#a7bdcc;font-size:12px;line-height:1.35}.memory-flight{position:absolute;right:0;top:280px;width:230px;display:flex;align-items:center;gap:10px;color:#7ee2dc;font-size:10px;font-weight:900;letter-spacing:.08em}.memory-flight i{height:2px;flex:1;background:linear-gradient(90deg,#39d7cd,#3d83dd)}
 
@@ -409,6 +483,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .promise-object,.decision-object{position:absolute;left:0;top:70px;width:270px;height:168px;padding:22px;border-radius:18px;background:linear-gradient(145deg,rgba(10,41,79,.92),rgba(4,19,42,.94));border:1px solid rgba(91,157,224,.42)}.promise-object small,.decision-object small,.demophobie-source small,.design-question small,.current-layer small,.future-layer small,.closing-copy small{color:#8fc5ff;font-size:10px;font-weight:900;letter-spacing:.1em}.promise-object strong,.decision-object strong{display:block;margin-top:10px;font-size:27px}.promise-object span,.decision-object span{display:block;margin-top:9px;color:#abc1d1;font-size:12px}.gap-field{position:absolute;left:0;top:90px;width:285px;text-align:center}.gap-field b{display:block;font-size:48px;color:#ffbc70}.gap-field span{display:block;margin-top:7px;color:#e3eef7;font-size:16px;font-weight:900;letter-spacing:.04em}.gap-field em{display:block;margin-top:10px;color:#a9c0d0;font-size:11px;font-style:normal;font-weight:900;letter-spacing:.08em}.status-ruler{position:absolute;left:0;right:0;bottom:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:12px;border-top:2px solid rgba(64,156,211,.6);color:#a6bfd2;font-size:11px;font-weight:900;letter-spacing:.04em;text-align:center}
     .demophobie-source{position:absolute;left:0;top:70px;width:270px;padding:20px;border-left:3px solid #73b7ff;background:linear-gradient(90deg,rgba(10,40,78,.88),rgba(5,19,43,.55))}.demophobie-source strong{display:block;margin-top:10px;font-size:29px}.demophobie-source span{display:block;margin-top:9px;color:#b0c4d3;font-size:11px;line-height:1.35}.design-question{position:absolute;left:0;top:65px;width:270px;padding:23px;border:1px solid rgba(94,158,221,.44);border-radius:20px;background:rgba(4,19,43,.8)}.design-question b{display:block;margin-top:12px;font-size:22px;line-height:1.12}.guardrail-row{position:absolute;left:0;right:0;bottom:15px;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:9px}.guardrail{padding:9px 11px;border:1px solid rgba(86,148,204,.35);border-radius:999px;background:rgba(5,24,48,.8);color:#adc3d2;font-size:11px;font-weight:900;letter-spacing:.05em}
     .extreme{position:absolute;top:0;width:132px;padding:12px;border:1px solid rgba(91,145,197,.28);border-radius:14px;background:rgba(5,22,45,.55);text-align:center;opacity:.58}.extreme.left{left:0}.extreme.right{left:158px}.extreme small{color:#91aabc;font-size:10px;font-weight:900}.extreme strong{display:block;margin-top:7px;font-size:14px}.balance-core{position:absolute;left:0;top:105px;width:292px;height:220px;display:grid;place-content:center;text-align:center;border:1px solid rgba(73,213,203,.58);border-radius:50%;background:radial-gradient(circle,rgba(24,111,146,.2),rgba(4,20,44,.7));box-shadow:0 0 42px rgba(43,205,195,.07)}.balance-core i{position:absolute;inset:28px;border:1px solid rgba(90,177,230,.28);border-radius:50%}.balance-core strong{font-size:22px;line-height:1.06}.balance-core span{max-width:230px;margin:11px auto 0;color:#b0c5d4;font-size:12px;line-height:1.35}
+    .participation-balance-scene{left:760px;width:270px}.participation-balance-scene .extreme{width:118px;padding:10px;opacity:.46}.participation-balance-scene .extreme.right{left:142px}.participation-balance-scene .balance-core{left:10px;top:112px;width:250px;height:188px}.participation-balance-scene .balance-core i{inset:24px}
     .current-layer,.future-layer{position:absolute;left:0;top:85px;width:270px;min-height:132px;padding:20px 22px;border-radius:17px}.current-layer{border:1px solid rgba(77,162,225,.46);background:linear-gradient(135deg,rgba(9,41,78,.88),rgba(5,20,45,.84))}.future-layer{border:1px dashed rgba(66,211,201,.5);background:rgba(4,26,44,.5)}.current-layer strong,.future-layer strong{display:block;margin-top:9px;font-size:18px;line-height:1.08}.current-layer span,.future-layer span{display:block;margin-top:9px;color:#b1c5d4;font-size:11px;line-height:1.35}.bridge{position:absolute;left:0;top:150px;width:280px;display:flex;align-items:center;gap:12px;color:#79dfd8;font-size:12px;font-weight:900;letter-spacing:.06em}.bridge i{height:2px;flex:1;background:linear-gradient(90deg,#478fe0,#37d5cb)}
     .vog-closing-scene{position:absolute;inset:30px 20px 20px 10px}.vog-closing-scene .democratic-loop{left:690px;top:115px;transform:scale(.36);transform-origin:0 0;opacity:.18}.closing-copy{position:absolute;right:10px;top:215px;width:310px;padding:18px;border-left:3px solid #64b1ff;background:linear-gradient(90deg,rgba(3,19,43,.84),transparent)}.closing-copy strong{display:block;margin-top:10px;font-size:23px;line-height:1.08}.closing-copy span{display:block;margin-top:9px;color:#b0c3d1;font-size:12px}
   </style>`;
@@ -425,7 +500,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     )
     .replace(
       'data-pilot-version="1.4-final-layout"',
-      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-host-face-safe-zone="x560-1030:y135-535" data-host-presenter-safe-zone="x540-1030:y125-760" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
+      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-host-face-safe-zone="x560-1030:y135-535" data-host-presenter-safe-zone="x540-1030:y125-760" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
     );
   if (contextDateReplacement) html = html.replaceAll("SEPTEMBER 2026", contextDateReplacement);
   return html;
