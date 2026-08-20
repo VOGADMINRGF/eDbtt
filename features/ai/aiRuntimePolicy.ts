@@ -353,6 +353,7 @@ function buildProfiles(params: {
   plannerMaxOutputTokens: number;
   smokeTimeoutMs: number;
   smokeMaxOutputTokens: number;
+  fullContractTimeoutMs: number;
   contributionTraceTimeoutMs: number;
   contributionTraceMaxOutputTokens: number;
   qualityClarifyTimeoutMs: number;
@@ -376,15 +377,15 @@ function buildProfiles(params: {
       maxOutputTokens: DIRECT_RUNTIME_MAX_OUTPUT_TOKENS,
     },
     fullContract: {
-      timeoutMs: params.smokeTimeoutMs,
+      timeoutMs: params.fullContractTimeoutMs,
       maxOutputTokens: FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS,
     },
     fullContractLite: {
-      timeoutMs: params.smokeTimeoutMs,
+      timeoutMs: params.fullContractTimeoutMs,
       maxOutputTokens: FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS,
     },
     fullContractRepair: {
-      timeoutMs: params.smokeTimeoutMs,
+      timeoutMs: params.fullContractTimeoutMs,
       maxOutputTokens: FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS,
     },
     contributionTrace: {
@@ -420,6 +421,11 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     min: 600,
     max: 45_000,
   });
+  const fullContractTimeoutMs = readPositiveInteger(env, "E150_FULL_CONTRACT_TIMEOUT_MS", {
+    defaultValue: 45_000,
+    min: 600,
+    max: 45_000,
+  });
   const smokeMaxOutputTokens = readPositiveInteger(env, "OPENAI_SMOKE_MAX_OUTPUT_TOKENS", {
     defaultValue: 2_200,
     min: 1,
@@ -436,10 +442,18 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     max: 120_000,
   });
   const orchestratorBudgetMs = readPositiveInteger(env, "E150_ANALYZE_BUDGET_MS", {
-    defaultValue: budgetMs,
+    defaultValue: 50_000,
     min: 1_000,
-    max: 120_000,
+    max: 50_000,
   });
+
+  if (orchestratorBudgetMs < fullContractTimeoutMs + 5_000) {
+    throw new AiRuntimePolicyError(
+      "E150_ANALYZE_BUDGET_MS must leave at least 5000ms above E150_FULL_CONTRACT_TIMEOUT_MS",
+      "OUT_OF_RANGE",
+      "E150_ANALYZE_BUDGET_MS",
+    );
+  }
   const telemetryBufferMax = readPositiveInteger(env, "AI_TELEMETRY_BUFFER_MAX", {
     defaultValue: 1_000,
     min: 1,
@@ -498,6 +512,7 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     plannerMaxOutputTokens: CREATE_PLANNER_MAX_OUTPUT_TOKENS,
     smokeTimeoutMs,
     smokeMaxOutputTokens,
+    fullContractTimeoutMs,
     contributionTraceTimeoutMs,
     contributionTraceMaxOutputTokens: CONTRIBUTION_TRACE_MAX_OUTPUT_TOKENS,
     qualityClarifyTimeoutMs,

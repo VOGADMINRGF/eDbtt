@@ -23,6 +23,7 @@ export type AskArgs = {
   timeoutMs?: number;
   signal?: AbortSignal;
   forceJsonFormat?: boolean;
+  preferJsonObject?: boolean;
   jsonSchema?: { name?: string; schema: any; strict?: boolean } | null;
 };
 
@@ -205,6 +206,7 @@ async function askOpenAI({
   timeoutMs,
   signal,
   forceJsonFormat = false,
+  preferJsonObject = false,
   jsonSchema,
 }: AskArgs): Promise<AskResult> {
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY fehlt");
@@ -251,7 +253,8 @@ async function askOpenAI({
   const preferSchema =
     schemaEnabled &&
     (Boolean(jsonSchema) || forceJsonFormat || DEFAULT_TEXT_FORMAT === "json_schema");
-  const preferredFormat: "json_schema" | "json_object" = preferSchema ? "json_schema" : "json_object";
+  const preferredFormat: "json_schema" | "json_object" =
+    preferJsonObject ? "json_object" : preferSchema ? "json_schema" : "json_object";
   const jsonReasoningEffort =
     parseReasoningEffort(process.env.OPENAI_REASONING_EFFORT_JSON) ?? "minimal";
   const defaultReasoningEffort = parseReasoningEffort(process.env.OPENAI_REASONING_EFFORT);
@@ -299,6 +302,33 @@ async function askOpenAI({
 
     const execute = async (format: "json_schema" | "json_object") => {
       const data = await post(buildBody(format), requestSignal);
+
+      if (data?.status === "incomplete") {
+        const reason =
+          typeof data?.incomplete_details?.reason === "string"
+            ? data.incomplete_details.reason
+            : "unknown";
+
+        const err: any = new Error(`OPENAI_INCOMPLETE:${reason}`);
+        err.status = 200;
+        err.errorKind = "INTERNAL";
+        err.code =
+          reason === "max_output_tokens"
+            ? "OPENAI_MAX_OUTPUT_TOKENS"
+            : "OPENAI_INCOMPLETE";
+        err.meta = {
+          code: err.code,
+          type: "incomplete",
+          reason,
+          model: typeof data?.model === "string" ? data.model : undefined,
+          outputTokens:
+            typeof data?.usage?.output_tokens === "number"
+              ? data.usage.output_tokens
+              : undefined,
+        };
+        throw err;
+      }
+
       const text = extractText(data);
       return { data, text };
     };

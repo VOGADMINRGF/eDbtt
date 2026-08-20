@@ -231,6 +231,8 @@ describe("analyzeContribution null hardening", () => {
     });
 
     const args = mocks.callE150Orchestrator.mock.calls[0]?.[0] as any;
+    expect(args?.validationMode).toBe("json_only");
+    expect(args?.validateRaw).toEqual(expect.any(Function));
     expect(args?.telemetry).toMatchObject({
       pipeline: "contribution_analyze",
       runId: "run-1",

@@ -476,7 +476,7 @@ function getProviderProfiles(policy = getAiRuntimePolicy()): ProviderProfile[] {
       role: "mixed",
       weight: 1,
       maxTokens: fullContractProfile.maxOutputTokens ?? policy.fullContractDefaultMaxOutputTokens,
-      timeoutMs: policy.providerTimeoutsMs.openai,
+      timeoutMs: fullContractProfile.timeoutMs,
       metricId: "openai",
       strictJson: true,
       promptHint:
@@ -490,9 +490,10 @@ function getProviderProfiles(policy = getAiRuntimePolicy()): ProviderProfile[] {
           prompt,
           asJson: true,
           forceJsonFormat: true,
+          preferJsonObject: true,
           model: policy.openai.model,
           maxOutputTokens: maxTokens,
-          timeoutMs: policy.providerTimeoutsMs.openai,
+          timeoutMs: fullContractProfile.timeoutMs,
           signal,
         });
         return {
@@ -1238,7 +1239,9 @@ async function runProvider(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const maxTokens =
-      attempt === 0 ? baseMaxTokens : Math.min(900, Math.max(1, Math.floor(baseMaxTokens * 0.75)));
+      attempt === 0 || profile.name === "openai"
+        ? baseMaxTokens
+        : Math.min(900, Math.max(1, Math.floor(baseMaxTokens * 0.75)));
     const timeoutMs = attempt === 0 ? baseTimeoutMs : baseTimeoutMs + 5_000;
     const disableJsonFormat =
       profile.name === "openai" && attempt === 1 && lastKind === "INTERNAL";

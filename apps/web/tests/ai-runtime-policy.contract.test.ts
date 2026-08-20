@@ -38,6 +38,24 @@ describe("ai runtime policy contract", () => {
     expect(policy.loggingMode).toBe("metadata_only");
   });
 
+  it("keeps productive E150 timing separate from smoke diagnostics", () => {
+    const policy = getAiRuntimePolicyFromEnv({});
+
+    expect(policy.smokeTimeoutMs).toBe(30_000);
+    expect(policy.profiles.fullContract.timeoutMs).toBe(45_000);
+    expect(policy.orchestratorBudgetMs).toBe(50_000);
+    expect(policy.profiles.fullContract.maxOutputTokens).toBe(2_600);
+  });
+
+  it("fails closed when E150 budget cannot contain the full-contract timeout", () => {
+    expect(() =>
+      getAiRuntimePolicyFromEnv({
+        E150_FULL_CONTRACT_TIMEOUT_MS: "45000",
+        E150_ANALYZE_BUDGET_MS: "35000",
+      }),
+    ).toThrowError(AiRuntimePolicyError);
+  });
+
   it("fails closed for negative planner timeouts", () => {
     expect(() =>
       getAiRuntimePolicyFromEnv({
