@@ -192,8 +192,8 @@ describe("VOXY homepage V3.4 — frame-level broadcast readability gate", () => 
 
     expect(html).toContain('data-host-presenter-safe-zone="x540-1030:y125-760"');
     expect(html).toContain('.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;');
-    expect(html).toContain('.loop-node{position:absolute;width:118px;height:76px;');
-    expect(html).toContain('font-size:11px;font-weight:900');
+    expect(html).toContain('.loop-node{position:absolute;width:180px;height:84px;');
+    expect(html).toContain('font-size:26px;font-weight:900');
     expect(html).toContain('.balance-core strong{font-size:22px;');
     expect(html).toContain('.balance-core span{max-width:230px;margin:11px auto 0;color:#b0c5d4;font-size:12px;');
   });
