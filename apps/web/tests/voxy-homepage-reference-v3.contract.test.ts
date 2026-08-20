@@ -30,7 +30,7 @@ function plan(filmId: VoxyHomepageFilmId, contextMode: VoxyHomepageContextMode) 
     exactHeadSha: exactHead,
     speechDurationsMs: Array.from(
       { length: segments.length },
-      () => filmId === "edebatte" ? 6_000 : 7_300,
+      () => filmId === "edebatte" ? 6_600 : 7_200,
     ),
   });
   return contextualizeVoxyHomepageReferenceFilmPlan(raw);
@@ -60,7 +60,7 @@ function htmlAtSegment(
   });
 }
 
-describe("VOXY homepage reference V3.2 — geometry and editorial sync", () => {
+describe("VOXY homepage reference V3.4 — broadcast readability lock", () => {
   it("01 strips election-only evidence and sources from the evergreen VOG render plan", () => {
     const current = plan("voiceopengov", "evergreen");
     const serialized = JSON.stringify(current);
@@ -103,49 +103,48 @@ describe("VOXY homepage reference V3.2 — geometry and editorial sync", () => {
     expect(html).not.toContain("VOXY_LEGACY_PIN");
   });
 
-  it("04 expands the host silhouette safe zone and moves large right-side objects beyond it", () => {
+  it("04 declares face-safe and presenter-safe exclusion zones and keeps semantic objects outside them", () => {
     const current = plan("edebatte", "election_window");
     const source = htmlAtSegment(current, "edebatte-source-questions");
     const trace = htmlAtSegment(current, "edebatte-product-model");
     const synthesis = htmlAtSegment(current, "edebatte-synthesis-questions");
 
     expect(source).toContain('data-host-face-safe-zone="x560-1030:y135-535"');
-    expect(source).toContain('data-host-face-safe-policy="hard-no-lines-or-large-objects"');
-    expect(source).toContain('data-homepage-segment-id="edebatte-source-questions"');
-    expect(source).toContain(".information-stage{left:1060px!important;top:165px!important;width:320px!important;height:92px!important");
-    expect(source).toContain(".source-pull-scene .case-source-object{right:-12px;top:76px;transform:translateX(calc((1 - var(--segment-progress))*18px)) scale(.78)");
-    expect(source).toContain(".evidence-beam{position:absolute;left:250px;top:395px;width:360px");
-    expect(trace).toContain(".trace-axis{position:absolute;left:5px;right:5px;top:385px");
-    expect(trace).toContain(".trace-copy{position:absolute;left:680px;top:195px;width:290px");
+    expect(source).toContain('data-host-presenter-safe-zone="x540-1030:y125-760"');
+    expect(source).toContain('data-presenter-safe-policy="no-semantic-text-or-connector-lines"');
+    expect(source).toContain('.information-stage{left:1060px!important;top:165px!important;width:320px!important;height:92px!important');
+    expect(trace).toContain('.case-trace-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
+    expect(trace).toContain('grid-template-columns:1fr');
     expect(synthesis).toContain('data-face-safe-route="outside-host-corridor"');
-    expect(synthesis).toContain('data-face-safe-routes="left-and-right-only"');
-    expect(synthesis).toContain(".synthesis-core{position:absolute;left:680px;top:150px;width:290px");
+    expect(synthesis).toContain('.case-synthesis-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
+    expect(synthesis).not.toContain('data-face-safe-routes="left-and-right-only"');
   });
 
-  it("05 keeps lower-third chrome stable but suppresses competing editorial headlines in object-dominant segments", () => {
+  it("05 drops the lower third instead of competing with dense object-led scenes", () => {
     const current = plan("voiceopengov", "evergreen");
     const programme = htmlAtSegment(current, "vog-program-not-contract");
-    const currentOffer = htmlAtSegment(current, "vog-current-offer");
+    const offer = htmlAtSegment(current, "vog-current-offer");
 
-    expect(programme).toContain('data-pilot-version="homepage-reference-v3-2-geometry-sync"');
-    expect(programme).toContain('[data-homepage-segment-id="vog-program-not-contract"] .lower-copy strong');
-    expect(programme).toContain('[data-homepage-segment-id="vog-demophobie"] .lower-copy strong');
-    expect(currentOffer).toContain('[data-homepage-segment-id="vog-current-offer"] .lower-copy strong');
-    expect(programme).toContain('min-height:86px!important');
+    expect(programme).toContain('data-pilot-version="homepage-reference-v3-4-broadcast-readability"');
+    expect(programme).toContain('data-broadcast-discipline="v3-4"');
+    expect(programme).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="vog-program-not-contract"] .broadcast-lower-third');
+    expect(offer).toContain('[data-broadcast-discipline="v3-4"][data-homepage-segment-id="vog-current-offer"] .broadcast-lower-third');
+    expect(programme).toContain('opacity:0!important;pointer-events:none!important');
   });
 
-  it("06 pushes the VOG design and current-capability objects clear of the host silhouette", () => {
+  it("06 starts VOG semantic scenes to the right of the presenter-safe zone and raises semantic type sizes", () => {
     const current = plan("voiceopengov", "evergreen");
-    const demophobie = htmlAtSegment(current, "vog-demophobie", 0.5);
-    const offer = htmlAtSegment(current, "vog-current-offer", 0.2);
-    const programme = htmlAtSegment(current, "vog-program-not-contract", 0.5);
+    const opening = htmlAtSegment(current, "vog-greeting");
+    const programme = htmlAtSegment(current, "vog-program-not-contract");
+    const demophobie = htmlAtSegment(current, "vog-demophobie");
+    const offer = htmlAtSegment(current, "vog-current-offer");
 
-    expect(demophobie).toContain(".design-question{position:absolute;right:-5px;top:70px;width:300px");
-    expect(demophobie).toContain(".guardrail-row{position:absolute;left:650px");
-    expect(offer).toContain(".current-layer,.future-layer{position:absolute;left:650px;right:5px");
-    expect(offer).toContain(".bridge{position:absolute;left:650px;top:175px;width:250px");
-    expect(programme).toContain(".gap-field{position:absolute;right:0;top:115px;width:300px");
-    expect(programme).toContain(".status-ruler{position:absolute;left:650px;right:15px");
+    expect(opening).toContain('.democratic-loop{position:absolute;left:690px;top:125px;');
+    expect(programme).toContain('.programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;');
+    expect(demophobie).toContain('.guardrail{padding:9px 11px;');
+    expect(demophobie).toContain('font-size:11px;font-weight:900');
+    expect(offer).toContain('.current-layer span,.future-layer span{display:block;margin-top:9px;color:#b1c5d4;font-size:11px;');
+    expect(offer).toContain('.bridge{position:absolute;left:0;top:150px;width:280px;');
   });
 
   it("07 keeps the evergreen VOG HTML free of election-calendar artifacts", () => {
@@ -167,7 +166,7 @@ describe("VOXY homepage reference V3.2 — geometry and editorial sync", () => {
 
     expect(renderer).toContain("contextualizeVoxyHomepageReferenceFilmPlan(rawPlan)");
     expect(renderer).toContain("validateVoxyHomepageContextIsolation(plan)");
-    expect(renderer).toContain("contextIsolationGate: \"passed\"");
+    expect(renderer).toContain('contextIsolationGate: "passed"');
   });
 
   it("09 preserves the release gates pending a fresh human review", () => {
