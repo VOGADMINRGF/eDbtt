@@ -17,6 +17,7 @@ const COPY = {
     review: "Inhalte & Freigaben",
     insights: "Ergebnisse",
     sources: "Quellen & Themen",
+    regionalRuns: "Regionale Agent Runs",
   },
   en: {
     label: "Marketing workspace",
@@ -25,6 +26,7 @@ const COPY = {
     review: "Content & approvals",
     insights: "Results",
     sources: "Sources & topics",
+    regionalRuns: "Regional agent runs",
   },
 } as const;
 
@@ -41,6 +43,7 @@ export function MarketingWorkspaceNav({ reviewCount }: Props) {
     { href: `/admin/marketing/review?${lang}`, label: copy.review, active: pathname === "/admin/marketing/review", count: reviewCount },
     { href: `/admin/marketing/insights?${lang}`, label: copy.insights, active: pathname === "/admin/marketing/insights" },
     { href: `/admin/marketing/sources?${lang}`, label: copy.sources, active: pathname === "/admin/marketing/sources" },
+    { href: `/admin/marketing/agent/runs?${lang}`, label: copy.regionalRuns, active: pathname.startsWith("/admin/marketing/agent/runs") },
   ];
 
   return (
@@ -56,7 +59,7 @@ export function MarketingWorkspaceNav({ reviewCount }: Props) {
             href={item.href}
             prefetch
             aria-current={item.active ? "page" : undefined}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+            className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--bg))] ${
               item.active
                 ? "border-sky-400 bg-sky-50 text-sky-900 dark:bg-sky-400/10 dark:text-sky-100"
                 : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))] hover:border-sky-300"

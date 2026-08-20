@@ -15,6 +15,7 @@ describe("marketing registry contract", () => {
     expect(parsed.schemaVersion).toBe("1.0.0");
     expect(parsed.opportunities.length).toBeGreaterThan(0);
     expect(parsed.campaigns.length).toBeGreaterThan(0);
+    expect(parsed.regionalAgentRuns).toHaveLength(3);
     expect(parsed.assets.length).toBeGreaterThan(0);
     expect(parsed.brandProfiles.map((profile) => profile.id)).toEqual(
       expect.arrayContaining(["brand-edebatte-light", "brand-edebatte-dark"]),

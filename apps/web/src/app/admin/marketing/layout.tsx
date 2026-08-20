@@ -22,7 +22,7 @@ function MarketingWorkspaceNavFallback({ reviewCount }: { reviewCount: number })
       className="sticky top-0 z-20 -mx-2 mb-6 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))]/95 px-2 py-3 backdrop-blur"
     >
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {["Cockpit", "Kampagnen", `Inhalte & Freigaben · ${reviewCount}`, "Ergebnisse", "Quellen & Themen"].map((label) => (
+        {["Cockpit", "Kampagnen", `Inhalte & Freigaben · ${reviewCount}`, "Ergebnisse", "Quellen & Themen", "Regionale Agent Runs"].map((label) => (
           <span key={label} className="inline-flex shrink-0 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--muted))]">
             {label}
           </span>

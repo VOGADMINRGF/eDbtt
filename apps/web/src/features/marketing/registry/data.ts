@@ -8,6 +8,7 @@ import type {
   MarketingRegistry,
 } from "./contracts";
 import { MarketingRegistrySchema } from "./contracts";
+import { getRegionalAgentRunFixtures } from "./regionalRuns/data";
 
 const CREATED_AT = "2026-07-26T16:20:00+02:00";
 const UPDATED_AT = "2026-07-26T21:30:00+02:00";
@@ -351,5 +352,6 @@ export function getMarketingRegistry(): MarketingRegistry {
     assets,
     brandProfiles,
     distributionRecords,
+    regionalAgentRuns: getRegionalAgentRunFixtures(),
   });
 }
