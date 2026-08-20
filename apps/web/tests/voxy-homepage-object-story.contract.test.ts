@@ -100,13 +100,14 @@ describe("VOXY homepage object-story reference grammar", () => {
     expect(sourcePull).not.toContain("source-lab");
   });
 
-  it("03 keeps Voxy visible with a compact evidence tag and hard face-safe routing", () => {
+  it("03 keeps Voxy visible with a compact evidence tag and silhouette-safe routing", () => {
     const current = plan("edebatte", "election_window");
     const source = htmlAtSegment(current, "edebatte-source-questions");
     const synthesis = htmlAtSegment(current, "edebatte-synthesis-questions");
 
     expect(source).toContain(".homepage-distinctive-stage{position:absolute;z-index:22");
-    expect(source).toContain(".information-stage{left:1030px!important;top:165px!important;width:340px!important;height:92px!important");
+    expect(source).toContain(".information-stage{left:1060px!important;top:165px!important;width:320px!important;height:92px!important");
+    expect(source).toContain("data-host-face-safe-zone=\"x560-1030:y135-535\"");
     expect(source).toContain("data-host-face-safe-policy=\"hard-no-lines-or-large-objects\"");
     expect(source).toContain(".studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}");
     expect(synthesis).toContain("data-face-safe-route=\"outside-host-corridor\"");
