@@ -30,12 +30,38 @@ describe("ai runtime policy contract", () => {
     expect(policy.smokeTimeoutMs).toBe(30_000);
     expect(policy.smokeMaxOutputTokens).toBe(2_200);
     expect(policy.maxOutputTokens).toBe(2_600);
-    expect(policy.openai.plannerModelCandidates).toEqual(["gpt-4.1-mini", "gpt-5"]);
+    expect(policy.openai.plannerModelCandidates).toEqual(["gpt-4.1-mini", "gpt-4o-mini", "gpt-5"]);
     expect(policy.openai.smokeModelCandidates).toEqual(["gpt-5"]);
     expect(policy.social.autoPublishEnabled).toBe(false);
     expect(policy.social.realtimePublishEnabled).toBe(false);
     expect(policy.social.requireReview).toBe(true);
     expect(policy.loggingMode).toBe("metadata_only");
+  });
+
+  it("routes planner work through the fast model before the full model when no planner model is configured", () => {
+    const policy = getAiRuntimePolicyFromEnv({
+      OPENAI_API_KEY: "test-openai",
+      OPENAI_MODEL: "gpt-5",
+    });
+
+    expect(policy.openai.fastModel).toBe("gpt-4o-mini");
+    expect(policy.openai.plannerModelCandidates).toEqual(["gpt-4o-mini", "gpt-5"]);
+  });
+
+  it("honors an explicit fast model between an explicit planner model and the full model", () => {
+    const policy = getAiRuntimePolicyFromEnv({
+      OPENAI_API_KEY: "test-openai",
+      OPENAI_MODEL: "gpt-5",
+      OPENAI_PLANNER_MODEL: "planner-special",
+      OPENAI_FAST_MODEL: "fast-special",
+    });
+
+    expect(policy.openai.fastModel).toBe("fast-special");
+    expect(policy.openai.plannerModelCandidates).toEqual([
+      "planner-special",
+      "fast-special",
+      "gpt-5",
+    ]);
   });
 
   it("keeps productive E150 timing separate from smoke diagnostics", () => {
