@@ -407,6 +407,7 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
   });
   const providerOrder = normalizeProviderOrder(env, maxProviders);
   const openaiModel = readTrimmed(env, "OPENAI_MODEL") ?? OPENAI_DEFAULT_MODEL;
+  const openaiFastModel = readTrimmed(env, "OPENAI_FAST_MODEL") ?? OPENAI_FAST_DEFAULT_MODEL;
   const anthropicModel = readTrimmed(env, "ANTHROPIC_MODEL") ?? ANTHROPIC_DEFAULT_MODEL;
   const mistralModel = readTrimmed(env, "MISTRAL_MODEL") ?? MISTRAL_DEFAULT_MODEL;
   const geminiModel = readTrimmed(env, "GEMINI_MODEL") ?? GEMINI_DEFAULT_MODEL;
@@ -576,10 +577,14 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
       apiKeyPresent: hasProviderCredential(env, "openai"),
       baseUrl: readTrimmed(env, "OPENAI_BASE_URL") ?? null,
       model: openaiModel,
-      plannerModelCandidates: dedupe([readTrimmed(env, "OPENAI_PLANNER_MODEL"), openaiModel]),
+      plannerModelCandidates: dedupe([
+        readTrimmed(env, "OPENAI_PLANNER_MODEL"),
+        openaiFastModel,
+        openaiModel,
+      ]),
       smokeModelCandidates: dedupe([readTrimmed(env, "OPENAI_SMOKE_MODEL"), openaiModel, OPENAI_DEFAULT_MODEL]),
       traceModel: readTrimmed(env, "OPENAI_TRACE_MODEL") ?? OPENAI_TRACE_DEFAULT_MODEL,
-      fastModel: readTrimmed(env, "OPENAI_FAST_MODEL") ?? openaiModel ?? OPENAI_FAST_DEFAULT_MODEL,
+      fastModel: openaiFastModel,
     },
     anthropic: {
       apiKeyPresent: hasProviderCredential(env, "anthropic"),
