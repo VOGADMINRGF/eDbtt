@@ -2,6 +2,7 @@ import { buildVoxyMotionV41Plan } from "./motionV41";
 import {
   renderVoxyMotionV4FrameHtml,
   type VoxyMotionV4EmbeddedAssets,
+  type VoxyMotionV4ViewportGeometry,
 } from "./motionV4Html";
 import { buildVoxyAudioMouthFrame } from "./voicedExplainerV1Html";
 import {
@@ -180,6 +181,7 @@ export function renderVoxyDualVoicePilotFrameHtml(input: {
   assets: VoxyMotionV4EmbeddedAssets;
   frameIndex: number;
   amplitude: number;
+  viewportGeometry?: VoxyMotionV4ViewportGeometry;
 }): string {
   const atSeconds = input.frameIndex / input.plan.output.fps;
   const speaker = speakerAt(input.plan, atSeconds);
@@ -203,6 +205,7 @@ export function renderVoxyDualVoicePilotFrameHtml(input: {
     mouthProfile: "v4.1",
     mouthOverride: mouth,
     waveformAmplitude: input.amplitude,
+    viewportGeometry: input.viewportGeometry,
     editorialOverride: { kicker: "", title: "", brand: "", caption: "" },
   });
 

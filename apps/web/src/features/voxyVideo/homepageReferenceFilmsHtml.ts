@@ -46,6 +46,13 @@ function segmentOrdinal(plan: VoxyHomepageReferenceFilmPlan, at: number): number
   return Math.max(0, plan.speakerTimeline.findIndex((entry) => entry.id === segment.id));
 }
 
+function filmProgress(plan: VoxyHomepageReferenceFilmPlan, at: number): number {
+  const first = plan.speakerTimeline[0];
+  const last = plan.speakerTimeline.at(-1);
+  if (!first || !last) return 0;
+  return clamp01((at - first.start) / Math.max(0.001, last.end - first.start));
+}
+
 function rangeProgress(
   plan: VoxyHomepageReferenceFilmPlan,
   at: number,
@@ -158,8 +165,19 @@ function subtitleCue(text: string, progress: number): string {
     .match(/[^.!?]+[.!?]?/g)
     ?.map((sentence) => sentence.trim())
     .filter(Boolean) ?? [text];
-  const index = Math.min(sentences.length - 1, Math.floor(clamp01(progress) * sentences.length));
-  return sentences[Math.max(0, index)] ?? text;
+  const chunks = sentences.flatMap((sentence) => {
+    if (sentence.length <= 72) return [sentence];
+    const clauses = sentence.split(/(?<=[,;:])\s+|\s+[–—]\s+|\s+(?=und\b|aber\b)/);
+    const grouped: string[] = [];
+    for (const clause of clauses) {
+      const previous = grouped.at(-1);
+      if (previous && `${previous} ${clause}`.length <= 72) grouped[grouped.length - 1] = `${previous} ${clause}`;
+      else grouped.push(clause);
+    }
+    return grouped;
+  });
+  const index = Math.min(chunks.length - 1, Math.floor(clamp01(progress) * chunks.length));
+  return chunks[Math.max(0, index)] ?? text;
 }
 
 function renderBrandHierarchy(plan: VoxyHomepageReferenceFilmPlan): string {
@@ -256,7 +274,14 @@ function renderEdebateForensics(
       ? `<div class="forensic-split-scene"><div class="claim-token quote"><small>ZITAT</small><b>„…“</b><span>im Original?</span></div></div>`
       : `<div class="forensic-split-scene forensic-source-resolution"><div class="forensic-study-label"><small>STUDIE</small><b>ORIGINAL</b></div>${sourceObject}<div class="split-rule"><span>QUELLE</span><i></i><span>INTERPRETATION</span></div></div>`;
 
-  const traceItems = ["AUSSAGE", "QUELLE", "PASSAGE", "KONTEXT", "GEGENPOSITION", "OFFEN"];
+  const traceItems = [
+    "BEHAUPTUNG",
+    "ORIGINALQUELLE",
+    "PASSAGE",
+    "KONTEXT",
+    "GEGENPOSITION",
+    "OFFENE FRAGE",
+  ];
   const traceScene = `<div class="case-trace-scene">
     <div class="trace-axis">${traceItems.map((item, index) => `<div class="trace-node ${index <= reached ? "reached" : ""}" style="--node:${index}"><i></i><b>${item}</b></div>`).join("")}</div>
     <div class="trace-copy"><small>eDEBATTE · PRÜFPFAD</small><strong>${segment.id === "edebatte-current-offer" ? "Öffentliche Themen zurück zum Beleg verfolgen." : "Nicht nur das Ergebnis zeigen. Den Weg dorthin zeigen."}</strong></div>
@@ -271,6 +296,7 @@ function renderEdebateForensics(
 
   const resolutionScene = `<div class="case-resolution-scene" data-contract-cta="DANN GEH EINEN SCHRITT WEITER.">
     <div class="verification-pulse"><i></i><i></i><i></i><b>PRÜFBAR</b></div>
+    <small class="resolution-premise">DU MUSST MIR NICHTS GLAUBEN.</small>
     <strong>DU SOLLST ES PRÜFEN KÖNNEN.</strong>
     <span>${segment.id === "edebatte-cta" ? "Lies die Schlagzeile. Dann geh einen Schritt weiter." : "Headline → Quelle → Kontext → Gegenposition → offene Frage"}</span>
     <div class="memory-flight"><i></i><small>BELEG BLEIBT SICHTBAR</small></div>
@@ -321,17 +347,18 @@ function renderVoiceOpenGovJourney(
       : currentOffer
         ? phaseEnterForSegment(plan, at, 3)
         : clamp01((at - segment.start) / STATE_SETTLE_SECONDS);
-  const loopPhase = Math.min(5, Math.floor(progress * 6));
+  const journeyProgress = filmProgress(plan, at);
+  const loopPhase = Math.min(6, Math.floor(journeyProgress * 7));
 
-  const loopLabels = ["STIMME", "PRIORITÄT", "REAKTION", "ENTSCHEIDUNG", "WIRKUNG", "RÜCKKOPPLUNG"];
+  const loopLabels = ["PROGRAMM", "VERHANDLUNG", "BESCHLUSS", "UMSETZUNG", "WIRKUNG", "RÜCKKOPPLUNG"];
   const loopNodes = loopLabels
-    .map((label, index) => `<div class="loop-node n${index + 1} ${index === loopPhase ? "active" : ""}"><i></i><span>${label}</span></div>`)
+    .map((label, index) => `<div class="loop-node n${index + 1} ${index + 1 === loopPhase ? "active" : ""} ${index + 1 < loopPhase ? "complete" : "upcoming"}"><i></i><span>${label}</span></div>`)
     .join("");
-  const loop = `<div class="democratic-loop" style="--loop:${progress.toFixed(4)}">
+  const loop = `<div class="democratic-loop" data-journey-stage="${loopPhase}" style="--loop:${journeyProgress.toFixed(4)}">
     <div class="loop-heading"><small>WAS PASSIERT DANACH?</small><strong>DER WEG GEHT WEITER</strong></div>
     ${loopNodes}
     <svg viewBox="0 0 920 500" aria-hidden="true"><path d="M180 250 C240 95 565 65 730 190 C820 260 805 370 680 410 C500 470 245 410 180 250"/></svg>
-    <div class="mandate-pulse"><i></i><b>DEINE STIMME</b></div>
+    <div class="mandate-pulse ${loopPhase === 0 ? "active" : "complete"}"><i></i><b>DEINE STIMME</b></div>
   </div>`;
 
   const leadScene = `<div class="vog-lead-card"><small>LEITFRAGE</small><strong>Was passiert mit deiner Stimme nach der Wahl?</strong></div>`;
@@ -353,11 +380,9 @@ function renderVoiceOpenGovJourney(
     ? `<div class="demophobie-space demophobie-phase-source"><div class="demophobie-source"><small>KERNFRAGE</small><strong>OHNE DEFINIERTE FOLGE</strong><span>ist Beteiligung noch keine Mitbestimmung.</span></div></div>`
     : demophobiePhase === 1
       ? `<div class="demophobie-space demophobie-phase-question"><div class="design-question"><small>GESTALTUNGSFRAGE</small><b>Wie wird aus Beteiligung nachvollziehbare politische Wirkung?</b></div></div>`
-      : `<div class="demophobie-space demophobie-phase-guardrails"><div class="design-question"><small>LEITPLANKEN</small><b>Wirkung braucht demokratische Grenzen.</b></div><div class="guardrail-row"><div class="guardrail">GRUNDRECHTE</div><div class="guardrail">MINDERHEITENSCHUTZ</div><div class="guardrail">RECHENSCHAFT</div><div class="guardrail">REVISION</div></div></div>`;
+      : `<div class="demophobie-space demophobie-phase-guardrails"><div class="design-question"><small>LEITPLANKEN</small><b>Wirkung braucht demokratische Grenzen.</b></div><div class="guardrail-row"><div class="guardrail">GRUNDRECHTE</div><div class="guardrail">MINDERHEITENSCHUTZ</div><div class="guardrail">RECHENSCHAFT</div><div class="guardrail">ÜBERPRÜFUNG</div></div></div>`;
 
   const balanceScene = `<div class="participation-balance-scene">
-    <div class="extreme left"><small>ZU WENIG</small><strong>NUR WÄHLEN?</strong></div>
-    <div class="extreme right"><small>ZU EINFACH</small><strong>ALLES DIREKT?</strong></div>
     <div class="balance-core" data-contract-label="WIRKSAME MITBESTIMMUNG"><i></i><strong>WAS FOLGT AUS DEINER STIMME?</strong><span>Mitbestimmung braucht eine definierte Folge.</span></div>
   </div>`;
 
@@ -365,9 +390,9 @@ function renderVoiceOpenGovJourney(
     ? `<div class="vog-offer-scene offer-phase-current" data-contract-label="HEUTE · CURRENT CAPABILITY"><div class="current-layer"><small>HEUTE</small><strong>MITMACHEN · INFORMIERT BLEIBEN</strong><span>Eintragen oder freiwillig unterstützen. Keine Stimmvorteile.</span></div></div>`
     : offerPhase === 1
       ? `<div class="vog-offer-scene offer-phase-bridge" data-contract-label="VON BETEILIGUNG ZU SUBSTANZ"><div class="bridge"><i></i><span>DER NÄCHSTE SCHRITT</span></div></div>`
-      : `<div class="vog-offer-scene offer-phase-future" data-contract-label="ZIELBILD · NICHT ALS PRODUKTFUNKTION BEHAUPTET" data-product-status="future-intent-not-current-capability"><div class="future-layer"><small>ZIELBILD</small><strong>STIMME → FOLGE → WIRKUNG</strong><span>Was soll aus deiner Stimme politisch folgen?</span></div></div>`;
+      : `<div class="vog-offer-scene offer-phase-future" data-contract-label="ZIELBILD · NICHT ALS PRODUKTFUNKTION BEHAUPTET" data-product-status="future-intent-not-current-capability"><div class="future-layer"><small>WIRKUNG</small><strong>STIMME → FOLGE → WIRKUNG</strong><span>Was soll aus deiner Stimme politisch folgen?</span></div></div>`;
 
-  const closingScene = `<div class="vog-closing-scene">${loop}<div class="closing-copy"><small>VOICEOPENGOV</small><strong>${cta ? "DEINE STIMME IST MEHR ALS EIN KREUZ." : "NACHVOLLZIEHBARKEIT ZEIGT, WAS DARAUS WIRD."}</strong><span>${cta ? "Mitmachen. Informiert bleiben." : "Was aus deiner Stimme wird, muss nachvollziehbar sein."}</span></div></div>`;
+  const closingScene = `<div class="vog-closing-scene"><div class="closing-copy"><small>VOICEOPENGOV</small><strong>${cta ? "DEINE STIMME IST MEHR ALS EIN KREUZ." : "NACHVOLLZIEHBARKEIT ZEIGT, WAS DARAUS WIRD."}</strong><span>${cta ? "Mitmachen. Informiert bleiben." : "Was aus deiner Stimme wird, muss nachvollziehbar sein."}</span></div></div>`;
 
   const readableStateId = afterElection
     ? "vog-process"
@@ -387,7 +412,8 @@ function renderVoiceOpenGovJourney(
 
   return `<section class="homepage-distinctive-stage vog-journey object-led-scene" data-visual-language="democratic_journey" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)};--state-enter:${stateEnterProgress.toFixed(4)}">
     <div class="scene-kicker vog" aria-hidden="true"></div>
-    ${afterElection ? process : programmeGap ? programme : demophobie ? demophobieScene : balance ? balanceScene : currentOffer ? offerScene : synthesis || cta ? closingScene : `${leadScene}${loop}`}
+    ${afterElection ? process : programmeGap ? programme : demophobie ? demophobieScene : balance ? balanceScene : currentOffer ? offerScene : synthesis || cta ? closingScene : leadScene}
+    ${loop}
   </section>`;
 }
 
@@ -399,6 +425,68 @@ function renderDistinctiveStage(
   return plan.filmId === "edebatte"
     ? renderEdebateForensics(plan, at, eventProgress)
     : renderVoiceOpenGovJourney(plan, at, eventProgress);
+}
+
+function renderProfileMemory(
+  plan: VoxyHomepageReferenceFilmPlan,
+  at: number,
+): string {
+  if (plan.layout.evidenceMemory === "full_column") return "";
+  const state = homepageVisualStateAt(plan, at);
+  const activeId = state.activeEvidenceId ?? state.dockedEvidenceIds.at(-1) ?? null;
+  const active = plan.evidence.find((entry) => entry.id === activeId);
+  const label = plan.filmId === "edebatte" ? "PRÜFPFAD" : "WIRKUNGSPFAD";
+  return `<aside class="homepage-profile-memory" data-evidence-memory-behavior="${plan.layout.evidenceMemory}" data-memory-count="${state.dockedEvidenceIds.length}" data-active-evidence-id="${escapeHtml(activeId ?? "none")}"><small>${label}</small><b>${escapeHtml(active?.type ?? "BEREIT")}</b><span>${state.dockedEvidenceIds.length} · nachvollziehbar</span></aside>`;
+}
+
+function socialProfileCss(plan: VoxyHomepageReferenceFilmPlan): string {
+  if (plan.layoutProfile === "landscape_16_9") return "";
+  const { regions, typography } = plan.layout;
+  const navigationLocalX = regions.navigation.x - regions.evidence.x;
+  const navigationLocalY = regions.navigation.y - regions.evidence.y;
+  const evidenceWidth = regions.evidence.width;
+  const evidenceHeight = regions.evidence.height;
+  const isSquare = plan.layoutProfile === "square_1_1";
+  const compactObjectWidth = isSquare ? evidenceWidth : Math.min(evidenceWidth, 860);
+
+  return `
+    [data-layout-profile="${plan.layoutProfile}"] .master .broadcast-chrome{display:none!important}
+    [data-layout-profile="${plan.layoutProfile}"] .master .on-air{display:none!important}
+    [data-layout-profile="${plan.layoutProfile}"] .homepage-motion-cue{display:none!important}
+    [data-layout-profile="${plan.layoutProfile}"] .master .bottom-reset{height:${plan.layoutProfile === "vertical_9_16" ? 610 : plan.layoutProfile === "feed_4_5" ? 410 : 285}px!important;background:linear-gradient(180deg,transparent,rgba(1,5,17,.96) 38%,#010511 100%)!important}
+    .homepage-profile-overlay{position:absolute;z-index:40;inset:0;overflow:hidden;pointer-events:none;color:#f6fbff;font-family:Inter,Arial,sans-serif}
+    .homepage-profile-overlay::before{content:"";position:absolute;z-index:1;left:0;right:0;top:${regions.evidence.y - 52}px;bottom:0;background:linear-gradient(180deg,transparent,rgba(1,5,17,.86) 8%,#010511 34%)}
+    .homepage-brand-hierarchy{left:${regions.brand.x}px!important;top:${regions.brand.y}px!important;width:${regions.brand.width}px!important;z-index:8!important;gap:8px!important;padding:16px 18px 17px!important;border-left:4px solid rgba(73,218,210,.88)!important;border-radius:12px!important;background:linear-gradient(90deg,rgba(1,8,23,.94),rgba(1,8,23,.72) 76%,transparent)!important}
+    .homepage-brand-hierarchy strong{font-size:${typography.brandPx}px!important}
+    .homepage-brand-hierarchy .brand-descriptor{font-size:${typography.descriptorPx}px!important;letter-spacing:.025em!important}
+    .homepage-brand-hierarchy span{max-width:${regions.brand.width}px!important;font-size:${Math.max(17, typography.descriptorPx - 3)}px!important;line-height:1.24!important}
+    .homepage-distinctive-stage{left:${regions.evidence.x}px!important;top:${regions.evidence.y}px!important;width:${evidenceWidth}px!important;height:${evidenceHeight}px!important;z-index:7!important;overflow:visible!important}
+    .homepage-distinctive-stage .scene-kicker{display:none!important}
+    .homepage-voxy-subtitle{left:${regions.caption.x}px!important;right:auto!important;top:${regions.caption.y}px!important;bottom:auto!important;width:${regions.caption.width}px!important;min-height:${regions.caption.height}px!important;padding:18px 24px!important;grid-template-columns:76px 1fr!important;z-index:10!important}
+    .homepage-voxy-subtitle b{font-size:${Math.max(14, typography.captionPx - 14)}px!important}
+    .homepage-voxy-subtitle p{font-size:${typography.captionPx}px!important;line-height:1.22!important;-webkit-line-clamp:2!important}
+    .homepage-profile-memory{position:absolute;z-index:9;left:${regions.navigation.x + Math.max(0, regions.navigation.width - (isSquare ? 118 : 180))}px;top:${regions.navigation.y + (isSquare ? 220 : 0)}px;width:${isSquare ? 118 : 180}px;min-height:${isSquare ? 180 : regions.navigation.height}px;display:flex;flex-direction:column;justify-content:center;padding:12px 14px;border:1px solid rgba(83,158,224,.38);border-radius:14px;background:rgba(4,19,42,.92)}
+    .homepage-profile-memory small{color:#72ddd7;font-size:${Math.max(10, typography.navigationPx - 5)}px;font-weight:900;letter-spacing:.08em}.homepage-profile-memory b{margin-top:7px;font-size:${Math.max(13, typography.navigationPx - 1)}px;line-height:1.05}.homepage-profile-memory span{margin-top:7px;color:#91aabd;font-size:${Math.max(10, typography.navigationPx - 5)}px}
+    .headline-swarm,.headline-freeze-scene,.source-pull-scene,.forensic-split-scene,.case-trace-scene,.case-synthesis-scene,.case-resolution-scene,.vog-lead-card,.living-mandate-path,.programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene,.vog-closing-scene{inset:0!important;left:0!important;top:0!important;width:${compactObjectWidth}px!important;height:${evidenceHeight}px!important}
+    .swarm{display:none!important}.headline-swarm .case-headline-object,.source-pull-scene .case-headline-object,.source-claim-chip,.claim-token,.forensic-study-label{left:0!important;top:0!important}
+    .case-headline-object,.case-source-object,.promise-object,.decision-object,.demophobie-source,.design-question,.current-layer,.future-layer{left:0!important;right:auto!important;top:0!important;width:${compactObjectWidth}px!important;max-width:100%!important;height:${isSquare ? `${evidenceHeight}px` : "auto"}!important;min-height:${Math.min(190, evidenceHeight)}px!important;padding:${isSquare ? 16 : 24}px!important;transform:none!important;border-radius:18px!important}
+    .case-headline-object strong,.case-source-object strong,.promise-object strong,.decision-object strong,.demophobie-source strong,.design-question b,.current-layer strong,.future-layer strong{font-size:${typography.statementPx}px!important;line-height:1.08!important}
+    .case-source-object footer{left:20px!important;right:20px!important}.source-line{margin-top:${isSquare ? 7 : 11}px!important}.source-line.wide{margin-top:${isSquare ? 10 : 18}px!important}.source-passage{margin-top:${isSquare ? 8 : 13}px!important}
+    .evidence-beam,.split-rule,.memory-flight{display:none!important}
+    .forensic-source-resolution .case-source-object{left:0!important;right:auto!important;top:0!important;width:${compactObjectWidth}px!important;transform:none!important}
+    .case-trace-scene{display:grid!important;grid-template-columns:${isSquare ? "1fr" : "1fr 1fr"}!important;gap:20px!important}.trace-axis{position:relative!important;left:0!important;top:0!important;width:100%!important;grid-template-columns:${isSquare ? "1fr" : "repeat(3,1fr)"}!important;gap:8px!important;padding-left:12px!important}.trace-node{min-height:${isSquare ? 31 : 46}px!important;font-size:${Math.max(11, typography.navigationPx - 2)}px!important}.trace-copy{position:relative!important;left:0!important;top:0!important;width:100%!important;align-self:center!important;text-align:left!important}.trace-copy strong{font-size:${typography.statementPx}px!important}
+    .case-synthesis-scene .synthesis-orbit{right:0!important;top:0!important}.synthesis-core{left:0!important;top:${isSquare ? 78 : 54}px!important;width:100%!important;text-align:left!important}.synthesis-core strong{font-size:${typography.statementPx}px!important}
+    .case-resolution-scene{text-align:left!important}.verification-pulse{display:none!important}.resolution-premise{display:block;color:#8fb2c7;font-size:${Math.max(13, typography.statementPx - 13)}px;font-weight:850;letter-spacing:.04em}.case-resolution-scene>strong{margin-top:10px!important;font-size:${typography.statementPx}px!important}.case-resolution-scene>span{font-size:${Math.max(14, typography.statementPx - 12)}px!important}
+    .vog-lead-card{padding:22px 24px!important}.vog-lead-card strong{font-size:${typography.statementPx}px!important}.living-mandate-path .mandate-origin{left:0!important;top:0!important}.living-mandate-path .mandate-track{left:92px!important;top:24px!important}.mandate-step{left:0!important;top:calc(78px + var(--step)*${isSquare ? 53 : 31}px)!important;width:100%!important;font-size:${Math.max(12, typography.navigationPx - 1)}px!important}
+    .gap-field{left:0!important;top:0!important;width:100%!important;text-align:left!important}.gap-field b{font-size:${typography.statementPx + 12}px!important}.gap-field span{font-size:${typography.statementPx - 5}px!important}.status-ruler{bottom:0!important;font-size:${Math.max(10, typography.navigationPx - 3)}px!important}
+    .guardrail-row{bottom:0!important;gap:7px!important}.guardrail{padding:8px 10px!important;font-size:${Math.max(10, typography.navigationPx - 4)}px!important}
+    .participation-balance-scene .extreme{display:none!important}.participation-balance-scene .balance-core{left:0!important;top:0!important;width:${compactObjectWidth}px!important;height:${evidenceHeight}px!important;border-radius:18px!important}.participation-balance-scene .balance-core strong{font-size:${typography.statementPx}px!important}.participation-balance-scene .balance-core span{max-width:${Math.max(180, compactObjectWidth - 80)}px!important;font-size:${Math.max(14, typography.statementPx - 14)}px!important}
+    .bridge{left:0!important;top:${Math.max(48, Math.floor(evidenceHeight / 2))}px!important;width:100%!important;font-size:${typography.statementPx - 5}px!important}
+    .closing-copy{left:0!important;right:auto!important;top:0!important;width:${compactObjectWidth}px!important;padding:22px!important}.closing-copy strong{font-size:${typography.statementPx}px!important}.closing-copy span{font-size:${Math.max(16, typography.statementPx - 12)}px!important}
+    .democratic-loop{left:${navigationLocalX}px!important;top:${navigationLocalY}px!important;width:${Math.max(120, regions.navigation.width - (isSquare ? 126 : 190))}px!important;height:${regions.navigation.height}px!important;transform:none!important;opacity:${plan.layoutProfile === "vertical_9_16" ? .78 : .72}!important}
+    .democratic-loop svg{display:none!important}.loop-heading{left:0!important;top:0!important;gap:2px!important}.loop-heading small{display:none!important}.loop-heading strong{font-size:${typography.navigationPx}px!important;letter-spacing:.03em!important}.mandate-pulse{left:0!important;top:34px!important;width:${isSquare ? 104 : 112}px!important;height:${isSquare ? 58 : 64}px!important;border-radius:12px!important}.mandate-pulse i{display:none!important}.mandate-pulse b{font-size:${typography.navigationPx}px!important}.loop-node{top:34px!important;width:${isSquare ? 112 : 92}px!important;height:${isSquare ? 58 : 64}px!important;font-size:${typography.navigationPx}px!important}.loop-node i{width:12px!important;height:12px!important;margin-bottom:4px!important}.n1{left:118px!important}.n2{left:214px!important}.n3{left:310px!important}.n4{left:406px!important}.n5{left:502px!important}.n6{left:598px!important}
+    ${isSquare ? ".loop-node{display:none!important}.loop-node.active{display:grid!important;left:0!important;top:120px!important}.mandate-pulse{display:grid!important}.loop-heading{white-space:normal!important}" : ""}
+  `;
 }
 
 export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
@@ -425,14 +513,22 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     assets: input.assets,
     frameIndex,
     amplitude: input.amplitude,
+    viewportGeometry: plan.layout.stageGeometry,
   });
   const semanticMotion = `<div class="homepage-motion-cue" data-motion-event-id="${escapeHtml(event.id)}" data-motion-kind="${escapeHtml(event.motion)}" data-semantic-purpose="${escapeHtml(event.semanticPurpose)}" style="--event-progress:${eventProgress.toFixed(4)}"><i></i><span>${escapeHtml(plan.filmId === "edebatte" ? "QUELLE PRÜFEN" : "DEMOKRATISCHE WIRKUNG")}</span></div>`;
   const distinctiveStage = renderDistinctiveStage(plan, at, eventProgress);
   const brandHierarchy = renderBrandHierarchy(plan);
+  const profileMemory = renderProfileMemory(plan, at);
   const subtitleText = subtitleCue(segment.text, segmentProgress(plan, at));
   const subtitle = `<div class="homepage-voxy-subtitle" data-subtitle-segment-id="${escapeHtml(segment.id)}" data-caption-mode="sentence-cue" data-full-subtitle="${escapeHtml(segment.text)}"><b>VOXY</b><p>${escapeHtml(subtitleText)}</p></div>`;
+  const profileOverlay = `<div class="homepage-profile-overlay" data-compositional-layout="profile-specific" data-maximum-simultaneous-objects="${plan.layout.maximumSimultaneousObjects}">${semanticMotion}${brandHierarchy}${distinctiveStage}${profileMemory}${subtitle}</div>`;
+  const { safeArea, regions } = plan.layout;
+  const faceSafeZone = plan.layoutProfile === "landscape_16_9"
+    ? "x560-1030:y135-535"
+    : `x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + Math.round(regions.presenter.height * 0.56)}`;
 
   const css = `<style>
+    .homepage-profile-overlay{position:absolute;z-index:40;inset:0;overflow:hidden;pointer-events:none}
     .studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
     .brand-lockup{display:none!important}
     .information-dimmer{background:linear-gradient(90deg,rgba(1,6,18,.05),rgba(1,6,18,.08) 58%,rgba(1,6,18,.42) 100%)!important;box-shadow:none!important}
@@ -470,7 +566,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .information-stage{left:1060px!important;top:165px!important;width:320px!important;height:92px!important;padding:10px 14px!important;border-radius:14px!important;background:linear-gradient(145deg,rgba(5,18,45,.88),rgba(2,9,25,.92))!important;box-shadow:0 16px 38px rgba(0,0,0,.3),0 0 24px rgba(21,112,255,.06)!important;--dock-scale:.55!important}
     .information-stage[data-evidence-id="edebatte-source-chain"],.information-stage[data-evidence-id="vog-evergreen-impact-loop"]{--dock-x:420px!important;--dock-y:105px!important}
     .information-stage[data-evidence-id="edebatte-status-ladder"],.information-stage[data-evidence-id="vog-accountability-chain"]{--dock-x:420px!important;--dock-y:245px!important}
-    .information-stage .fixture-label{display:none!important}.information-stage .evidence-kind{margin-top:0!important;font-size:10px!important}.information-stage .evidence-core h1{max-width:290px!important;margin-top:5px!important;font-size:18px!important;line-height:1.05!important}
+    .information-stage .fixture-label,.memory-card .fixture-label{display:none!important}.information-stage .evidence-kind{margin-top:0!important;font-size:10px!important}.information-stage .evidence-core h1{max-width:290px!important;margin-top:5px!important;font-size:18px!important;line-height:1.05!important}
     .information-stage .trend-chart,.information-stage .participation-chart,.information-stage .question-ring,.information-stage .trend-note{display:none!important}.information-stage .evidence-question{display:block!important}
     .synthesis-stage{opacity:0!important;pointer-events:none!important}
     [data-homepage-film="edebatte"] .memory-card{border-left-color:#42d8d0!important;background:linear-gradient(135deg,rgba(5,43,62,.96),rgba(3,21,39,.95))!important}
@@ -502,9 +598,9 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .case-synthesis-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}.case-synthesis-scene .synthesis-orbit{display:none;position:absolute;right:0;top:0;width:112px;height:112px;place-content:center;text-align:center;border:1px solid rgba(87,162,215,.45);border-radius:50%;background:rgba(4,23,45,.82);box-shadow:0 0 45px rgba(41,119,183,.09)}.case-synthesis-scene[data-synthesis-phase="source"] .synthesis-orbit.source,.case-synthesis-scene[data-synthesis-phase="context"] .synthesis-orbit.context,.case-synthesis-scene[data-synthesis-phase="counter"] .synthesis-orbit.counter{display:grid}.synthesis-orbit small{color:#a7c0d1;font-size:10px;font-weight:900;letter-spacing:.08em}.synthesis-orbit b{font-size:24px;margin-top:4px}.synthesis-core{position:absolute;left:0;top:150px;width:300px;text-align:right}.synthesis-core strong{display:block;margin-top:10px;font-size:25px;line-height:1.04}.synthesis-core span{display:block;margin-top:11px;color:#aec2d0;font-size:12px;line-height:1.35}
     .case-resolution-scene{position:absolute;left:690px;top:125px;width:300px;text-align:right}.verification-pulse{position:relative;width:140px;height:140px;margin-left:auto;display:grid;place-content:center;text-align:center;border:1px solid rgba(71,218,208,.62);border-radius:50%}.verification-pulse i{position:absolute;inset:18px;border:1px solid rgba(62,224,214,.25);border-radius:50%}.verification-pulse i:nth-child(2){inset:34px}.verification-pulse i:nth-child(3){inset:50px}.verification-pulse b{font-size:17px;letter-spacing:.1em}.case-resolution-scene>strong{display:block;margin-top:20px;font-size:25px}.case-resolution-scene>span{display:block;margin-top:10px;color:#a7bdcc;font-size:12px;line-height:1.35}.memory-flight{position:absolute;right:0;top:280px;width:230px;display:flex;align-items:center;gap:10px;color:#7ee2dc;font-size:10px;font-weight:900;letter-spacing:.08em}.memory-flight i{height:2px;flex:1;background:linear-gradient(90deg,#39d7cd,#3d83dd)}
 
-    .democratic-loop{position:absolute;left:735px;top:330px;width:820px;height:440px;transform:scale(.34);transform-origin:0 0}
+    .democratic-loop{position:absolute;left:735px;top:468px;width:820px;height:440px;transform:scale(.34);transform-origin:0 0}
     .loop-heading{position:absolute;left:145px;top:-76px;display:flex;flex-direction:column;gap:7px;color:#91b9da;white-space:nowrap}.loop-heading small{font-size:24px;font-weight:850;letter-spacing:.08em;color:#7899b3}.loop-heading strong{font-size:44px;font-weight:900;letter-spacing:.06em;color:#b9d8ec}
-    .democratic-loop svg{position:absolute;inset:0;width:100%;height:100%}.democratic-loop svg path{fill:none;stroke:#3d7bb5;stroke-width:3;stroke-dasharray:8 11;stroke-dashoffset:calc((1 - var(--loop))*80);opacity:.5}.loop-node{position:absolute;width:180px;height:84px;display:grid;place-content:center;text-align:center;color:#7f9aae;font-size:26px;font-weight:900;letter-spacing:.025em}.loop-node i{width:20px;height:20px;margin:0 auto 7px;border-radius:50%;border:2px solid #5883aa;background:#081a32}.loop-node.active{color:#e6f4ff}.loop-node.active i{border-color:#64d8d0;background:#167e99;box-shadow:0 0 28px rgba(79,207,210,.5)}.n1{left:20px;top:190px}.n2{left:125px;top:32px}.n3{left:350px;top:0}.n4{right:54px;top:88px}.n5{right:6px;bottom:52px}.n6{left:250px;bottom:4px}.mandate-pulse{position:absolute;left:485px;top:160px;width:180px;height:180px;display:grid;place-content:center;text-align:center;border:1px solid rgba(95,175,255,.55);border-radius:50%;background:radial-gradient(circle,rgba(33,103,187,.22),rgba(4,20,45,.58))}.mandate-pulse i{position:absolute;inset:22px;border:1px solid rgba(71,220,209,.38);border-radius:50%}.mandate-pulse b{font-size:32px;line-height:1.05;letter-spacing:.035em}
+    .democratic-loop svg{position:absolute;inset:0;width:100%;height:100%}.democratic-loop svg path{fill:none;stroke:#3d7bb5;stroke-width:3;stroke-dasharray:8 11;stroke-dashoffset:calc((1 - var(--loop))*80);opacity:.5}.loop-node{position:absolute;width:180px;height:84px;display:grid;place-content:center;text-align:center;color:#7f9aae;font-size:42px;line-height:1.02;font-weight:900;letter-spacing:.015em}.loop-node i{width:20px;height:20px;margin:0 auto 7px;border-radius:50%;border:2px solid #5883aa;background:#081a32}.loop-node.complete{color:#9fb7c8;opacity:.68}.loop-node.upcoming{opacity:.4}.loop-node.active{color:#e6f4ff;opacity:1}.loop-node.active i{border-color:#64d8d0;background:#167e99;box-shadow:0 0 28px rgba(79,207,210,.5)}.n1{left:20px;top:190px}.n2{left:125px;top:32px}.n3{left:350px;top:0}.n4{right:54px;top:88px}.n5{right:6px;bottom:52px}.n6{left:250px;bottom:4px}.mandate-pulse{position:absolute;left:485px;top:160px;width:180px;height:180px;display:grid;place-content:center;text-align:center;border:1px solid rgba(95,175,255,.55);border-radius:50%;background:radial-gradient(circle,rgba(33,103,187,.22),rgba(4,20,45,.58));opacity:.62}.mandate-pulse.active{opacity:1;border-color:#64d8d0;box-shadow:0 0 28px rgba(79,207,210,.22)}.mandate-pulse i{position:absolute;inset:22px;border:1px solid rgba(71,220,209,.38);border-radius:50%}.mandate-pulse b{font-size:38px;line-height:1.05;letter-spacing:.025em}
     .vog-lead-card{position:absolute;left:690px;top:94px;width:300px;padding:18px 20px;border-left:3px solid #69b7ff;background:linear-gradient(90deg,rgba(7,35,72,.8),rgba(4,19,43,.16))}.vog-lead-card small{display:block;color:#8fc5ff;font-size:10px;font-weight:900;letter-spacing:.1em}.vog-lead-card strong{display:block;margin-top:9px;font-size:23px;line-height:1.08}
     .living-mandate-path{position:absolute;left:690px;top:125px;width:300px;height:390px}.mandate-origin{position:absolute;left:0;top:0;width:72px;height:72px;display:grid;place-content:center;text-align:center;border:1px solid rgba(97,174,245,.5);border-radius:50%;background:#081b36}.mandate-origin small{font-size:10px;color:#9fc0da}.mandate-origin b{font-size:28px;color:#69b8ff}.mandate-track{position:absolute;left:94px;right:0;top:25px;color:#a4bdcf;font-size:11px;font-weight:900;letter-spacing:.08em}.mandate-step{position:absolute;left:0!important;top:calc(100px + var(--step)*52px)!important;width:285px;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:11px;text-align:left;color:#7998ae;font-size:11px;font-weight:900;letter-spacing:.05em}.mandate-step i{width:14px;height:14px;border:2px solid #4d7190;border-radius:50%;background:#07172d}.mandate-step.active{color:#d2e7f6}.mandate-step.active i{border-color:#70baff;background:#317dc6;box-shadow:0 0 20px rgba(85,170,239,.25)}.moving-mandate{position:absolute;left:205px;top:0;width:76px;height:34px;display:grid;place-content:center;border-radius:999px;background:#0c5b92;color:#d9f1ff;font-size:10px;font-weight:900;letter-spacing:.07em}
     .programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}
@@ -513,7 +609,8 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .extreme{position:absolute;top:0;width:132px;padding:12px;border:1px solid rgba(91,145,197,.28);border-radius:14px;background:rgba(5,22,45,.55);text-align:center;opacity:.58}.extreme.left{left:0}.extreme.right{left:158px}.extreme small{color:#91aabc;font-size:10px;font-weight:900}.extreme strong{display:block;margin-top:7px;font-size:14px}.balance-core{position:absolute;left:0;top:105px;width:292px;height:220px;display:grid;place-content:center;text-align:center;border:1px solid rgba(73,213,203,.58);border-radius:50%;background:radial-gradient(circle,rgba(24,111,146,.2),rgba(4,20,44,.7));box-shadow:0 0 42px rgba(43,205,195,.07)}.balance-core i{position:absolute;inset:28px;border:1px solid rgba(90,177,230,.28);border-radius:50%}.balance-core strong{font-size:22px;line-height:1.06}.balance-core span{max-width:230px;margin:11px auto 0;color:#b0c5d4;font-size:12px;line-height:1.35}
     .participation-balance-scene{left:810px;width:220px}.participation-balance-scene .extreme{width:102px;padding:9px;opacity:.42}.participation-balance-scene .extreme.right{left:118px}.participation-balance-scene .balance-core{left:0;top:118px;width:220px;height:168px}.participation-balance-scene .balance-core i{inset:22px}.participation-balance-scene .balance-core strong{font-size:18px;padding:0 12px}.participation-balance-scene .balance-core span{max-width:180px}
     .current-layer,.future-layer{position:absolute;left:0;top:85px;width:270px;min-height:132px;padding:20px 22px;border-radius:17px}.current-layer{border:1px solid rgba(77,162,225,.46);background:linear-gradient(135deg,rgba(9,41,78,.88),rgba(5,20,45,.84))}.future-layer{border:1px dashed rgba(66,211,201,.5);background:rgba(4,26,44,.5)}.current-layer strong,.future-layer strong{display:block;margin-top:9px;font-size:18px;line-height:1.08}.current-layer span,.future-layer span{display:block;margin-top:9px;color:#b1c5d4;font-size:11px;line-height:1.35}.bridge{position:absolute;left:0;top:150px;width:280px;display:flex;align-items:center;gap:12px;color:#79dfd8;font-size:14px;font-weight:900;letter-spacing:.05em}.bridge i{height:2px;flex:1;background:linear-gradient(90deg,#478fe0,#37d5cb)}
-    .vog-closing-scene{position:absolute;inset:30px 20px 20px 10px}.vog-closing-scene .democratic-loop{left:735px;top:330px;transform:scale(.3);transform-origin:0 0;opacity:.34}.closing-copy{position:absolute;right:10px;top:205px;width:310px;padding:18px;border-left:3px solid #64b1ff;background:linear-gradient(90deg,rgba(3,19,43,.84),transparent)}.closing-copy strong{display:block;margin-top:10px;font-size:23px;line-height:1.08}.closing-copy span{display:block;margin-top:9px;color:#c4d7e4;font-size:13px;font-weight:750}
+    .vog-closing-scene{position:absolute;inset:30px 20px 20px 10px}.vog-closing-scene .democratic-loop{left:735px;top:468px;transform:scale(.3);transform-origin:0 0;opacity:.18}.closing-copy{position:absolute;right:10px;top:205px;width:310px;padding:18px;border-left:3px solid #64b1ff;background:linear-gradient(90deg,rgba(3,19,43,.84),transparent)}.closing-copy strong{display:block;margin-top:10px;font-size:23px;line-height:1.08}.closing-copy span{display:block;margin-top:9px;color:#c4d7e4;font-size:13px;font-weight:750}
+    ${socialProfileCss(plan)}
   </style>`;
 
   const contextDateReplacement = plan.filmId === "voiceopengov" && plan.contextMode === "evergreen"
@@ -524,12 +621,12 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .replace('data-burned-in-captions="false"', 'data-burned-in-captions="true"')
     .replace("</head>", `${css}</head>`)
     .replace(
-      '<div class="frame"></div>',
-      `${semanticMotion}${brandHierarchy}${distinctiveStage}${subtitle}<div class="frame"></div>`,
+      "</main>",
+      `${profileOverlay}</main>`,
     )
     .replace(
       'data-pilot-version="1.4-final-layout"',
-      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-caption-cues="sentence-level" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-host-face-safe-zone="x560-1030:y135-535" data-host-presenter-safe-zone="x540-1030:y125-760" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
+      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-multiformat-broadcast="v3-9" data-layout-profile="${plan.layoutProfile}" data-layout-profile-width="${plan.layout.output.width}" data-layout-profile-height="${plan.layout.output.height}" data-layout-scale-only="false" data-caption-cues="sentence-level" data-caption-maximum-lines="2" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-platform-safe-zone="top:${safeArea.top};right:${safeArea.right};bottom:${safeArea.bottom};left:${safeArea.left}" data-host-face-safe-zone="${faceSafeZone}" data-host-presenter-safe-zone="x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + regions.presenter.height}" data-microphone-safe-zone="x${regions.microphone.x}-${regions.microphone.x + regions.microphone.width}:y${regions.microphone.y}-${regions.microphone.y + regions.microphone.height}" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
     );
   if (contextDateReplacement) html = html.replaceAll("SEPTEMBER 2026", contextDateReplacement);
   return html;

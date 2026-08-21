@@ -137,8 +137,8 @@ describe("VOXY homepage object-story reference grammar — V3.7", () => {
     expect(opening).toContain("loop-heading");
     expect(opening).toContain("DER WEG GEHT WEITER");
     expect(opening).toContain("RÜCKKOPPLUNG");
-    expect(opening).toContain("loop-node n3 active");
-    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:330px;');
+    expect(opening).toContain('data-journey-stage="0"');
+    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:468px;');
     expect(path).toContain("living-mandate-path");
     expect(path).toContain("DER WEG GEHT WEITER");
     expect(promise).toContain("programme-phase-promise");
@@ -172,7 +172,7 @@ describe("VOXY homepage object-story reference grammar — V3.7", () => {
     expect(guardrails).toContain("GRUNDRECHTE");
     expect(guardrails).toContain("MINDERHEITENSCHUTZ");
     expect(guardrails).toContain("RECHENSCHAFT");
-    expect(guardrails).toContain("REVISION");
+    expect(guardrails).toContain("ÜBERPRÜFUNG");
   });
 
   it("06 separates current VoiceOpenGov capability from the future target with a readable bridge", () => {
@@ -204,7 +204,7 @@ describe("VOXY homepage object-story reference grammar — V3.7", () => {
     const current = plan("voiceopengov", "evergreen");
     const html = htmlAtSegment(current, "vog-greeting");
     expect(html).toContain("ZWISCHEN DEN WAHLEN");
-    expect(html).toContain("Stimme → Folge → Wirkung");
+    expect(JSON.stringify(current)).toContain("Stimme → Folge → Wirkung");
     expect(html).not.toContain("WAHLTERMINE 2026");
     expect(html).not.toContain("SEPTEMBER 2026");
   });

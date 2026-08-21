@@ -24,6 +24,7 @@
     "test:production-guardrails": "pnpm run test:production-public-routes && pnpm run test:production-admin-review && pnpm run test:production-publish-guardrails",
     "ai:provider-smoke": "pnpm exec tsx scripts/ai-provider-smoke.ts",
     "render:voxy-homepage-reference-films": "pnpm exec tsx scripts/render-voxy-homepage-reference-films.ts",
+    "render:voxy-homepage-multiformat-previews": "pnpm exec tsx scripts/render-voxy-homepage-multiformat-previews.ts",
     "prisma:generate": "node ./scripts/prisma-generate-all.mjs",
     "postinstall": "pnpm run prisma:generate",
     "lint": "pnpm exec eslint --cache --cache-location .eslintcache --config eslint.config.js \"src/**/*.{ts,tsx}\""

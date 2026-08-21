@@ -8,6 +8,10 @@ import {
   type VoxyPilotEvidence,
 } from "./dualVoiceExplainerPilot";
 import { VOXY_FIRST_PARTY_VISUAL_BINDING } from "./firstPartyVoiceClone";
+import {
+  VOXY_HOMEPAGE_FILM_LAYOUTS,
+  type HomepageFilmLayoutProfile,
+} from "./homepageReferenceFilmLayouts";
 
 export const VOXY_HOMEPAGE_REFERENCE_FILMS_SCHEMA_VERSION =
   "voxy-homepage-reference-films-v1" as const;
@@ -336,7 +340,7 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
     id: "voiceopengov",
     title: "VoiceOpenGov Homepage Reference Film",
     proposition: "Deine Stimme endet nicht am Wahltag.",
-    cta: "Mitmachen und informiert bleiben",
+    cta: "Mitmachen. Informiert bleiben.",
     visualLanguage: "democratic_journey",
     motionVocabulary: [
       "ballot_cast",
@@ -422,8 +426,8 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
       },
       {
         id: "vog-cta",
-        text: "Deine Stimme ist mehr als ein Kreuz. Die Frage ist, was wir daraus machen.",
-        spokenText: "Deine Stimme ist mehr als ein Kreuz. Die Frage ist, was wir daraus machen.",
+        text: "Deine Stimme ist mehr als ein Kreuz. Mitmachen. Informiert bleiben.",
+        spokenText: "Deine Stimme ist mehr als ein Kreuz. Mitmachen. Informiert bleiben.",
         pauseAfterMs: 0,
         contexts: bothModes,
       },
@@ -509,8 +513,11 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
   contextMode: VoxyHomepageContextMode;
   exactHeadSha: string;
   speechDurationsMs: readonly number[];
+  layoutProfile?: HomepageFilmLayoutProfile;
 }) {
   const definition = VOXY_HOMEPAGE_REFERENCE_FILMS[input.filmId];
+  const layoutProfile = input.layoutProfile ?? "landscape_16_9";
+  const layout = VOXY_HOMEPAGE_FILM_LAYOUTS[layoutProfile];
   const segments = filmSegments(input.filmId, input.contextMode);
   if (segments.length !== input.speechDurationsMs.length) {
     throw new Error("homepage_film_speech_duration_count_mismatch");
@@ -697,12 +704,15 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
     cta: definition.cta,
     visualLanguage: definition.visualLanguage,
     contextMode: input.contextMode,
+    layoutProfile,
+    layout,
     exactHeadSha: input.exactHeadSha,
     visualMasterHeadSha: VOXY_FIRST_PARTY_VISUAL_BINDING.visualMasterHeadSha,
     output: {
       ...VOXY_HOMEPAGE_REFERENCE_FILMS_OUTPUT[input.filmId],
-      width: 1920,
-      height: 1080,
+      width: layout.output.width,
+      height: layout.output.height,
+      aspectRatio: layout.output.aspectRatio,
       fps: 24,
       durationMs: totalDurationMs,
       frameCount: Math.ceil((totalDurationMs * 24) / 1_000),
@@ -722,7 +732,14 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
     canonicalNarrationArchitecture: "single_voice_default",
     canonicalVoxyVoice: "D1 Conversational Dynamic",
     canonicalEditorialVoice: "W1 Natural Editorial / parked optional layer",
-    captions: { sidecarsOnly: false, burnedIn: true, languages: ["de"] },
+    captions: {
+      sidecarsOnly: false,
+      burnedIn: true,
+      languages: ["de"],
+      cueMode: "semantic_sentence_chunks",
+      maximumVisualLines: 2,
+      stablePositionPerProfile: true,
+    },
     objectContinuity: {
       sameEvidenceId: true,
       sameVisualIdentity: true,
@@ -755,9 +772,10 @@ export function buildVoxyHomepageReferenceFilmPlan(input: {
       },
       dynamicEvidence: {
         dataDriven: true,
-        maximumFullCards: 3,
+        maximumFullCards: layoutProfile === "landscape_16_9" ? 3 : 1,
         overflowBehavior: "compact_older_by_priority_and_recency",
         fixedEvidenceCount: false,
+        profileBehavior: layout.evidenceMemory,
       },
       textMotion: {
         blinking: false,
@@ -807,8 +825,8 @@ export function validateVoxyHomepageReferenceFilmPlan(
 
   if (!/^[0-9a-f]{40}$/.test(plan.exactHeadSha)) errors.push("exact_head_invalid");
   if (
-    plan.output.width !== 1920 ||
-    plan.output.height !== 1080 ||
+    plan.output.width !== plan.layout.output.width ||
+    plan.output.height !== plan.layout.output.height ||
     plan.output.fps !== 24 ||
     duration < plan.output.durationSeconds.min ||
     duration > plan.output.durationSeconds.max
@@ -881,6 +899,8 @@ export function validateVoxyHomepageReferenceFilmPlan(
   if (
     plan.captions.sidecarsOnly ||
     !plan.captions.burnedIn ||
+    plan.captions.maximumVisualLines !== 2 ||
+    plan.captions.cueMode !== "semantic_sentence_chunks" ||
     plan.lowerThirdTimeline.some(
       (entry) => entry.captionMirror || entry.blinking || entry.wordByWordAnimation,
     )

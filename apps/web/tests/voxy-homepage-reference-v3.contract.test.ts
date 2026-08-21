@@ -139,7 +139,7 @@ describe("VOXY homepage reference V3.7 — preserved geometry and context locks"
     const participation = htmlAtSegment(current, "vog-participation-balance");
     const offer = htmlAtSegment(current, "vog-current-offer");
 
-    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:330px;');
+    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:468px;');
     expect(programme).toContain('.programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;');
     expect(participation).toContain('.participation-balance-scene{left:810px;width:220px}');
     expect(participation).toContain('.guardrail{padding:9px 11px;');

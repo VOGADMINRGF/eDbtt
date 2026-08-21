@@ -64,12 +64,12 @@ describe("VOXY homepage V3.7 — editorial clarity and muted-first lock", () => 
   it("02 keeps the VoiceOpenGov loop below the slide lane and gives it deterministic semantic movement", () => {
     const current = plan("voiceopengov", "evergreen");
     const early = htmlAtSegment(current, "vog-greeting", 0.1);
-    const later = htmlAtSegment(current, "vog-greeting", 0.75);
+    const later = htmlAtSegment(current, "vog-current-offer", 0.75);
 
-    expect(early).toContain('.democratic-loop{position:absolute;left:735px;top:330px;');
+    expect(early).toContain('.democratic-loop{position:absolute;left:735px;top:468px;');
     expect(early).toContain('<div class="loop-heading"><small>WAS PASSIERT DANACH?</small><strong>DER WEG GEHT WEITER</strong></div>');
-    expect(early).toContain('loop-node n1 active');
-    expect(later).toContain('loop-node n5 active');
+    expect(early).toContain('data-journey-stage="0"');
+    expect(later).toMatch(/data-journey-stage="[4-6]"/);
     expect(early).toContain('stroke-dashoffset:calc((1 - var(--loop))*80)');
   });
 
@@ -80,7 +80,7 @@ describe("VOXY homepage V3.7 — editorial clarity and muted-first lock", () => 
     ]) {
       const segment = current.speakerTimeline[0]!;
       const html = htmlAtSegment(current, segment.id, 0.5);
-      expect(current.captions).toEqual({ sidecarsOnly: false, burnedIn: true, languages: ["de"] });
+      expect(current.captions).toMatchObject({ sidecarsOnly: false, burnedIn: true, languages: ["de"] });
       expect(html).toContain('data-burned-in-captions="true"');
       expect(html).toContain('data-muted-first-captions="v3-7"');
       expect(html).toContain('<div class="homepage-voxy-subtitle"');

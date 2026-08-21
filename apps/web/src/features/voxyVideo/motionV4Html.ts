@@ -23,6 +23,13 @@ export type VoxyMotionV4EmbeddedAssets = Readonly<{
 
 export type VoxyMotionV4Format = "16:9" | "9:16" | "1:1";
 
+export type VoxyMotionV4ViewportGeometry = Readonly<{
+  width: number;
+  height: number;
+  scale: number;
+  translateX: number;
+}>;
+
 const formatGeometry = {
   "16:9": { width: 1920, height: 1080, scale: 1, translateX: 0 },
   "9:16": { width: 720, height: 1280, scale: 1280 / 1080, translateX: -560 },
@@ -173,6 +180,7 @@ function renderVoxyMotionV4FrameHtmlBase(input: {
   assets: VoxyMotionV4EmbeddedAssets;
   frameIndex: number;
   format?: VoxyMotionV4Format;
+  viewportGeometry?: VoxyMotionV4ViewportGeometry;
   mouthProfile?: "v4" | "v4.1";
   displayFrameIndex?: number;
   mouthOverride?: Readonly<{
@@ -189,7 +197,7 @@ function renderVoxyMotionV4FrameHtmlBase(input: {
   }>;
 }): string {
   const { plan, assets, frameIndex, format = "16:9", mouthProfile = "v4" } = input;
-  const geometry = formatGeometry[format];
+  const geometry = input.viewportGeometry ?? formatGeometry[format];
   const state = {
     ...buildVoxyMotionV4FrameState({ plan, frameIndex }),
     ...input.mouthOverride,
@@ -197,7 +205,7 @@ function renderVoxyMotionV4FrameHtmlBase(input: {
   const editorial = input.editorialOverride ?? state.segment;
   const waveformAmplitude = clamp01(input.waveformAmplitude ?? 0);
   const waveformScale = 1 + waveformAmplitude * 0.024;
-  const portrait = format !== "16:9";
+  const portrait = geometry.height > geometry.width;
   const studioStage = `translate(${VOXY_STATIC_CANON_FINAL_CAMERA.translateX}px,${VOXY_STATIC_CANON_FINAL_CAMERA.translateY}px) scale(${VOXY_STATIC_CANON_FINAL_CAMERA.scale})`;
   const headFrame = {
     headRotationDegrees: state.headRotation,

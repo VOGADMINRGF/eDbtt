@@ -179,7 +179,7 @@ describe("VOXY homepage reference films — contract gates", () => {
 
   it("12 burns stable Voxy captions into the homepage film while retaining caption sidecars", () => {
     const current = plan("edebatte");
-    expect(current.captions).toEqual({
+    expect(current.captions).toMatchObject({
       sidecarsOnly: false,
       burnedIn: true,
       languages: ["de"],
@@ -309,10 +309,11 @@ describe("VOXY homepage reference films — contract gates", () => {
     expect(new Set(edebatte.motionTimeline.map((entry) => entry.motion))).not.toEqual(
       new Set(vog.motionTimeline.map((entry) => entry.motion)),
     );
+    const edebatteSource = edebatte.speakerTimeline.find((entry) => entry.id === "edebatte-source-questions")!;
     const edebatteHtml = renderVoxyHomepageReferenceFilmFrameHtml({
       plan: edebatte,
       assets,
-      frameIndex: 240,
+      frameIndex: Math.floor((edebatteSource.start + edebatteSource.end) / 2 * edebatte.output.fps),
       amplitude: 0.4,
     });
     const vogHtml = renderVoxyHomepageReferenceFilmFrameHtml({

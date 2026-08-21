@@ -26,6 +26,10 @@ import {
   type VoxyHomepageFilmId,
 } from "../src/features/voxyVideo/homepageReferenceFilms";
 import {
+  VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS,
+  type HomepageFilmLayoutProfile,
+} from "../src/features/voxyVideo/homepageReferenceFilmLayouts";
+import {
   contextualizeVoxyHomepageReferenceFilmPlan,
   validateVoxyHomepageContextIsolation,
 } from "../src/features/voxyVideo/homepageReferenceFilmsContext";
@@ -59,6 +63,7 @@ const FILM_IDS = ["edebatte", "voiceopengov"] as const;
 
 async function renderFilm(input: {
   filmId: VoxyHomepageFilmId;
+  layoutProfile: HomepageFilmLayoutProfile;
   repositoryRoot: string;
   outputBase: string;
   exactHeadSha: string;
@@ -71,10 +76,14 @@ async function renderFilm(input: {
   selectionManifestSha256: string;
   assets: VoxyMotionV4EmbeddedAssets;
 }): Promise<Record<string, unknown>> {
-  const { filmId, repositoryRoot } = input;
+  const { filmId, layoutProfile, repositoryRoot } = input;
   const contextMode = filmId === "voiceopengov" ? "evergreen" : "election_window";
   const outputContract = VOXY_HOMEPAGE_REFERENCE_FILMS_OUTPUT[filmId];
-  const outputRoot = path.resolve(input.outputBase, outputContract.directory);
+  const outputRoot = path.resolve(
+    input.outputBase,
+    outputContract.directory,
+    layoutProfile === "landscape_16_9" ? "" : layoutProfile,
+  );
   await rm(outputRoot, { recursive: true, force: true });
   await mkdir(outputRoot, { recursive: true, mode: 0o700 });
   await assertOutsideRepository(repositoryRoot, outputRoot, `private_${filmId}_output`);
@@ -130,6 +139,7 @@ async function renderFilm(input: {
       contextMode,
       exactHeadSha: input.exactHeadSha,
       speechDurationsMs,
+      layoutProfile,
     });
     const planErrors = validateVoxyHomepageReferenceFilmPlan(rawPlan);
     if (planErrors.length) throw new Error(`${filmId}_plan_invalid:${planErrors.join(",")}`);
@@ -266,7 +276,7 @@ async function renderFilm(input: {
     const levels = audioLevelsFromWav(await readFile(masterAudio), plan.output.fps);
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
-      viewport: { width: 1920, height: 1080 },
+      viewport: { width: plan.output.width, height: plan.output.height },
       deviceScaleFactor: 1,
       colorScheme: "dark",
     });
@@ -307,6 +317,10 @@ async function renderFilm(input: {
     if (externalRequests.length) throw new Error(`${filmId}_external_render_request_detected`);
 
     const mp4 = path.resolve(outputRoot, outputContract.mp4);
+    const contactSheetCellWidth = 360;
+    const contactSheetCellHeight = Math.round(
+      (contactSheetCellWidth * plan.output.height) / plan.output.width,
+    );
     run("ffmpeg", [
       "-y",
       "-framerate",
@@ -374,7 +388,7 @@ async function renderFilm(input: {
       "-y",
       ...reviewFrames.flatMap((entry) => ["-i", path.resolve(outputRoot, entry.file)]),
       "-filter_complex",
-      "[0:v]scale=360:203[a];[1:v]scale=360:203[b];[2:v]scale=360:203[c];[3:v]scale=360:203[d];[4:v]scale=360:203[e];[5:v]scale=360:203[f];[6:v]scale=360:203[g];[7:v]scale=360:203[h];[8:v]scale=360:203[i];[9:v]scale=360:203[j];[a][b][c][d][e]hstack=inputs=5[top];[f][g][h][i][j]hstack=inputs=5[bottom];[top][bottom]vstack=inputs=2",
+      `[0:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[a];[1:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[b];[2:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[c];[3:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[d];[4:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[e];[5:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[f];[6:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[g];[7:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[h];[8:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[i];[9:v]scale=${contactSheetCellWidth}:${contactSheetCellHeight}[j];[a][b][c][d][e]hstack=inputs=5[top];[f][g][h][i][j]hstack=inputs=5[bottom];[top][bottom]vstack=inputs=2`,
       "-frames:v",
       "1",
       path.resolve(outputRoot, outputContract.contactSheet),
@@ -387,8 +401,8 @@ async function renderFilm(input: {
     if (
       !video ||
       !audio ||
-      Number(video.width) !== 1920 ||
-      Number(video.height) !== 1080 ||
+      Number(video.width) !== plan.output.width ||
+      Number(video.height) !== plan.output.height ||
       video.avg_frame_rate !== "24/1" ||
       mediaDuration < outputContract.durationSeconds.min ||
       mediaDuration > outputContract.durationSeconds.max
@@ -419,7 +433,7 @@ async function renderFilm(input: {
 
     const manifest = {
       schemaVersion: "voxy-homepage-reference-film-private-render-v1",
-      artifactId: `voxy-${filmId}-homepage-reference-v1-${input.exactHeadSha.slice(0, 12)}`,
+      artifactId: `voxy-${filmId}-homepage-reference-v1-${layoutProfile}-${input.exactHeadSha.slice(0, 12)}`,
       taskId: "VOXY-HOMEPAGE-REFERENCE-FILMS-01",
       exactHeadSha: input.exactHeadSha,
       filmId,
@@ -427,9 +441,11 @@ async function renderFilm(input: {
       proposition: plan.proposition,
       cta: plan.cta,
       contextMode: plan.contextMode,
+      layoutProfile,
+      layout: plan.layout,
       output: {
-        width: 1920,
-        height: 1080,
+        width: plan.output.width,
+        height: plan.output.height,
         fps: 24,
         frameCount: plan.output.frameCount,
         durationMs: plan.output.durationMs,
@@ -476,6 +492,7 @@ async function renderFilm(input: {
     console.info(
       JSON.stringify({
         filmId,
+        layoutProfile,
         status: "TECHNICAL_PASS",
         output: mp4,
         contextMode: plan.contextMode,
@@ -486,7 +503,7 @@ async function renderFilm(input: {
         motionEventCount: plan.motionTimeline.length,
       }),
     );
-    return { filmId, outputRoot, mp4, manifest };
+    return { filmId, layoutProfile, outputRoot, mp4, manifest };
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
@@ -563,23 +580,36 @@ async function main(): Promise<void> {
   };
 
   const results = [];
+  const requestedLayoutProfile = argument("layout-profile") as HomepageFilmLayoutProfile | null;
+  if (
+    requestedLayoutProfile &&
+    !VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS.includes(requestedLayoutProfile)
+  ) {
+    throw new Error(`unsupported_homepage_film_layout_profile:${requestedLayoutProfile}`);
+  }
+  const layoutProfiles = requestedLayoutProfile
+    ? [requestedLayoutProfile]
+    : VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS;
   for (const filmId of FILM_IDS) {
-    results.push(
-      await renderFilm({
-        filmId,
-        repositoryRoot,
-        outputBase,
-        exactHeadSha,
-        python,
-        modelDir,
-        reference,
-        referenceSegmentSha256: acceptedReference.expectedSegmentSha256,
-        d1Evidence,
-        acceptedEvidenceMetrics: audioMetrics(d1Evidence),
-        selectionManifestSha256: acceptedReference.selectionManifestSha256,
-        assets,
-      }),
-    );
+    for (const layoutProfile of layoutProfiles) {
+      results.push(
+        await renderFilm({
+          filmId,
+          layoutProfile,
+          repositoryRoot,
+          outputBase,
+          exactHeadSha,
+          python,
+          modelDir,
+          reference,
+          referenceSegmentSha256: acceptedReference.expectedSegmentSha256,
+          d1Evidence,
+          acceptedEvidenceMetrics: audioMetrics(d1Evidence),
+          selectionManifestSha256: acceptedReference.selectionManifestSha256,
+          assets,
+        }),
+      );
+    }
   }
 
   console.info(
@@ -588,7 +618,11 @@ async function main(): Promise<void> {
         status: "VOXY_HOMEPAGE_REFERENCE_FILMS_TECHNICAL_PASS",
         exactHeadSha,
         outputBase,
-        films: results.map((entry) => ({ filmId: entry.filmId, mp4: entry.mp4 })),
+        films: results.map((entry) => ({
+          filmId: entry.filmId,
+          layoutProfile: entry.layoutProfile,
+          mp4: entry.mp4,
+        })),
         productionEligible: false,
         autoPublish: false,
       },

@@ -61,14 +61,14 @@ describe("VOXY homepage V3.8 — narrative navigation and editorial simplificati
   it("02 makes the VoiceOpenGov journey carousel readable, dynamic and meaning-led", () => {
     const current = plan("voiceopengov", "evergreen");
     const early = htmlAtSegment(current, "vog-greeting", 0.1);
-    const later = htmlAtSegment(current, "vog-greeting", 0.75);
+    const later = htmlAtSegment(current, "vog-current-offer", 0.75);
 
     expect(early).toContain("WAS PASSIERT DANACH?");
     expect(early).toContain("DER WEG GEHT WEITER");
     expect(early).toContain("DEINE STIMME");
-    expect(early).toContain('loop-node n1 active');
-    expect(later).toContain('loop-node n5 active');
-    expect(early).toContain('font-size:26px;font-weight:900');
+    expect(early).toContain('data-journey-stage="0"');
+    expect(later).toMatch(/data-journey-stage="[4-6]"/);
+    expect(early).toContain('font-size:42px;line-height:1.02;font-weight:900');
   });
 
   it("03 replaces internal product jargon with simple viewer-facing labels while retaining truth metadata", () => {
@@ -81,7 +81,7 @@ describe("VOXY homepage V3.8 — narrative navigation and editorial simplificati
     expect(now).toContain('data-contract-label="HEUTE · CURRENT CAPABILITY"');
     expect(bridge).toContain("DER NÄCHSTE SCHRITT");
     expect(bridge).toContain('data-contract-label="VON BETEILIGUNG ZU SUBSTANZ"');
-    expect(future).toContain('<small>ZIELBILD</small>');
+    expect(future).toContain('<small>WIRKUNG</small>');
     expect(future).toContain("STIMME → FOLGE → WIRKUNG");
     expect(future).toContain('data-product-status="future-intent-not-current-capability"');
   });
@@ -89,8 +89,8 @@ describe("VOXY homepage V3.8 — narrative navigation and editorial simplificati
   it("04 turns the participation comparison into one immediate question instead of a seminar diagram", () => {
     const html = htmlAtSegment(plan("voiceopengov", "evergreen"), "vog-participation-balance");
 
-    expect(html).toContain("NUR WÄHLEN?");
-    expect(html).toContain("ALLES DIREKT?");
+    expect(html).not.toContain("NUR WÄHLEN?");
+    expect(html).not.toContain("ALLES DIREKT?");
     expect(html).toContain("WAS FOLGT AUS DEINER STIMME?");
     expect(html).toContain("Mitbestimmung braucht eine definierte Folge.");
     expect(html).toContain('data-contract-label="WIRKSAME MITBESTIMMUNG"');

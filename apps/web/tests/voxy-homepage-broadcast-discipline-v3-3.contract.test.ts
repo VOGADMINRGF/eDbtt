@@ -61,6 +61,12 @@ function htmlInsidePauseAfter(current: ReturnType<typeof plan>, segmentId: strin
   return htmlAt(current, at);
 }
 
+function rootSegmentId(html: string): string {
+  const match = html.match(/<main class="viewport"[^>]*data-homepage-segment-id="([^"]+)"/);
+  if (!match?.[1]) throw new Error("missing_root_segment_id");
+  return match[1];
+}
+
 describe("VOXY homepage broadcast discipline — V3.7 continuity", () => {
   it("01 holds the previous scene and subtitle through narration pauses instead of flashing the final CTA", () => {
     const edebatte = plan("edebatte", "election_window");
@@ -69,11 +75,9 @@ describe("VOXY homepage broadcast discipline — V3.7 continuity", () => {
     const edPause = htmlInsidePauseAfter(edebatte, "edebatte-source-questions");
     const vogPause = htmlInsidePauseAfter(vog, "vog-after-election");
 
-    expect(edPause).toContain('data-homepage-segment-id="edebatte-source-questions"');
-    expect(edPause).not.toContain('data-homepage-segment-id="edebatte-cta"');
+    expect(rootSegmentId(edPause)).toBe("edebatte-source-questions");
     expect(edPause).toContain(edebatte.speakerTimeline.find((entry) => entry.id === "edebatte-source-questions")!.text);
-    expect(vogPause).toContain('data-homepage-segment-id="vog-after-election"');
-    expect(vogPause).not.toContain('data-homepage-segment-id="vog-cta"');
+    expect(rootSegmentId(vogPause)).toBe("vog-after-election");
     expect(vogPause).toContain(vog.speakerTimeline.find((entry) => entry.id === "vog-after-election")!.text);
     expect(edPause).toContain('data-pause-hold="previous-segment"');
   });
@@ -97,7 +101,7 @@ describe("VOXY homepage broadcast discipline — V3.7 continuity", () => {
     const path = htmlAtSegment(current, "vog-after-election");
     const balance = htmlAtSegment(current, "vog-participation-balance");
 
-    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:330px;');
+    expect(opening).toContain('.democratic-loop{position:absolute;left:735px;top:468px;');
     expect(opening).toContain("loop-heading");
     expect(path).toContain('.living-mandate-path{position:absolute;left:690px;top:125px;width:300px;height:390px}');
     expect(balance).toContain('.programme-gap-scene,.demophobie-space,.participation-balance-scene,.vog-offer-scene{position:absolute;left:690px;top:125px;width:300px;height:390px}');
