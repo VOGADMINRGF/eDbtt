@@ -52,6 +52,53 @@ const REVIEW_MOMENTS = {
   readonly (readonly [string, string, number])[]
 >;
 
+type PreviewTarget = Readonly<{
+  filmId: VoxyHomepageFilmId;
+  layoutProfile: HomepageFilmLayoutProfile;
+  moments: readonly (readonly [string, string, number])[];
+}>;
+
+const SOCIAL_CHROME_V3_10_2_TARGETS = [
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "vertical_9_16",
+    moments: [
+      REVIEW_MOMENTS.voiceopengov[0],
+      REVIEW_MOMENTS.voiceopengov[1],
+      REVIEW_MOMENTS.voiceopengov[6],
+    ],
+  },
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "feed_4_5",
+    moments: [REVIEW_MOMENTS.voiceopengov[0], REVIEW_MOMENTS.voiceopengov[1]],
+  },
+  {
+    filmId: "edebatte",
+    layoutProfile: "vertical_9_16",
+    moments: [
+      REVIEW_MOMENTS.edebatte[0],
+      REVIEW_MOMENTS.edebatte[4],
+      REVIEW_MOMENTS.edebatte[6],
+    ],
+  },
+  {
+    filmId: "edebatte",
+    layoutProfile: "feed_4_5",
+    moments: [REVIEW_MOMENTS.edebatte[0]],
+  },
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "square_1_1",
+    moments: [REVIEW_MOMENTS.voiceopengov[1]],
+  },
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "landscape_16_9",
+    moments: [REVIEW_MOMENTS.voiceopengov[1]],
+  },
+] as const satisfies readonly PreviewTarget[];
+
 function cliArgument(name: string): string | null {
   const prefix = `--${name}=`;
   return process.argv.find((entry) => entry.startsWith(prefix))?.slice(prefix.length) ?? null;
@@ -117,8 +164,17 @@ async function contactSheet(input: {
 
 async function main(): Promise<void> {
   const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
+  const reviewSet = cliArgument("review-set");
+  if (reviewSet !== null && reviewSet !== "social-chrome-v3-10-2") {
+    throw new Error(`unsupported_preview_review_set:${reviewSet}`);
+  }
   const outputRoot = path.resolve(
-    cliArgument("output") ?? path.join(process.env.TMPDIR ?? "/tmp", "voxy-homepage-v3-10-1-previews"),
+    cliArgument("output") ?? path.join(
+      process.env.TMPDIR ?? "/tmp",
+      reviewSet === "social-chrome-v3-10-2"
+        ? "voxy-homepage-v3-10-2-previews"
+        : "voxy-homepage-v3-10-1-previews",
+    ),
   );
   await mkdir(outputRoot, { recursive: true, mode: 0o700 });
   await assertOutsideRepository(repositoryRoot, outputRoot, "private_multiformat_preview_output");
@@ -148,53 +204,60 @@ async function main(): Promise<void> {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ colorScheme: "dark" });
   const manifest = [] as Array<Record<string, unknown>>;
-
-  try {
-    for (const filmId of ["voiceopengov", "edebatte"] as const) {
-      for (const layoutProfile of VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS) {
-        const plan = buildPreviewPlan(filmId, layoutProfile, head);
-        const profileRoot = path.resolve(outputRoot, filmId, layoutProfile);
-        await mkdir(profileRoot, { recursive: true, mode: 0o700 });
-        const files: string[] = [];
-        const labels: string[] = [];
-        await page.setViewportSize({ width: plan.output.width, height: plan.output.height });
-
-        for (const [label, segmentId, progress] of REVIEW_MOMENTS[filmId]) {
-          const segment = plan.speakerTimeline.find((entry) => entry.id === segmentId);
-          if (!segment) throw new Error(`preview_segment_missing:${filmId}:${segmentId}`);
-          const at = segment.start + (segment.end - segment.start) * progress;
-          const file = path.resolve(profileRoot, `${label}.png`);
-          await setHtml(
-            page,
-            renderVoxyHomepageReferenceFilmFrameHtml({
-              plan,
-              assets,
-              frameIndex: Math.floor(at * plan.output.fps),
-              amplitude: 0.35,
-            }),
-          );
-          await page.locator(".viewport").screenshot({ path: file, type: "png" });
-          files.push(file);
-          labels.push(label);
-        }
-
-        const sheet = path.resolve(profileRoot, "contact-sheet.png");
-        await contactSheet({
-          page,
-          files,
-          labels,
-          output: sheet,
-          aspectRatio: plan.output.height / plan.output.width,
-        });
-        manifest.push({
+  const targets: readonly PreviewTarget[] = reviewSet === "social-chrome-v3-10-2"
+    ? SOCIAL_CHROME_V3_10_2_TARGETS
+    : (["voiceopengov", "edebatte"] as const).flatMap((filmId) =>
+        VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS.map((layoutProfile) => ({
           filmId,
           layoutProfile,
-          output: plan.layout.output,
-          safeArea: plan.layout.safeArea,
-          frames: labels,
-          contactSheet: path.relative(outputRoot, sheet),
-        });
+          moments: REVIEW_MOMENTS[filmId],
+        })),
+      );
+
+  try {
+    for (const { filmId, layoutProfile, moments } of targets) {
+      const plan = buildPreviewPlan(filmId, layoutProfile, head);
+      const profileRoot = path.resolve(outputRoot, filmId, layoutProfile);
+      await mkdir(profileRoot, { recursive: true, mode: 0o700 });
+      const files: string[] = [];
+      const labels: string[] = [];
+      await page.setViewportSize({ width: plan.output.width, height: plan.output.height });
+
+      for (const [label, segmentId, progress] of moments) {
+        const segment = plan.speakerTimeline.find((entry) => entry.id === segmentId);
+        if (!segment) throw new Error(`preview_segment_missing:${filmId}:${segmentId}`);
+        const at = segment.start + (segment.end - segment.start) * progress;
+        const file = path.resolve(profileRoot, `${label}.png`);
+        await setHtml(
+          page,
+          renderVoxyHomepageReferenceFilmFrameHtml({
+            plan,
+            assets,
+            frameIndex: Math.floor(at * plan.output.fps),
+            amplitude: 0.35,
+          }),
+        );
+        await page.locator(".viewport").screenshot({ path: file, type: "png" });
+        files.push(file);
+        labels.push(label);
       }
+
+      const sheet = path.resolve(profileRoot, "contact-sheet.png");
+      await contactSheet({
+        page,
+        files,
+        labels,
+        output: sheet,
+        aspectRatio: plan.output.height / plan.output.width,
+      });
+      manifest.push({
+        filmId,
+        layoutProfile,
+        output: plan.layout.output,
+        safeArea: plan.layout.safeArea,
+        frames: labels,
+        contactSheet: path.relative(outputRoot, sheet),
+      });
     }
   } finally {
     await page.close();
@@ -204,9 +267,12 @@ async function main(): Promise<void> {
   await writeFile(
     path.resolve(outputRoot, "preview-manifest.json"),
     `${JSON.stringify({
-      schemaVersion: "voxy-homepage-multiformat-preview-v3-10-1",
+      schemaVersion: reviewSet === "social-chrome-v3-10-2"
+        ? "voxy-homepage-social-chrome-cleanup-preview-v3-10-2"
+        : "voxy-homepage-multiformat-preview-v3-10-1",
       mobileReadabilityLock: "v3-10",
       journeySemanticSync: "v3-10-1",
+      socialChromeCleanup: reviewSet === "social-chrome-v3-10-2" ? "v3-10-2" : null,
       exactHeadSha: head,
       previews: manifest,
       humanHomepageFilmAcceptance: "pending",
