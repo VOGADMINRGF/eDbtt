@@ -118,7 +118,7 @@ async function contactSheet(input: {
 async function main(): Promise<void> {
   const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
   const outputRoot = path.resolve(
-    cliArgument("output") ?? path.join(process.env.TMPDIR ?? "/tmp", "voxy-homepage-v3-10-previews"),
+    cliArgument("output") ?? path.join(process.env.TMPDIR ?? "/tmp", "voxy-homepage-v3-10-1-previews"),
   );
   await mkdir(outputRoot, { recursive: true, mode: 0o700 });
   await assertOutsideRepository(repositoryRoot, outputRoot, "private_multiformat_preview_output");
@@ -204,8 +204,9 @@ async function main(): Promise<void> {
   await writeFile(
     path.resolve(outputRoot, "preview-manifest.json"),
     `${JSON.stringify({
-      schemaVersion: "voxy-homepage-multiformat-preview-v3-10",
+      schemaVersion: "voxy-homepage-multiformat-preview-v3-10-1",
       mobileReadabilityLock: "v3-10",
+      journeySemanticSync: "v3-10-1",
       exactHeadSha: head,
       previews: manifest,
       humanHomepageFilmAcceptance: "pending",

@@ -67,7 +67,8 @@ describe("VOXY homepage V3.8 — narrative navigation and editorial simplificati
     expect(early).toContain("DER WEG GEHT WEITER");
     expect(early).toContain("DEINE STIMME");
     expect(early).toContain('data-journey-stage="0"');
-    expect(later).toMatch(/data-journey-stage="[4-6]"/);
+    expect(later).toContain('data-journey-stage="3"');
+    expect(later).toContain('data-journey-semantic-stage="decision"');
     expect(early).toContain('font-size:42px;line-height:1.02;font-weight:900');
   });
 

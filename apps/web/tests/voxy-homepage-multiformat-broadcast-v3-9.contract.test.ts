@@ -180,7 +180,8 @@ describe("VOXY homepage V3.9 — true multi-format broadcast system", () => {
     expect(early).toContain("WIRKUNG");
     expect(early).toContain("RÜCKKOPPLUNG");
     expect(early).toContain('data-journey-stage="0"');
-    expect(late).toMatch(/data-journey-stage="[4-6]"/);
+    expect(late).toContain('data-journey-stage="3"');
+    expect(late).toContain('data-journey-semantic-stage="decision"');
     expect(late).toContain("loop-node n1");
     expect(late).toContain("complete");
     expect(late).toContain("upcoming");

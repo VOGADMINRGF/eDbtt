@@ -46,13 +46,6 @@ function segmentOrdinal(plan: VoxyHomepageReferenceFilmPlan, at: number): number
   return Math.max(0, plan.speakerTimeline.findIndex((entry) => entry.id === segment.id));
 }
 
-function filmProgress(plan: VoxyHomepageReferenceFilmPlan, at: number): number {
-  const first = plan.speakerTimeline[0];
-  const last = plan.speakerTimeline.at(-1);
-  if (!first || !last) return 0;
-  return clamp01((at - first.start) / Math.max(0.001, last.end - first.start));
-}
-
 function rangeProgress(
   plan: VoxyHomepageReferenceFilmPlan,
   at: number,
@@ -158,6 +151,65 @@ function phaseEnterForRange(
   const last = plan.speakerTimeline.find((entry) => entry.id === lastId) ?? first;
   if (!first || !last) return phaseEnterForSegment(plan, at, desiredPhaseCount);
   return readablePhaseEnterProgress(first.start, last.end, at, desiredPhaseCount);
+}
+
+export type VogJourneyStage =
+  | "origin"
+  | "programme"
+  | "negotiation"
+  | "decision"
+  | "implementation"
+  | "effect"
+  | "feedback";
+
+const VOG_JOURNEY_STAGE_SEQUENCE = [
+  "programme",
+  "negotiation",
+  "decision",
+  "implementation",
+  "effect",
+  "feedback",
+] as const satisfies readonly VogJourneyStage[];
+
+const VOG_JOURNEY_STAGE_LABELS: Record<VogJourneyStage, string> = {
+  origin: "DEINE STIMME",
+  programme: "PROGRAMM",
+  negotiation: "VERHANDLUNG",
+  decision: "BESCHLUSS",
+  implementation: "UMSETZUNG",
+  effect: "WIRKUNG",
+  feedback: "RÜCKKOPPLUNG",
+};
+
+export function resolveVogJourneyStage(
+  plan: VoxyHomepageReferenceFilmPlan,
+  at: number,
+): VogJourneyStage {
+  if (plan.filmId !== "voiceopengov") return "origin";
+  const segment = currentSegment(plan, at);
+
+  if (segment.id === "vog-after-election") {
+    return VOG_JOURNEY_STAGE_SEQUENCE[
+      phaseIndexForSegment(plan, at, 5)
+    ] ?? "programme";
+  }
+  if (segment.id === "vog-program-not-contract") {
+    return phaseIndexForSegment(plan, at, 3) === 2 ? "decision" : "programme";
+  }
+  if (
+    segment.id === "vog-demophobie" ||
+    segment.id === "vog-participation-balance" ||
+    segment.id === "vog-current-offer" ||
+    segment.id === "vog-synthesis"
+  ) {
+    return "decision";
+  }
+  return "origin";
+}
+
+function vogJourneyStageIndex(stage: VogJourneyStage): number {
+  if (stage === "origin") return 0;
+  return VOG_JOURNEY_STAGE_SEQUENCE.indexOf(stage) + 1;
 }
 
 function subtitleCue(text: string, progress: number): string {
@@ -350,21 +402,27 @@ function renderVoiceOpenGovJourney(
       : currentOffer
         ? phaseEnterForSegment(plan, at, 3)
         : clamp01((at - segment.start) / STATE_SETTLE_SECONDS);
-  const journeyProgress = filmProgress(plan, at);
-  const loopPhase = Math.min(6, Math.floor(journeyProgress * 7));
+  const journeyStage = resolveVogJourneyStage(plan, at);
+  const loopPhase = vogJourneyStageIndex(journeyStage);
+  const journeyProgress = loopPhase / VOG_JOURNEY_STAGE_SEQUENCE.length;
 
   const loopLabels = ["PROGRAMM", "VERHANDLUNG", "BESCHLUSS", "UMSETZUNG", "WIRKUNG", "RÜCKKOPPLUNG"];
-  const activeLoopLabel = loopPhase === 0 ? "DEINE STIMME" : loopLabels[loopPhase - 1]!;
+  const activeLoopLabel = VOG_JOURNEY_STAGE_LABELS[journeyStage];
+  const visibleStageLabelCount = cta
+    ? 0
+    : plan.layoutProfile === "landscape_16_9"
+      ? 6
+      : 1;
   const loopNodes = loopLabels
     .map((label, index) => `<div class="loop-node n${index + 1} ${index + 1 === loopPhase ? "active" : ""} ${index + 1 < loopPhase ? "complete" : "upcoming"}" data-stage-index="${index + 1}" data-stage-label="${label}"><i></i><span>${label}</span></div>`)
     .join("");
   const mobileNavigationMode = plan.layoutProfile === "landscape_16_9"
     ? "broadcast-full-journey"
     : "progress-dots-active-label";
-  const loop = `<div class="democratic-loop" data-journey-stage="${loopPhase}" data-mobile-navigation-mode="${mobileNavigationMode}" data-visible-stage-label-count="${plan.layoutProfile === "landscape_16_9" ? 6 : 1}" style="--loop:${journeyProgress.toFixed(4)}">
+  const loop = `<div class="democratic-loop" data-journey-stage="${loopPhase}" data-journey-semantic-stage="${journeyStage}" data-mobile-navigation-mode="${mobileNavigationMode}" data-visible-stage-label-count="${visibleStageLabelCount}" style="--loop:${journeyProgress.toFixed(4)}">
     <div class="loop-heading"><small>WAS PASSIERT DANACH?</small><strong>DER WEG GEHT WEITER</strong></div>
     ${loopNodes}
-    <strong class="loop-active-label" data-active-stage-label="${activeLoopLabel}">${activeLoopLabel}</strong>
+    ${cta ? "" : `<strong class="loop-active-label" data-active-stage-label="${activeLoopLabel}">${activeLoopLabel}</strong>`}
     <svg viewBox="0 0 920 500" aria-hidden="true"><path d="M180 250 C240 95 565 65 730 190 C820 260 805 370 680 410 C500 470 245 410 180 250"/></svg>
     <div class="mandate-pulse ${loopPhase === 0 ? "active" : "complete"}"><i></i><b>DEINE STIMME</b></div>
   </div>`;
@@ -372,7 +430,7 @@ function renderVoiceOpenGovJourney(
   const leadScene = `<div class="vog-lead-card"><small>LEITFRAGE</small><strong>Was passiert mit deiner Stimme nach der Wahl?</strong></div>`;
 
   const processLabels = ["PROGRAMM", "VERHANDLUNG", "BESCHLUSS", "UMSETZUNG", "WIRKUNG"];
-  const activeProcessIndex = Math.min(4, Math.floor(progress * 5));
+  const activeProcessIndex = Math.max(0, Math.min(4, loopPhase - 1));
   const process = `<div class="living-mandate-path" data-mobile-process-mode="previous-current-next" data-active-process-index="${activeProcessIndex}">
     <div class="mandate-origin"><i></i><small>WAHL</small><b>×</b></div>
     <div class="mandate-track"><span>DER WEG GEHT WEITER</span></div>
@@ -431,7 +489,7 @@ function renderVoiceOpenGovJourney(
                 ? "vog-closing-cta"
                 : "vog-loop";
 
-  return `<section class="homepage-distinctive-stage vog-journey object-led-scene" data-visual-language="democratic_journey" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)};--state-enter:${stateEnterProgress.toFixed(4)}">
+  return `<section class="homepage-distinctive-stage vog-journey object-led-scene" data-visual-language="democratic_journey" data-segment-id="${escapeHtml(segment.id)}" data-readable-state-id="${escapeHtml(readableStateId)}" data-journey-semantic-stage="${journeyStage}" style="--segment-progress:${progress.toFixed(4)};--event-progress:${eventProgress.toFixed(4)};--state-enter:${stateEnterProgress.toFixed(4)}">
     <div class="scene-kicker vog" aria-hidden="true"></div>
     ${afterElection ? process : programmeGap ? programme : demophobie ? demophobieScene : balance ? balanceScene : currentOffer ? offerScene : synthesis || cta ? closingScene : leadScene}
     ${loop}
@@ -527,7 +585,7 @@ function socialProfileCss(plan: VoxyHomepageReferenceFilmPlan): string {
     .closing-copy{left:0!important;right:auto!important;top:0!important;width:${compactObjectWidth}px!important;padding:22px!important}.closing-copy strong{font-size:${typography.statementPx}px!important}.closing-copy span{font-size:${Math.max(16, typography.statementPx - 12)}px!important}
     .democratic-loop svg{display:none!important}.loop-heading{gap:2px!important}.loop-heading small{display:none!important}.loop-node span{display:none!important}.loop-active-label{display:block!important;position:absolute!important;color:#f0f8ff!important;font-weight:900!important;letter-spacing:.025em!important}.mandate-pulse i{display:none!important}
     ${mobileLoopCss}
-    [data-segment-id="vog-after-election"] .democratic-loop{opacity:.34!important}
+    [data-segment-id="vog-after-election"] .democratic-loop{opacity:${isSquare ? .18 : .34}!important}
     [data-segment-id="vog-cta"] .democratic-loop{opacity:.12!important}[data-segment-id="vog-cta"] .loop-active-label{display:none!important}[data-homepage-segment-id="vog-cta"] .homepage-profile-memory{opacity:.16!important}
   `;
 }
@@ -551,6 +609,9 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const window = Math.max(0.5, (nextEvent?.at ?? plan.output.durationMs / 1_000) - event.at);
   const eventProgress = clamp01((at - event.at) / window);
   const visualState = homepageVisualStateAt(plan, at);
+  const journeySemanticStage = plan.filmId === "voiceopengov"
+    ? resolveVogJourneyStage(plan, at)
+    : "not-applicable";
   const base = renderVoxyDualVoicePilotFrameHtml({
     plan: plan as unknown as VoxyFinalLayoutPlan,
     assets: input.assets,
@@ -669,7 +730,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     )
     .replace(
       'data-pilot-version="1.4-final-layout"',
-      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-multiformat-broadcast="v3-9" data-mobile-readability-lock="v3-10" data-layout-profile="${plan.layoutProfile}" data-layout-profile-width="${plan.layout.output.width}" data-layout-profile-height="${plan.layout.output.height}" data-layout-scale-only="false" data-caption-cues="sentence-level" data-caption-maximum-lines="2" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-platform-safe-zone="top:${safeArea.top};right:${safeArea.right};bottom:${safeArea.bottom};left:${safeArea.left}" data-host-face-safe-zone="${faceSafeZone}" data-host-presenter-safe-zone="x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + regions.presenter.height}" data-microphone-safe-zone="x${regions.microphone.x}-${regions.microphone.x + regions.microphone.width}:y${regions.microphone.y}-${regions.microphone.y + regions.microphone.height}" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
+      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-multiformat-broadcast="v3-9" data-mobile-readability-lock="v3-10" data-journey-semantic-sync="v3-10-1" data-journey-semantic-stage="${journeySemanticStage}" data-layout-profile="${plan.layoutProfile}" data-layout-profile-width="${plan.layout.output.width}" data-layout-profile-height="${plan.layout.output.height}" data-layout-scale-only="false" data-caption-cues="sentence-level" data-caption-maximum-lines="2" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-platform-safe-zone="top:${safeArea.top};right:${safeArea.right};bottom:${safeArea.bottom};left:${safeArea.left}" data-host-face-safe-zone="${faceSafeZone}" data-host-presenter-safe-zone="x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + regions.presenter.height}" data-microphone-safe-zone="x${regions.microphone.x}-${regions.microphone.x + regions.microphone.width}:y${regions.microphone.y}-${regions.microphone.y + regions.microphone.height}" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
     );
   if (contextDateReplacement) html = html.replaceAll("SEPTEMBER 2026", contextDateReplacement);
   return html;
