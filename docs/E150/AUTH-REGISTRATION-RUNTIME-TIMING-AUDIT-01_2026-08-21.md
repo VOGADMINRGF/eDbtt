@@ -4,6 +4,8 @@ Stand: 2026-08-21
 
 Issue: `#601`
 
+Draft-PR: `#628`
+
 Status: `review`
 
 ## Anlass und Scope
