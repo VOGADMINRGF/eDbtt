@@ -1,8 +1,8 @@
 # VOXY-HOMEPAGE-REFERENCE-FILMS-01 — Journey Semantic Sync V3.10.1
 
-Datum: 2026-08-21  
-Implementierungs- und Preview-Head: `3f417f36dda9987cdb28398e5ef801c3fe6cdb06`  
-Branch: `pr/voxy-homepage-reference-films-01`  
+Datum: 2026-08-21
+Implementierungs- und Preview-Head: `3f417f36dda9987cdb28398e5ef801c3fe6cdb06`
+Branch: `pr/voxy-homepage-reference-films-01`
 Draft-PR: `#624`
 
 ## Ergebnis und Grenze
