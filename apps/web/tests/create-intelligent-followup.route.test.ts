@@ -125,8 +125,12 @@ describe("/api/create/intelligent-followup route", () => {
         correlationId: "correlation-route-1",
         draftId: "draft-route-1",
         attemptCount: 2,
+        provider: "anthropic",
+        providerErrorCode: "TIMEOUT",
+        reason: "timeout",
       }),
     );
+    expect(body.trace.failureBoundary).toBeUndefined();
   });
 
   it("returns 400 on empty text", async () => {
@@ -169,6 +173,12 @@ describe("/api/create/intelligent-followup route", () => {
       ],
       sourceText: "Input",
       generatedAt: "2026-05-05T10:00:00.000Z",
+      meta: {
+        analysis: {
+          state: "result_ready",
+          validationStatus: "validated",
+        },
+      },
       degraded: false,
       degradedReason: null,
     });
@@ -185,6 +195,7 @@ describe("/api/create/intelligent-followup route", () => {
     const body = await response.json();
     expect(body.ok).toBe(true);
     expect(body.result.understanding.summary).toBe("Kurzfassung");
+    expect(body.result.meta.analysis.state).toBe("result_ready");
     expect(body.trace).toMatchObject({
       requestId: "correlation-valid-route",
       operationId: "correlation-valid-route",
@@ -192,6 +203,7 @@ describe("/api/create/intelligent-followup route", () => {
       userScope: "present",
       singleFlight: "owner",
     });
+    expect(body.trace.failureBoundary).toBeUndefined();
     expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledTimes(1);
     expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -204,10 +216,53 @@ describe("/api/create/intelligent-followup route", () => {
     );
   });
 
-  it("converts a final unhandled orchestration error into one safe support handoff", async () => {
-    mocks.buildCreateIntelligentFollowup.mockRejectedValue(
-      new Error("raw upstream planner failure"),
+  it("classifies a markExternalExecutionStarted failure without exposing the raw error", async () => {
+    const rawError = new Error("raw single-flight persistence failure");
+    rawError.stack = "raw single-flight stack";
+    mocks.markExternalExecutionStarted.mockRejectedValue(rawError);
+
+    const response = await POST(request({
+      text: "Please preserve this contribution.",
+      locale: "en",
+      correlationId: "correlation-mark-error",
+      draftId: "draft-mark-error",
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      ok: true,
+      result: {
+        meta: {
+          analysis: {
+            state: "ai_failed",
+            validationStatus: "failed",
+          },
+        },
+      },
+      supportHandoff: {
+        status: "created",
+      },
+      trace: {
+        singleFlight: "owner",
+        failureBoundary: "mark_external_execution_started_failed",
+      },
+    });
+    expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
+    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        technicalErrorCode: "CREATE_FOLLOWUP_FAILED",
+        reason: "mark_external_execution_started_failed",
+      }),
     );
+    expect(JSON.stringify(body)).not.toContain("raw single-flight persistence failure");
+    expect(JSON.stringify(body)).not.toContain("raw single-flight stack");
+  });
+
+  it("classifies a planner runtime exception without exposing the raw error", async () => {
+    const rawError = new Error("raw upstream planner failure");
+    rawError.stack = "raw upstream planner stack";
+    mocks.buildCreateIntelligentFollowup.mockRejectedValue(rawError);
 
     const response = await POST(request({
       text: "Please preserve this contribution.",
@@ -237,6 +292,8 @@ describe("/api/create/intelligent-followup route", () => {
       },
       trace: {
         requestId: "correlation-final-error",
+        singleFlight: "owner",
+        failureBoundary: "planner_runtime_failed",
       },
     });
     expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledTimes(1);
@@ -245,12 +302,51 @@ describe("/api/create/intelligent-followup route", () => {
         affectedUserId: "user-1",
         correlationId: "correlation-final-error",
         technicalErrorCode: "CREATE_FOLLOWUP_FAILED",
-        reason: "unhandled_orchestration_error",
+        reason: "planner_runtime_failed",
         draftId: "draft-final-error",
         locale: "en",
       }),
     );
     expect(JSON.stringify(body)).not.toContain("raw upstream planner failure");
+    expect(JSON.stringify(body)).not.toContain("raw upstream planner stack");
+  });
+
+  it("keeps the support handoff fail-closed for a classified runtime exception", async () => {
+    mocks.buildCreateIntelligentFollowup.mockRejectedValue(
+      new Error("raw planner failure"),
+    );
+    mocks.ensureCreateSupportTicket.mockRejectedValue(
+      new Error("raw support persistence failure"),
+    );
+
+    const response = await POST(request({
+      text: "Please preserve this contribution.",
+      locale: "en",
+      correlationId: "correlation-support-failure",
+      draftId: "draft-support-failure",
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      ok: true,
+      result: {
+        meta: {
+          analysis: {
+            state: "ai_failed",
+          },
+        },
+      },
+      supportHandoff: {
+        status: "failed",
+      },
+      trace: {
+        singleFlight: "owner",
+        failureBoundary: "planner_runtime_failed",
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain("raw planner failure");
+    expect(JSON.stringify(body)).not.toContain("raw support persistence failure");
   });
 
   it("rejects an anonymous direct request before security, draft, claim, provider, or ticket work", async () => {
