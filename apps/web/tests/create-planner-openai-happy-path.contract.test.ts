@@ -17,18 +17,32 @@ import { buildCreatePlanner } from "@/features/create/createPlanner";
 
 describe("create planner openai happy path contract", () => {
   const originalOpenAiKey = process.env.OPENAI_API_KEY;
+  const originalFullContractTimeout = process.env.E150_FULL_CONTRACT_TIMEOUT_MS;
+  const originalAnalyzeBudget = process.env.E150_ANALYZE_BUDGET_MS;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.OPENAI_API_KEY = "test-key";
+    process.env.E150_FULL_CONTRACT_TIMEOUT_MS = "45000";
+    process.env.E150_ANALYZE_BUDGET_MS = "55000";
   });
 
   afterEach(() => {
     if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = originalOpenAiKey;
+    if (originalFullContractTimeout === undefined) {
+      delete process.env.E150_FULL_CONTRACT_TIMEOUT_MS;
+    } else {
+      process.env.E150_FULL_CONTRACT_TIMEOUT_MS = originalFullContractTimeout;
+    }
+    if (originalAnalyzeBudget === undefined) {
+      delete process.env.E150_ANALYZE_BUDGET_MS;
+    } else {
+      process.env.E150_ANALYZE_BUDGET_MS = originalAnalyzeBudget;
+    }
   });
 
-  it("keeps a concrete equality and quota planner result as non-degraded openai output", async () => {
+  it("keeps a concrete planner result non-degraded when unrelated E150 timing is invalid", async () => {
     mocks.callOpenAIJson.mockResolvedValue({
       text: JSON.stringify({
         plannerTopic: "Gleichberechtigung, Frauenquote und Minderheitenförderung",

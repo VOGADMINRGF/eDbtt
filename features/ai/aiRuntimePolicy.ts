@@ -656,6 +656,22 @@ export function getAiRuntimePolicy(): AiRuntimePolicy {
   return getAiRuntimePolicyFromEnv(process.env);
 }
 
+export function getCreatePlannerRuntimePolicyFromEnv(
+  env: EnvMap = process.env,
+): AiRuntimePolicy {
+  // The planner does not consume E150 full-contract deadlines; E150 callers
+  // continue to validate those values through getAiRuntimePolicyFromEnv.
+  return getAiRuntimePolicyFromEnv({
+    ...env,
+    E150_FULL_CONTRACT_TIMEOUT_MS: undefined,
+    E150_ANALYZE_BUDGET_MS: undefined,
+  });
+}
+
+export function getCreatePlannerRuntimePolicy(): AiRuntimePolicy {
+  return getCreatePlannerRuntimePolicyFromEnv(process.env);
+}
+
 export function getAiRuntimeProfile(
   profileName: AiRuntimeProfileName,
   policy = getAiRuntimePolicy(),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AiRuntimePolicyError,
+  getCreatePlannerRuntimePolicyFromEnv,
   getAiRuntimePolicyFromEnv,
   resolveAiRuntimeProviderMissingReason,
   resolveAiRuntimeModeFromEnv,
@@ -80,6 +81,25 @@ describe("ai runtime policy contract", () => {
         E150_ANALYZE_BUDGET_MS: "35000",
       }),
     ).toThrowError(AiRuntimePolicyError);
+  });
+
+  it("isolates create planner policy from invalid E150 timing while E150 stays fail-closed", () => {
+    const env = {
+      OPENAI_API_KEY: "test-openai",
+      OPENAI_PLANNER_MODEL: "gpt-4o-mini",
+      CREATE_PLANNER_TIMEOUT_MS: "10000",
+      E150_FULL_CONTRACT_TIMEOUT_MS: "45000",
+      E150_ANALYZE_BUDGET_MS: "55000",
+    };
+
+    expect(() => getAiRuntimePolicyFromEnv(env)).toThrowError(AiRuntimePolicyError);
+
+    const plannerPolicy = getCreatePlannerRuntimePolicyFromEnv(env);
+    expect(plannerPolicy.plannerTimeoutMs).toBe(10_000);
+    expect(plannerPolicy.openai.apiKeyPresent).toBe(true);
+    expect(plannerPolicy.openai.plannerModelCandidates[0]).toBe("gpt-4o-mini");
+    expect(plannerPolicy.profiles.fullContract.timeoutMs).toBe(45_000);
+    expect(plannerPolicy.orchestratorBudgetMs).toBe(50_000);
   });
 
   it("fails closed for negative planner timeouts", () => {
