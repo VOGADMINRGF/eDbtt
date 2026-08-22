@@ -99,6 +99,44 @@ const SOCIAL_CHROME_V3_10_2_TARGETS = [
   },
 ] as const satisfies readonly PreviewTarget[];
 
+const BROADCAST_CRISP_V3_10_3_TARGETS = [
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "vertical_9_16",
+    moments: [REVIEW_MOMENTS.voiceopengov[1]],
+  },
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "feed_4_5",
+    moments: [REVIEW_MOMENTS.voiceopengov[1]],
+  },
+  {
+    filmId: "edebatte",
+    layoutProfile: "vertical_9_16",
+    moments: [REVIEW_MOMENTS.edebatte[4]],
+  },
+  {
+    filmId: "edebatte",
+    layoutProfile: "feed_4_5",
+    moments: [REVIEW_MOMENTS.edebatte[4]],
+  },
+  {
+    filmId: "edebatte",
+    layoutProfile: "landscape_16_9",
+    moments: [REVIEW_MOMENTS.edebatte[2]],
+  },
+  {
+    filmId: "edebatte",
+    layoutProfile: "square_1_1",
+    moments: [REVIEW_MOMENTS.edebatte[2]],
+  },
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "landscape_16_9",
+    moments: [REVIEW_MOMENTS.voiceopengov[1]],
+  },
+] as const satisfies readonly PreviewTarget[];
+
 function cliArgument(name: string): string | null {
   const prefix = `--${name}=`;
   return process.argv.find((entry) => entry.startsWith(prefix))?.slice(prefix.length) ?? null;
@@ -165,15 +203,21 @@ async function contactSheet(input: {
 async function main(): Promise<void> {
   const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
   const reviewSet = cliArgument("review-set");
-  if (reviewSet !== null && reviewSet !== "social-chrome-v3-10-2") {
+  if (
+    reviewSet !== null
+    && reviewSet !== "social-chrome-v3-10-2"
+    && reviewSet !== "broadcast-crisp-v3-10-3"
+  ) {
     throw new Error(`unsupported_preview_review_set:${reviewSet}`);
   }
   const outputRoot = path.resolve(
     cliArgument("output") ?? path.join(
       process.env.TMPDIR ?? "/tmp",
-      reviewSet === "social-chrome-v3-10-2"
-        ? "voxy-homepage-v3-10-2-previews"
-        : "voxy-homepage-v3-10-1-previews",
+      reviewSet === "broadcast-crisp-v3-10-3"
+        ? "voxy-homepage-v3-10-3-previews"
+        : reviewSet === "social-chrome-v3-10-2"
+          ? "voxy-homepage-v3-10-2-previews"
+          : "voxy-homepage-v3-10-1-previews",
     ),
   );
   await mkdir(outputRoot, { recursive: true, mode: 0o700 });
@@ -204,15 +248,17 @@ async function main(): Promise<void> {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ colorScheme: "dark" });
   const manifest = [] as Array<Record<string, unknown>>;
-  const targets: readonly PreviewTarget[] = reviewSet === "social-chrome-v3-10-2"
-    ? SOCIAL_CHROME_V3_10_2_TARGETS
-    : (["voiceopengov", "edebatte"] as const).flatMap((filmId) =>
-        VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS.map((layoutProfile) => ({
-          filmId,
-          layoutProfile,
-          moments: REVIEW_MOMENTS[filmId],
-        })),
-      );
+  const targets: readonly PreviewTarget[] = reviewSet === "broadcast-crisp-v3-10-3"
+    ? BROADCAST_CRISP_V3_10_3_TARGETS
+    : reviewSet === "social-chrome-v3-10-2"
+      ? SOCIAL_CHROME_V3_10_2_TARGETS
+      : (["voiceopengov", "edebatte"] as const).flatMap((filmId) =>
+          VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS.map((layoutProfile) => ({
+            filmId,
+            layoutProfile,
+            moments: REVIEW_MOMENTS[filmId],
+          })),
+        );
 
   try {
     for (const { filmId, layoutProfile, moments } of targets) {
@@ -267,12 +313,16 @@ async function main(): Promise<void> {
   await writeFile(
     path.resolve(outputRoot, "preview-manifest.json"),
     `${JSON.stringify({
-      schemaVersion: reviewSet === "social-chrome-v3-10-2"
-        ? "voxy-homepage-social-chrome-cleanup-preview-v3-10-2"
-        : "voxy-homepage-multiformat-preview-v3-10-1",
+      schemaVersion: reviewSet === "broadcast-crisp-v3-10-3"
+        ? "voxy-homepage-broadcast-crisp-preview-v3-10-3"
+        : reviewSet === "social-chrome-v3-10-2"
+          ? "voxy-homepage-social-chrome-cleanup-preview-v3-10-2"
+          : "voxy-homepage-multiformat-preview-v3-10-1",
       mobileReadabilityLock: "v3-10",
       journeySemanticSync: "v3-10-1",
-      socialChromeCleanup: reviewSet === "social-chrome-v3-10-2" ? "v3-10-2" : null,
+      socialChromeCleanup: reviewSet === null ? null : "v3-10-2",
+      broadcastCrispPolish: reviewSet === "broadcast-crisp-v3-10-3" ? "v3-10-3" : null,
+      d1PronunciationAlias: reviewSet === "broadcast-crisp-v3-10-3" ? "Weg:/veːk/" : null,
       exactHeadSha: head,
       previews: manifest,
       humanHomepageFilmAcceptance: "pending",

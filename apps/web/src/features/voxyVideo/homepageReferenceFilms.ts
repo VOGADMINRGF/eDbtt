@@ -259,7 +259,7 @@ export const VOXY_HOMEPAGE_REFERENCE_FILMS = {
       {
         id: "edebatte-product-model",
         text: "eDebatte ordnet Aussage, Originalquelle, Kontext, Gegenposition und offene Frage so, dass du den Weg zurück zum Beleg sehen kannst.",
-        spokenText: "eDebatte ordnet Aussage, Originalquelle, Kontext, Gegenposition und offene Frage so, dass du den Weg zurück zum Beleg sehen kannst.",
+        spokenText: "eDebatte ordnet Aussage, Originalquelle, Kontext, Gegenposition und offene Frage so, dass du den Weeg zurück zum Beleg sehen kannst.",
         pauseAfterMs: 130,
         contexts: bothModes,
       },
