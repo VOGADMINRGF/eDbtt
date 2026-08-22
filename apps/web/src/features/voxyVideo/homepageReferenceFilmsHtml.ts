@@ -533,10 +533,10 @@ function socialProfileCss(plan: VoxyHomepageReferenceFilmPlan): string {
   const mobileMemoryPolishCss = isSquare
     ? ""
     : `
-      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory{left:${regions.navigation.x + Math.max(0, regions.navigation.width - 200)}px;width:200px;min-height:${regions.navigation.height + 16}px;padding:16px 18px;border-color:rgba(100,177,235,.64);background:linear-gradient(145deg,rgba(4,20,44,.985),rgba(3,15,34,.985));box-shadow:0 8px 18px rgba(0,0,0,.28);filter:none!important;backdrop-filter:none!important;text-shadow:none;transform:none!important}
-      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory small{color:#8cf4ed;font-size:${typography.navigationPx - 3}px;line-height:1.08;letter-spacing:.07em;text-shadow:none}
-      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory b{margin-top:9px;color:#f4f9ff;font-size:${typography.navigationPx + 1}px;line-height:1.08;letter-spacing:.005em;text-shadow:none}
-      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory span{margin-top:9px;color:#c5d9e7;font-size:${typography.navigationPx - 3}px;font-weight:750;line-height:1.12;text-shadow:none}
+      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory{left:${regions.navigation.x + Math.max(0, regions.navigation.width - 200)}px;top:${isVertical ? regions.navigation.y : regions.evidence.y + regions.evidence.height}px;width:200px;height:${isVertical ? regions.navigation.height + 16 : 116}px;min-height:0;padding:${isVertical ? 16 : 12}px 18px;border-color:rgba(100,177,235,.64);background:linear-gradient(145deg,rgba(4,20,44,.985),rgba(3,15,34,.985));box-shadow:0 8px 18px rgba(0,0,0,.28);filter:none!important;backdrop-filter:none!important;text-shadow:none;transform:none!important}
+      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory small{color:#8cf4ed;font-size:${isVertical ? typography.navigationPx - 3 : typography.navigationPx - 4}px;line-height:1.08;letter-spacing:.07em;text-shadow:none}
+      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory b{margin-top:${isVertical ? 9 : 6}px;color:#f4f9ff;font-size:${isVertical ? typography.navigationPx + 1 : typography.navigationPx}px;line-height:${isVertical ? 1.08 : 1.02};letter-spacing:.005em;text-shadow:none}
+      [data-layout-profile="${plan.layoutProfile}"] .homepage-profile-memory span{margin-top:${isVertical ? 9 : 6}px;color:#c5d9e7;font-size:${isVertical ? typography.navigationPx - 3 : typography.navigationPx - 4}px;font-weight:750;line-height:1.12;text-shadow:none}
     `;
   const compactObjectWidth = isSquare ? evidenceWidth : Math.min(evidenceWidth, 860);
   const traceNodeHeight = isSquare ? 34 : isVertical ? 52 : 46;

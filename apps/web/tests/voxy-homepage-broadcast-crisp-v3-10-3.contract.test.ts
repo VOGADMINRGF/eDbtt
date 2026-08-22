@@ -54,25 +54,26 @@ function htmlAtSegment(
 
 describe("VOXY homepage V3.10.3 — broadcast crisp polish", () => {
   it.each([
-    ["feed_4_5", 784, 100, 17, 21, 17, 2],
-    ["vertical_9_16", 740, 146, 19, 23, 19, 29],
+    ["feed_4_5", 784, 1000, 116, 16, 20, 16, 4],
+    ["vertical_9_16", 740, 1360, 146, 19, 23, 19, 29],
   ] as const)(
     "01 enlarges and sharpens the %s semantic memory card without collisions",
-    (layoutProfile, left, height, kickerPx, titlePx, metaPx, captionGap) => {
+    (layoutProfile, left, top, height, kickerPx, titlePx, metaPx, captionGap) => {
       const layout = VOXY_HOMEPAGE_FILM_LAYOUTS[layoutProfile];
       const html = htmlAtSegment(plan("edebatte", layoutProfile), "edebatte-product-model");
       const cardRight = left + 200;
-      const cardBottom = layout.regions.navigation.y + height;
+      const cardBottom = top + height;
 
       expect(200 / 180).toBeCloseTo(1.111, 3);
       expect(Number.isInteger(left)).toBe(true);
+      expect(Number.isInteger(top)).toBe(true);
       expect(Number.isInteger(height)).toBe(true);
       expect(cardRight).toBe(layout.output.width - layout.safeArea.right);
       expect(layout.regions.caption.y - cardBottom).toBe(captionGap);
       expect(html).toContain('data-broadcast-crisp-polish="v3-10-3"');
       expect(html).toContain('data-mobile-card-rasterization="whole-pixel"');
       expect(html).toContain(
-        `[data-layout-profile="${layoutProfile}"] .homepage-profile-memory{left:${left}px;width:200px;min-height:${height}px;padding:16px 18px;`,
+        `[data-layout-profile="${layoutProfile}"] .homepage-profile-memory{left:${left}px;top:${top}px;width:200px;height:${height}px;min-height:0;padding:${layoutProfile === "vertical_9_16" ? 16 : 12}px 18px;`,
       );
       expect(html).toContain("border-color:rgba(100,177,235,.64)");
       expect(html).toContain("background:linear-gradient(145deg,rgba(4,20,44,.985),rgba(3,15,34,.985))");
@@ -81,10 +82,10 @@ describe("VOXY homepage V3.10.3 — broadcast crisp polish", () => {
         `[data-layout-profile="${layoutProfile}"] .homepage-profile-memory small{color:#8cf4ed;font-size:${kickerPx}px;`,
       );
       expect(html).toContain(
-        `[data-layout-profile="${layoutProfile}"] .homepage-profile-memory b{margin-top:9px;color:#f4f9ff;font-size:${titlePx}px;`,
+        `[data-layout-profile="${layoutProfile}"] .homepage-profile-memory b{margin-top:${layoutProfile === "vertical_9_16" ? 9 : 6}px;color:#f4f9ff;font-size:${titlePx}px;`,
       );
       expect(html).toContain(
-        `[data-layout-profile="${layoutProfile}"] .homepage-profile-memory span{margin-top:9px;color:#c5d9e7;font-size:${metaPx}px;font-weight:750;`,
+        `[data-layout-profile="${layoutProfile}"] .homepage-profile-memory span{margin-top:${layoutProfile === "vertical_9_16" ? 9 : 6}px;color:#c5d9e7;font-size:${metaPx}px;font-weight:750;`,
       );
     },
   );
