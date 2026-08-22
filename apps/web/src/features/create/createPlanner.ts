@@ -193,6 +193,7 @@ const CREATE_PLANNER_JSON_SCHEMA = {
     "topicCandidates",
     "clusterCandidates",
     "scopeCandidates",
+    "stance",
     "openQuestions",
     "graphSearchTerms",
     "materialSignals",
@@ -1468,7 +1469,7 @@ async function tryOpenAiPlannerWithModel(
   const user = [
     "Analysiere den folgenden Beitrag als planner_only.",
     "Liefere genau diese JSON-Felder:",
-    "plannerTopic, plannerCore, plannerScope, plannerStance, plannerClusters, plannerOpenQuestions, shortSummary, topicCandidates, clusterCandidates, scopeCandidates, openQuestions, graphSearchTerms, materialSignals, recommendedLane.",
+    "plannerTopic, plannerCore, plannerScope, plannerStance, plannerClusters, plannerOpenQuestions, shortSummary, topicCandidates, clusterCandidates, scopeCandidates, stance, openQuestions, graphSearchTerms, materialSignals, recommendedLane.",
     "Regeln:",
     "- Keine Veröffentlichung, kein Speichern, kein Mergen, kein DeepSearch, kein Faktencheck, keine Quellenbehauptungen.",
     "- 'Öffentliches Anliegen' ist nur erlaubt, wenn absolut kein Thema erkennbar ist.",

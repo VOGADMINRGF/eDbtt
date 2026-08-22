@@ -62,6 +62,7 @@ function buildValidPlannerPayload() {
       "Kommunale Verkehrskontrollen",
     ],
     scopeCandidates: ["district"],
+    stance: "pro",
     openQuestions: [
       "Welche Schule und welche Querung sollen zuerst geprüft werden?",
     ],
@@ -117,7 +118,28 @@ describe("create planner cross-provider fallback contract", () => {
 
     const planner = await runPlanner();
 
+    const openAiRequest = mocks.callOpenAIJson.mock.calls[0]?.[0] as {
+      response_format?: {
+        schema?: {
+          properties?: Record<string, unknown>;
+          required?: readonly string[];
+        };
+        strict?: boolean;
+      };
+      user?: string;
+    };
+    const schemaProperties = Object.keys(
+      openAiRequest.response_format?.schema?.properties ?? {},
+    ).sort();
+    const requiredProperties = [
+      ...(openAiRequest.response_format?.schema?.required ?? []),
+    ].sort();
+
     expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(1);
+    expect(openAiRequest.response_format?.strict).toBe(true);
+    expect(requiredProperties).toContain("stance");
+    expect(requiredProperties).toEqual(schemaProperties);
+    expect(openAiRequest.user).toContain("scopeCandidates, stance, openQuestions");
     expect(mocks.callAnthropic).not.toHaveBeenCalled();
     expect(mocks.callMistral).not.toHaveBeenCalled();
     expect(planner).toMatchObject({
@@ -219,7 +241,7 @@ describe("create planner cross-provider fallback contract", () => {
       model: "gpt-4.1-mini",
     });
     expect(mocks.callOpenAIJson.mock.calls[1]?.[0]).toMatchObject({
-      model: "gpt-5",
+      model: "gpt-4o-mini",
     });
     expect(mocks.callAnthropic).not.toHaveBeenCalled();
     expect(mocks.callMistral).not.toHaveBeenCalled();
