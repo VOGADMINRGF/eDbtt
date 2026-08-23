@@ -1,0 +1,125 @@
+import { Job, Queue, QueueEvents, Worker } from "bullmq";
+import IORedis from "ioredis";
+
+export const ALPHA2_EXECUTION_QUEUE = "alpha2-execution";
+
+export type Alpha2ExecutionReason =
+  | "initial"
+  | "continue"
+  | "scheduled_resume"
+  | "retry"
+  | "recovery";
+
+export type Alpha2ExecutionJob = {
+  runId: string;
+  taskId: string;
+  dispatchKey: string;
+  reason: Alpha2ExecutionReason;
+  requestedAt: string;
+};
+
+export type Alpha2ExecutionDispatch = Alpha2ExecutionJob & {
+  delayMs?: number;
+};
+
+export interface Alpha2ExecutionDispatcher {
+  dispatch(input: Alpha2ExecutionDispatch): Promise<{ jobId: string }>;
+}
+
+let redis: IORedis | null = null;
+let queue: Queue<Alpha2ExecutionJob> | null = null;
+let queueEvents: QueueEvents | null = null;
+
+function resolveAlpha2RedisUrl() {
+  const configured = process.env.ALPHA2_REDIS_URL ?? process.env.REDIS_URL;
+  if (configured) return configured;
+  if (process.env.NODE_ENV !== "production") return "redis://127.0.0.1:6379";
+  throw new Error("alpha2_redis_url_missing");
+}
+
+export function getAlpha2RedisConnection() {
+  if (!redis) {
+    redis = new IORedis(resolveAlpha2RedisUrl(), {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: true,
+    });
+  }
+  return redis;
+}
+
+export function getAlpha2ExecutionQueue() {
+  if (!queue) {
+    queue = new Queue<Alpha2ExecutionJob>(ALPHA2_EXECUTION_QUEUE, {
+      connection: getAlpha2RedisConnection(),
+      defaultJobOptions: {
+        attempts: 1,
+        removeOnComplete: 5_000,
+        removeOnFail: 5_000,
+      },
+    });
+  }
+  return queue;
+}
+
+export function getAlpha2ExecutionQueueEvents() {
+  if (!queueEvents) {
+    queueEvents = new QueueEvents(ALPHA2_EXECUTION_QUEUE, {
+      connection: getAlpha2RedisConnection(),
+    });
+  }
+  return queueEvents;
+}
+
+function safeJobId(value: string) {
+  return value.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 180);
+}
+
+export class Alpha2BullmqExecutionDispatcher implements Alpha2ExecutionDispatcher {
+  async dispatch(input: Alpha2ExecutionDispatch) {
+    const jobId = safeJobId(`alpha2_${input.runId}_${input.dispatchKey}`);
+    const job = await getAlpha2ExecutionQueue().add(
+      "execute-run",
+      {
+        runId: input.runId,
+        taskId: input.taskId,
+        dispatchKey: input.dispatchKey,
+        reason: input.reason,
+        requestedAt: input.requestedAt,
+      },
+      {
+        jobId,
+        delay: Math.max(0, input.delayMs ?? 0),
+      },
+    );
+    return { jobId: String(job.id ?? jobId) };
+  }
+}
+
+let sharedDispatcher: Alpha2BullmqExecutionDispatcher | null = null;
+
+export function getAlpha2ExecutionDispatcher() {
+  return (sharedDispatcher ??= new Alpha2BullmqExecutionDispatcher());
+}
+
+export function startAlpha2ExecutionWorker(input: {
+  handler: (job: Job<Alpha2ExecutionJob>) => Promise<unknown>;
+  concurrency?: number;
+}) {
+  return new Worker<Alpha2ExecutionJob>(ALPHA2_EXECUTION_QUEUE, input.handler, {
+    connection: getAlpha2RedisConnection(),
+    concurrency: Math.max(1, Math.min(input.concurrency ?? 2, 32)),
+  });
+}
+
+export async function closeAlpha2ExecutionRuntime() {
+  const closers: Promise<unknown>[] = [];
+  if (queueEvents) closers.push(queueEvents.close());
+  if (queue) closers.push(queue.close());
+  await Promise.allSettled(closers);
+  queueEvents = null;
+  queue = null;
+  if (redis) {
+    await redis.quit();
+    redis = null;
+  }
+}
