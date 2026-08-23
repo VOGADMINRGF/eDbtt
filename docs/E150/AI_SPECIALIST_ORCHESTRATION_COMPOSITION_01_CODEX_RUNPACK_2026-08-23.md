@@ -2,7 +2,7 @@
 
 Stand: 2026-08-23
 
-Status: Kanonische Governance- und Ausführungsvorbereitung für Issue `#629`. Dieser Run-Pack und die zugehörige OpenTasks-Serialisierung implementieren keine Produktlogik und aktivieren keinen Provider.
+Status: Kanonische Governance- und Ausführungsvorbereitung für Issue `#629`, serialisiert über Governance-PR `#630`. Dieser Run-Pack und die zugehörige OpenTasks-Serialisierung implementieren keine Produktlogik und aktivieren keinen Provider.
 
 Bezug: Issue `#629`, Issue `#617` und Draft-PR `#627` (`AI-CREATE-ORCHESTRATOR-LIVE-SMOKE-01`).
 
