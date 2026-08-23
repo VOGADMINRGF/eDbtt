@@ -67,13 +67,16 @@ async function renderFilm(input: {
   repositoryRoot: string;
   outputBase: string;
   exactHeadSha: string;
-  python: string;
-  modelDir: string;
-  reference: string;
-  referenceSegmentSha256: string;
-  d1Evidence: string;
-  acceptedEvidenceMetrics: ReturnType<typeof audioMetrics>;
-  selectionManifestSha256: string;
+  python?: string;
+  modelDir?: string;
+  reference?: string;
+  referenceSegmentSha256?: string;
+  acceptedEvidenceMetrics?: ReturnType<typeof audioMetrics>;
+  selectionManifestSha256?: string;
+  reuseAudio?: Readonly<{
+    root: string;
+    expectedMasterSha256: string;
+  }>;
   assets: VoxyMotionV4EmbeddedAssets;
 }): Promise<Record<string, unknown>> {
   const { filmId, layoutProfile, repositoryRoot } = input;
@@ -101,38 +104,166 @@ async function renderFilm(input: {
 
   try {
     const segments = filmSegments(filmId, contextMode) as readonly PilotAudioSegment[];
-    console.info(`homepage_film_progress:${filmId}:${contextMode}:synthesize_d1`);
-    const rawById = await synthesizeVoxySegments({
-      python: input.python,
-      modelDir: input.modelDir,
-      reference: input.reference,
-      expectedReferenceSegmentSha256: input.referenceSegmentSha256,
-      temporaryRoot,
-      rawRoot,
-      segments,
-      singleVoiceReview: true,
-    });
-
-    const finishedById = new Map<string, string>();
-    const audioPreservationSegments: Array<Record<string, unknown>> = [];
-    for (const segment of segments) {
-      const output = path.resolve(finishedRoot, `${segment.id}.wav`);
-      audioPreservationSegments.push(
-        await renderTransparentMasterAudio({
-          segmentId: segment.id,
-          inputFile: rawById.get(segment.id)!,
-          outputFile: output,
-          speakerRole: "voxy",
-          acceptedEvidence: input.acceptedEvidenceMetrics,
-        }),
-      );
-      finishedById.set(segment.id, output);
-    }
-
-    const speechDurationsMs = segments.map((segment) => durationMs(finishedById.get(segment.id)!));
     const masterAudio = path.resolve(outputRoot, outputContract.masterAudio);
-    await concatenateMaster({ finishedById, output: masterAudio, temporaryRoot, segments });
-    const audioAssembly = await verifyMasterAudioAssembly({ finishedById, masterAudio, segments });
+    let speechDurationsMs: number[];
+    let audioPreservation: Record<string, unknown>;
+    let selectionManifestSha256 = input.selectionManifestSha256 ?? "";
+    let audioReuse: Record<string, unknown> | undefined;
+
+    if (input.reuseAudio) {
+      const sourceOutputRoot = path.resolve(
+        input.reuseAudio.root,
+        outputContract.directory,
+        layoutProfile === "landscape_16_9" ? "" : layoutProfile,
+      );
+      const sourceMasterAudio = path.resolve(sourceOutputRoot, outputContract.masterAudio);
+      const sourcePreservationPath = path.resolve(
+        sourceOutputRoot,
+        outputContract.audioPreservation,
+      );
+      const sourceManifestPath = path.resolve(sourceOutputRoot, outputContract.manifest);
+      const sourceMasterSha256 = await sha256(sourceMasterAudio);
+      if (sourceMasterSha256 !== input.reuseAudio.expectedMasterSha256) {
+        throw new Error(`${filmId}_accepted_master_audio_source_hash_mismatch`);
+      }
+
+      const sourcePreservation = JSON.parse(
+        await readFile(sourcePreservationPath, "utf8"),
+      ) as Record<string, unknown>;
+      const sourceManifest = JSON.parse(
+        await readFile(sourceManifestPath, "utf8"),
+      ) as Record<string, unknown>;
+      const preservationSegments = sourcePreservation.segments;
+      if (!Array.isArray(preservationSegments)) {
+        throw new Error(`${filmId}_accepted_audio_preservation_segments_missing`);
+      }
+      speechDurationsMs = segments.map((segment, index) => {
+        const preserved = preservationSegments[index] as Record<string, unknown> | undefined;
+        if (
+          preserved?.segmentId !== segment.id
+          || typeof preserved.outputDurationMs !== "number"
+          || preserved.outputDurationMs <= 0
+        ) {
+          throw new Error(`${filmId}_accepted_audio_segment_contract_mismatch:${segment.id}`);
+        }
+        return preserved.outputDurationMs;
+      });
+      if (preservationSegments.length !== segments.length) {
+        throw new Error(`${filmId}_accepted_audio_segment_count_mismatch`);
+      }
+      const sourceVoice = sourceManifest.voice as Record<string, unknown> | undefined;
+      if (
+        sourceManifest.filmId !== filmId
+        || sourceManifest.layoutProfile !== layoutProfile
+        || sourceVoice?.voiceId !== VOXY_SIGNATURE.voiceId
+        || typeof sourceVoice.selectionManifestSha256 !== "string"
+      ) {
+        throw new Error(`${filmId}_accepted_audio_source_manifest_mismatch`);
+      }
+      selectionManifestSha256 = sourceVoice.selectionManifestSha256;
+      await copyFile(sourceMasterAudio, masterAudio);
+      const copiedMasterSha256 = await sha256(masterAudio);
+      if (copiedMasterSha256 !== sourceMasterSha256) {
+        throw new Error(`${filmId}_accepted_master_audio_copy_not_byte_identical`);
+      }
+      audioReuse = {
+        mode: "byte_identical_accepted_master",
+        sourceRenderExactHeadSha: sourceManifest.exactHeadSha,
+        sourceMasterAudio,
+        sourceMasterSha256,
+        copiedMasterSha256,
+        synthesisInvoked: false,
+        processingInvoked: false,
+      };
+      audioPreservation = {
+        ...sourcePreservation,
+        schemaVersion: "voxy-homepage-reference-film-d1-preservation-v1",
+        gate: "passed",
+        audioReuse,
+        productionEligible: false,
+        autoPublish: false,
+      };
+      console.info(`homepage_film_progress:${filmId}:${contextMode}:reuse_accepted_d1_byte_identical`);
+    } else {
+      if (
+        !input.python
+        || !input.modelDir
+        || !input.reference
+        || !input.referenceSegmentSha256
+        || !input.acceptedEvidenceMetrics
+        || !selectionManifestSha256
+      ) {
+        throw new Error(`${filmId}_private_voice_synthesis_inputs_missing`);
+      }
+      console.info(`homepage_film_progress:${filmId}:${contextMode}:synthesize_d1`);
+      const rawById = await synthesizeVoxySegments({
+        python: input.python,
+        modelDir: input.modelDir,
+        reference: input.reference,
+        expectedReferenceSegmentSha256: input.referenceSegmentSha256,
+        temporaryRoot,
+        rawRoot,
+        segments,
+        singleVoiceReview: true,
+      });
+
+      const finishedById = new Map<string, string>();
+      const audioPreservationSegments: Array<Record<string, unknown>> = [];
+      for (const segment of segments) {
+        const output = path.resolve(finishedRoot, `${segment.id}.wav`);
+        audioPreservationSegments.push(
+          await renderTransparentMasterAudio({
+            segmentId: segment.id,
+            inputFile: rawById.get(segment.id)!,
+            outputFile: output,
+            speakerRole: "voxy",
+            acceptedEvidence: input.acceptedEvidenceMetrics,
+          }),
+        );
+        finishedById.set(segment.id, output);
+      }
+
+      speechDurationsMs = segments.map((segment) => durationMs(finishedById.get(segment.id)!));
+      await concatenateMaster({ finishedById, output: masterAudio, temporaryRoot, segments });
+      const audioAssembly = await verifyMasterAudioAssembly({ finishedById, masterAudio, segments });
+      audioPreservation = {
+        schemaVersion: "voxy-homepage-reference-film-d1-preservation-v1",
+        gate: "passed",
+        canonicalVoice: "D1 Conversational Dynamic / accepted",
+        acceptedEvidence: {
+          candidateId: "D1",
+          sha256: VOXY_SIGNATURE.provenance.privateHumanReviewEvidenceSha256,
+          metrics: input.acceptedEvidenceMetrics,
+        },
+        segments: audioPreservationSegments,
+        assembly: audioAssembly,
+        hardGates: {
+          everySpokenSegmentUsesD1: audioPreservationSegments.every(
+            (entry) => entry.candidateId === "D1" && entry.voiceId === VOXY_SIGNATURE.voiceId,
+          ),
+          w1SegmentsUsed: false,
+          fallbackUsed: false,
+          dynamicNormalizationUsed: false,
+          compressionUsed: false,
+          limiterUsed: false,
+          eqApplied: false,
+          pitchChanged: false,
+          tempoChanged: false,
+          timeStretchUsed: false,
+          reverbApplied: false,
+          clippingDetected: false,
+          pcmIdentityPreservedInAssembly: audioAssembly.segments.every(
+            (entry) => entry.pcmIdentityMatch,
+          ),
+        },
+        productionEligible: false,
+        autoPublish: false,
+      };
+      const hardGates = audioPreservation.hardGates as Record<string, unknown>;
+      if (!hardGates.everySpokenSegmentUsesD1 || !hardGates.pcmIdentityPreservedInAssembly) {
+        throw new Error(`${filmId}_audio_preservation_failed`);
+      }
+    }
 
     const rawPlan = buildVoxyHomepageReferenceFilmPlan({
       filmId,
@@ -151,47 +282,6 @@ async function renderFilm(input: {
     }
     if (Math.abs(durationMs(masterAudio) - plan.output.durationMs) > 120) {
       throw new Error(`${filmId}_master_audio_duration_drift`);
-    }
-
-    const audioPreservation = {
-      schemaVersion: "voxy-homepage-reference-film-d1-preservation-v1",
-      gate: "passed",
-      canonicalVoice: "D1 Conversational Dynamic / accepted",
-      acceptedEvidence: {
-        candidateId: "D1",
-        sha256: VOXY_SIGNATURE.provenance.privateHumanReviewEvidenceSha256,
-        metrics: input.acceptedEvidenceMetrics,
-      },
-      segments: audioPreservationSegments,
-      assembly: audioAssembly,
-      hardGates: {
-        everySpokenSegmentUsesD1: audioPreservationSegments.every(
-          (entry) => entry.candidateId === "D1" && entry.voiceId === VOXY_SIGNATURE.voiceId,
-        ),
-        w1SegmentsUsed: false,
-        fallbackUsed: false,
-        dynamicNormalizationUsed: false,
-        compressionUsed: false,
-        limiterUsed: false,
-        eqApplied: false,
-        pitchChanged: false,
-        tempoChanged: false,
-        timeStretchUsed: false,
-        reverbApplied: false,
-        clippingDetected: false,
-        pcmIdentityPreservedInAssembly: audioAssembly.segments.every(
-          (entry) => entry.pcmIdentityMatch,
-        ),
-      },
-      productionEligible: false,
-      autoPublish: false,
-    } as const;
-
-    if (
-      !audioPreservation.hardGates.everySpokenSegmentUsesD1 ||
-      !audioPreservation.hardGates.pcmIdentityPreservedInAssembly
-    ) {
-      throw new Error(`${filmId}_audio_preservation_failed`);
     }
 
     await Promise.all([
@@ -455,8 +545,9 @@ async function renderFilm(input: {
         voiceId: VOXY_SIGNATURE.voiceId,
         humanAcceptance: "accepted",
         W1: "parked_not_audible",
-        selectionManifestSha256: input.selectionManifestSha256,
+        selectionManifestSha256,
       },
+      ...(audioReuse ? { audioReuse } : {}),
       audioPreservationGate: "passed",
       sourceIntegrityGate: "passed",
       evidenceIntegrityGate: "passed",
@@ -519,32 +610,55 @@ async function main(): Promise<void> {
     throw new Error("homepage_films_exact_head_mismatch");
   }
 
-  const required = [
-    "voxy-python",
-    "voxy-model-dir",
-    "voxy-reference-02",
-    "voxy-reference-selection",
-    "voxy-d1-evidence",
-    "output",
-  ];
+  const reuseAudioRootArgument = argument("reuse-audio-root");
+  const reuseAudioMode = reuseAudioRootArgument !== null;
+  const required = reuseAudioMode
+    ? [
+        "reuse-audio-root",
+        "reuse-edebatte-audio-sha256",
+        "reuse-voiceopengov-audio-sha256",
+        "output",
+      ]
+    : [
+        "voxy-python",
+        "voxy-model-dir",
+        "voxy-reference-02",
+        "voxy-reference-selection",
+        "voxy-d1-evidence",
+        "output",
+      ];
   if (required.some((name) => !argument(name))) {
     throw new Error("explicit_private_homepage_film_arguments_required");
   }
 
-  const python = path.resolve(argument("voxy-python")!);
-  const modelDir = path.resolve(argument("voxy-model-dir")!);
-  const reference = path.resolve(argument("voxy-reference-02")!);
-  const selection = path.resolve(argument("voxy-reference-selection")!);
-  const d1Evidence = path.resolve(argument("voxy-d1-evidence")!);
+  const python = reuseAudioMode ? undefined : path.resolve(argument("voxy-python")!);
+  const modelDir = reuseAudioMode ? undefined : path.resolve(argument("voxy-model-dir")!);
+  const reference = reuseAudioMode ? undefined : path.resolve(argument("voxy-reference-02")!);
+  const selection = reuseAudioMode
+    ? undefined
+    : path.resolve(argument("voxy-reference-selection")!);
+  const d1Evidence = reuseAudioMode
+    ? undefined
+    : path.resolve(argument("voxy-d1-evidence")!);
+  const reuseAudioRoot = reuseAudioMode ? path.resolve(reuseAudioRootArgument!) : undefined;
   const outputBase = path.resolve(argument("output")!);
 
-  for (const target of [python, modelDir, reference, selection, d1Evidence]) await access(target);
-  if (
-    !(await lstat(reference)).isFile() ||
-    !(await lstat(selection)).isFile() ||
-    !(await lstat(d1Evidence)).isFile()
-  ) {
-    throw new Error("private_voice_input_must_be_file");
+  if (reuseAudioMode) {
+    await access(reuseAudioRoot!);
+    if (!(await lstat(reuseAudioRoot!)).isDirectory()) {
+      throw new Error("accepted_audio_reuse_root_must_be_directory");
+    }
+  } else {
+    for (const target of [python!, modelDir!, reference!, selection!, d1Evidence!]) {
+      await access(target);
+    }
+    if (
+      !(await lstat(reference!)).isFile()
+      || !(await lstat(selection!)).isFile()
+      || !(await lstat(d1Evidence!)).isFile()
+    ) {
+      throw new Error("private_voice_input_must_be_file");
+    }
   }
 
   await mkdir(outputBase, { recursive: true, mode: 0o700 });
@@ -552,13 +666,34 @@ async function main(): Promise<void> {
   if (!path.relative(repositoryRoot, outputBaseReal).startsWith("..")) {
     throw new Error("private_output_must_be_outside_repository");
   }
+  if (reuseAudioRoot) {
+    const reuseAudioRootReal = await realpath(reuseAudioRoot);
+    const outputRelativeToReuse = path.relative(reuseAudioRootReal, outputBaseReal);
+    if (outputRelativeToReuse === "" || !outputRelativeToReuse.startsWith("..")) {
+      throw new Error("accepted_audio_reuse_output_must_not_overlap_source");
+    }
+    for (const filmId of FILM_IDS) {
+      const expectedHash = argument(
+        filmId === "edebatte"
+          ? "reuse-edebatte-audio-sha256"
+          : "reuse-voiceopengov-audio-sha256",
+      );
+      if (!expectedHash || !/^[0-9a-f]{64}$/.test(expectedHash)) {
+        throw new Error(`${filmId}_accepted_audio_sha256_invalid`);
+      }
+    }
+  }
 
-  const acceptedReference = await verifyAcceptedVoxyReference({
-    repositoryRoot,
-    reference,
-    selectionManifest: selection,
-  });
-  await verifyCanonicalHumanEvidence({ repositoryRoot, voxyD1: d1Evidence });
+  const acceptedReference = reuseAudioMode
+    ? undefined
+    : await verifyAcceptedVoxyReference({
+        repositoryRoot,
+        reference: reference!,
+        selectionManifest: selection!,
+      });
+  if (!reuseAudioMode) {
+    await verifyCanonicalHumanEvidence({ repositoryRoot, voxyD1: d1Evidence! });
+  }
 
   const sourcePaths = {
     canonStage: path.resolve(repositoryRoot, VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath),
@@ -602,10 +737,19 @@ async function main(): Promise<void> {
           python,
           modelDir,
           reference,
-          referenceSegmentSha256: acceptedReference.expectedSegmentSha256,
-          d1Evidence,
-          acceptedEvidenceMetrics: audioMetrics(d1Evidence),
-          selectionManifestSha256: acceptedReference.selectionManifestSha256,
+          referenceSegmentSha256: acceptedReference?.expectedSegmentSha256,
+          acceptedEvidenceMetrics: d1Evidence ? audioMetrics(d1Evidence) : undefined,
+          selectionManifestSha256: acceptedReference?.selectionManifestSha256,
+          reuseAudio: reuseAudioRoot
+            ? {
+                root: reuseAudioRoot,
+                expectedMasterSha256: argument(
+                  filmId === "edebatte"
+                    ? "reuse-edebatte-audio-sha256"
+                    : "reuse-voiceopengov-audio-sha256",
+                )!,
+              }
+            : undefined,
           assets,
         }),
       );

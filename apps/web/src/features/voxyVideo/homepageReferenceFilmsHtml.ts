@@ -572,6 +572,18 @@ function socialProfileCss(plan: VoxyHomepageReferenceFilmPlan): string {
     : `
       .participation-balance-scene .extreme{display:block!important;top:${isVertical ? 58 : 42}px!important;width:102px!important;padding:9px!important;opacity:.28!important}.participation-balance-scene .extreme.left{left:${isVertical ? 112 : 140}px!important}.participation-balance-scene .extreme.right{left:${isVertical ? 646 : 678}px!important}.participation-balance-scene .extreme small{font-size:10px!important}.participation-balance-scene .extreme strong{font-size:13px!important}.participation-balance-scene .balance-core{left:calc(50% - 110px)!important;top:${isVertical ? 28 : 11}px!important;width:220px!important;height:168px!important;border-radius:50%!important}.participation-balance-scene .balance-core strong{font-size:${isVertical ? 26 : 23}px!important;line-height:1.02!important;padding:0 12px!important}.participation-balance-scene .balance-core span{max-width:180px!important;font-size:14px!important}
     `;
+  const verticalVogClosingPolishCss = isVertical
+    ? `
+      [data-segment-id="vog-after-election"] .living-mandate-path{height:208px!important;gap:16px!important}
+      [data-segment-id="vog-after-election"] .mandate-step{height:208px!important;padding:16px!important;row-gap:10px!important}
+      [data-segment-id="vog-after-election"] .mandate-step.current b{font-size:34px!important;line-height:1.08!important}
+      [data-segment-id="vog-after-election"] .mandate-step.previous b,[data-segment-id="vog-after-election"] .mandate-step.next b{font-size:20px!important;line-height:1.1!important}
+      [data-segment-id="vog-after-election"] .democratic-loop{width:640px!important}
+      [data-segment-id="vog-after-election"] .loop-active-label{width:466px!important}
+      .participation-balance-scene .balance-core strong{font-size:22px!important;line-height:1.08!important;padding:0 18px!important}
+      .participation-balance-scene .balance-core span{max-width:174px!important;margin-top:9px!important;font-size:13px!important;line-height:1.3!important}
+    `
+    : "";
 
   return `
     [data-layout-profile="${plan.layoutProfile}"] .master .broadcast-chrome{display:none!important}
@@ -609,6 +621,7 @@ function socialProfileCss(plan: VoxyHomepageReferenceFilmPlan): string {
     .gap-field{left:0!important;top:0!important;width:100%!important;text-align:left!important}.gap-field b{font-size:${typography.statementPx + 12}px!important}.gap-field span{font-size:${typography.statementPx - 5}px!important}.status-ruler{bottom:0!important;font-size:${Math.max(10, typography.navigationPx - 3)}px!important}
     .demophobie-phase-guardrails .design-question{height:auto!important;min-height:94px!important;padding:14px 18px!important}.demophobie-phase-guardrails .design-question b{margin-top:8px!important}.guardrail-row{top:102px!important;bottom:auto!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px 10px!important}.guardrail{min-width:0!important;padding:9px 10px!important;border-radius:10px!important;text-align:center!important;font-size:${Math.max(16, typography.navigationPx - 2)}px!important;line-height:1.05!important;letter-spacing:.02em!important}
     ${mobileParticipationCss}
+    ${verticalVogClosingPolishCss}
     .bridge{left:0!important;top:${Math.max(48, Math.floor(evidenceHeight / 2))}px!important;width:100%!important;font-size:${typography.statementPx - 5}px!important}
     .closing-copy{left:0!important;right:auto!important;top:0!important;width:${compactObjectWidth}px!important;padding:22px!important}.closing-copy strong{font-size:${typography.statementPx}px!important}.closing-copy span{font-size:${Math.max(16, typography.statementPx - 12)}px!important}
     .democratic-loop svg{display:none!important}.loop-heading{gap:2px!important}.loop-heading small{display:none!important}.loop-node span{display:none!important}.loop-active-label{display:block!important;position:absolute!important;color:#f0f8ff!important;font-weight:900!important;letter-spacing:.025em!important}.mandate-pulse i{display:none!important}
@@ -653,6 +666,9 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const profileMemory = renderProfileMemory(plan, at);
   const subtitleText = subtitleCue(segment.text, segmentProgress(plan, at));
   const subtitle = `<div class="homepage-voxy-subtitle" data-subtitle-segment-id="${escapeHtml(segment.id)}" data-caption-mode="sentence-cue" data-full-subtitle="${escapeHtml(segment.text)}"><b>VOXY</b><p>${escapeHtml(subtitleText)}</p></div>`;
+  const shoulderRepair = plan.filmId === "edebatte" && plan.layoutProfile === "vertical_9_16"
+    ? `<div class="homepage-shoulder-repair" data-repair-source="canonical-left-upper-arm-layer" aria-hidden="true"><img class="source-plate homepage-shoulder-repair-source" src="${input.assets.canonStageDataUrl}" alt=""><span class="homepage-shoulder-repair-grade"></span></div>`
+    : "";
   const profileOverlay = `<div class="homepage-profile-overlay" data-compositional-layout="profile-specific" data-maximum-simultaneous-objects="${plan.layout.maximumSimultaneousObjects}">${semanticMotion}${brandHierarchy}${distinctiveStage}${profileMemory}${subtitle}</div>`;
   const { safeArea, regions } = plan.layout;
   const faceSafeZone = plan.layoutProfile === "landscape_16_9"
@@ -662,6 +678,9 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const css = `<style>
     .homepage-profile-overlay{position:absolute;z-index:40;inset:0;overflow:hidden;pointer-events:none}
     .studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
+    .homepage-shoulder-repair{position:absolute;z-index:4;inset:0;width:1920px;height:1080px;overflow:hidden;clip-path:polygon(480px 450px,620px 399px,620px 500px,480px 500px);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 70%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 70%,transparent 100%);pointer-events:none}
+    .homepage-shoulder-repair-source{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
+    .homepage-shoulder-repair-grade{position:absolute;inset:0;background:radial-gradient(circle at 47% 38%,rgba(32,102,255,.05),transparent 29%),linear-gradient(90deg,rgba(1,5,17,.88) 0%,rgba(1,5,17,.38) 29%,transparent 54%,rgba(1,5,17,.76) 88%,#010511 100%)}
     .brand-lockup{display:none!important}
     .information-dimmer{background:linear-gradient(90deg,rgba(1,6,18,.05),rgba(1,6,18,.08) 58%,rgba(1,6,18,.42) 100%)!important;box-shadow:none!important}
     .homepage-brand-hierarchy{position:absolute;z-index:43;left:56px;top:118px;width:420px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
@@ -762,13 +781,14 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   let html = replaceHomepageLapelPin(base)
     .replace('data-burned-in-captions="false"', 'data-burned-in-captions="true"')
     .replace("</head>", `${css}</head>`)
+    .replace('<div class="frame"></div>', `${shoulderRepair}<div class="frame"></div>`)
     .replace(
       "</main>",
       `${profileOverlay}</main>`,
     )
     .replace(
       'data-pilot-version="1.4-final-layout"',
-      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-multiformat-broadcast="v3-9" data-mobile-readability-lock="v3-10" data-journey-semantic-sync="v3-10-1" data-social-chrome-cleanup="v3-10-2" data-broadcast-crisp-polish="v3-10-3" data-final-human-review-closing="v3-10-3" data-mobile-card-rasterization="whole-pixel" data-journey-semantic-stage="${journeySemanticStage}" data-layout-profile="${plan.layoutProfile}" data-layout-profile-width="${plan.layout.output.width}" data-layout-profile-height="${plan.layout.output.height}" data-layout-scale-only="false" data-caption-cues="sentence-level" data-caption-maximum-lines="2" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-platform-safe-zone="top:${safeArea.top};right:${safeArea.right};bottom:${safeArea.bottom};left:${safeArea.left}" data-host-face-safe-zone="${faceSafeZone}" data-host-presenter-safe-zone="x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + regions.presenter.height}" data-microphone-safe-zone="x${regions.microphone.x}-${regions.microphone.x + regions.microphone.width}:y${regions.microphone.y}-${regions.microphone.y + regions.microphone.height}" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
+      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-multiformat-broadcast="v3-9" data-mobile-readability-lock="v3-10" data-journey-semantic-sync="v3-10-1" data-social-chrome-cleanup="v3-10-2" data-broadcast-crisp-polish="v3-10-3" data-final-human-review-closing="v3-10-3" data-final-surgical-human-correction="v3-10-4" data-mobile-card-rasterization="whole-pixel" data-journey-semantic-stage="${journeySemanticStage}" data-layout-profile="${plan.layoutProfile}" data-layout-profile-width="${plan.layout.output.width}" data-layout-profile-height="${plan.layout.output.height}" data-layout-scale-only="false" data-caption-cues="sentence-level" data-caption-maximum-lines="2" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-platform-safe-zone="top:${safeArea.top};right:${safeArea.right};bottom:${safeArea.bottom};left:${safeArea.left}" data-host-face-safe-zone="${faceSafeZone}" data-host-presenter-safe-zone="x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + regions.presenter.height}" data-microphone-safe-zone="x${regions.microphone.x}-${regions.microphone.x + regions.microphone.width}:y${regions.microphone.y}-${regions.microphone.y + regions.microphone.height}" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
     );
   if (contextDateReplacement) html = html.replaceAll("SEPTEMBER 2026", contextDateReplacement);
   return html;

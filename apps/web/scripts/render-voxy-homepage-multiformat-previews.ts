@@ -137,6 +137,39 @@ const BROADCAST_CRISP_V3_10_3_TARGETS = [
   },
 ] as const satisfies readonly PreviewTarget[];
 
+const FINAL_SURGICAL_V3_10_4_TARGETS = [
+  {
+    filmId: "edebatte",
+    layoutProfile: "vertical_9_16",
+    moments: [REVIEW_MOMENTS.edebatte[0]],
+  },
+  {
+    filmId: "voiceopengov",
+    layoutProfile: "vertical_9_16",
+    moments: [
+      REVIEW_MOMENTS.voiceopengov[1],
+      REVIEW_MOMENTS.voiceopengov[4],
+    ],
+  },
+  ...(["landscape_16_9", "square_1_1", "feed_4_5"] as const).flatMap(
+    (layoutProfile) => [
+      {
+        filmId: "edebatte" as const,
+        layoutProfile,
+        moments: [REVIEW_MOMENTS.edebatte[0]],
+      },
+      {
+        filmId: "voiceopengov" as const,
+        layoutProfile,
+        moments: [
+          REVIEW_MOMENTS.voiceopengov[1],
+          REVIEW_MOMENTS.voiceopengov[4],
+        ],
+      },
+    ],
+  ),
+] as const satisfies readonly PreviewTarget[];
+
 function cliArgument(name: string): string | null {
   const prefix = `--${name}=`;
   return process.argv.find((entry) => entry.startsWith(prefix))?.slice(prefix.length) ?? null;
@@ -207,6 +240,7 @@ async function main(): Promise<void> {
     reviewSet !== null
     && reviewSet !== "social-chrome-v3-10-2"
     && reviewSet !== "broadcast-crisp-v3-10-3"
+    && reviewSet !== "final-surgical-v3-10-4"
   ) {
     throw new Error(`unsupported_preview_review_set:${reviewSet}`);
   }
@@ -215,6 +249,8 @@ async function main(): Promise<void> {
       process.env.TMPDIR ?? "/tmp",
       reviewSet === "broadcast-crisp-v3-10-3"
         ? "voxy-homepage-v3-10-3-previews"
+        : reviewSet === "final-surgical-v3-10-4"
+          ? "voxy-homepage-v3-10-4-previews"
         : reviewSet === "social-chrome-v3-10-2"
           ? "voxy-homepage-v3-10-2-previews"
           : "voxy-homepage-v3-10-1-previews",
@@ -248,8 +284,10 @@ async function main(): Promise<void> {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ colorScheme: "dark" });
   const manifest = [] as Array<Record<string, unknown>>;
-  const targets: readonly PreviewTarget[] = reviewSet === "broadcast-crisp-v3-10-3"
-    ? BROADCAST_CRISP_V3_10_3_TARGETS
+  const targets: readonly PreviewTarget[] = reviewSet === "final-surgical-v3-10-4"
+    ? FINAL_SURGICAL_V3_10_4_TARGETS
+    : reviewSet === "broadcast-crisp-v3-10-3"
+      ? BROADCAST_CRISP_V3_10_3_TARGETS
     : reviewSet === "social-chrome-v3-10-2"
       ? SOCIAL_CHROME_V3_10_2_TARGETS
       : (["voiceopengov", "edebatte"] as const).flatMap((filmId) =>
