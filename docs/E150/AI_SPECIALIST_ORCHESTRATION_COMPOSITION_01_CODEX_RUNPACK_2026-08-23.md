@@ -10,7 +10,7 @@ Bezug: Issue `#629`, Issue `#617` und Draft-PR `#627` (`AI-CREATE-ORCHESTRATOR-L
 
 Dieser Run-Pack definiert den nächsten P0-Vertrag für eine echte, typisierte Spezialisten-Orchestrierung. Er erweitert den bestehenden graph-guided, deterministischen E150-Policy-Orchestrator und soll nach Disposition von PR `#627` dessen belegte `/create`-, Source-, PDF- und Transcript-Grenzen wiederverwenden. Er erzeugt keine zweite Create-, Material-, Research-, Provider-, Review- oder Publishing-Wahrheit.
 
-`docs/E150/OpenTasks.md` bleibt die operative SSOT. Der Status `codex_ready` erlaubt den taskbezogenen Preflight, ersetzt aber weder die Abhängigkeitsprüfung gegen PR `#627` noch die in diesem Run-Pack festgelegte serielle Implementierungsreihenfolge.
+`docs/E150/OpenTasks.md` bleibt die operative SSOT. Der Status `codex_ready` erlaubt den taskbezogenen Preflight, ersetzt aber weder die Abhängigkeitsprüfung gegen PR `#627` noch die in diesem Run-Pack festgelegte serielle Implementierungsreihenfolge. Ein positiver Preflight ist deshalb keine pauschale Freigabe aller vier Slices.
 
 ## Verbindliches Start-Gate
 
@@ -31,8 +31,9 @@ branchCreationAllowed: true
 Zusätzlich gilt unabhängig vom technischen Preflight:
 
 - Es wird in diesem Governance-Slice kein Produktbranch erstellt.
+- Solange PR `#627` nicht dispositioniert beziehungsweise gemergt ist, darf ein späterer Produktbranch ausschließlich den foundation-unabhängigen Slice 1 (typed Ergebnisverträge, deterministischer Composer und lokale Fixtures) umfassen und keine bestehende `/create`-, Source-, Provider- oder Runtimefläche ändern.
 - Ein späterer Produktbranch muss von einem `main` starten, das die für den jeweiligen Slice benötigten Source-, Loader-, PDF-, Transcript-, Security- und Runtime-Verträge aus PR `#627` enthält.
-- Solange PR `#627` nicht dispositioniert beziehungsweise gemergt ist, darf kein Produktbranch gestartet werden, der auf dieser Foundation aufbaut.
+- Die Slices 2 bis 4 und jeder andere Produktbranch, der auf dieser Foundation aufbaut, bleiben bis zu diesem Gate gesperrt.
 - Vor Implementierungsstart sind Diff und Merge-Stand von PR `#627` erneut gegen `main` zu prüfen; seine Runtime darf weder kopiert noch parallel neu gebaut werden.
 - Existiert dann bereits ein Branch oder PR für Issue `#629`, wird ausschließlich dieser wiederverwendet.
 
@@ -232,7 +233,7 @@ Mindestens eines dieser deterministischen Signale aktiviert den Specialist Path:
 - Providerwechsel, Modellwechsel und `runtime_rescue` bleiben in `roleExecutions` sichtbar.
 - Fehlt eine Pflichtrolle und existiert kein valider erlaubter Fallback, bleibt das Ergebnis `degraded` und `requiresHumanReview=true`.
 - OpenAI darf Structure, GroundingCoverage oder Critic nie still übernehmen.
-- Ein validierter Fast Path darf bei Ausfall einer optionalen Rolle fortfahren; der Ausfall bleibt als `skipped` oder `degraded` sichtbar.
+- Ein validierter Fast Path darf bei Ausfall einer optionalen Rolle fortfahren; ein tatsächlich versuchter und gescheiterter Rollenlauf bleibt als `failed` sichtbar und setzt den Gesamtlauf auf `degraded`. `skipped` ist ausschließlich einer nie aufgerufenen, policyseitig abgewählten Rolle vorbehalten.
 - Ein erfolgreicher HTTP-Status genügt nie als fachliches Qualitätsgate.
 - Fetch-, Transcript-, PDF- oder Groundingfehler stoppen vor unbelegter semantischer Analyse beziehungsweise führen sichtbar in Manual Review.
 
@@ -247,7 +248,7 @@ Mindestens eines dieser deterministischen Signale aktiviert den Specialist Path:
 
 ## Kosten- und Latenzbudgets
 
-Initialer verbindlicher Rahmen für die erste Umsetzung:
+Die folgenden Werte sind provisorische, fail-closed Contract-Test-Obergrenzen für die erste Umsetzung. Sie aktivieren oder erhöhen keine Production-Runtime-Policy. `AI-RUNTIME-POLICY-01` bleibt für tatsächliche Modelle, Timeouts, Output-Limits, Budgets und Rate Limits im Status `manual_gate` maßgeblich.
 
 | Pfad | Happy Path | Absolute Request-Obergrenze | Gesamtbudget |
 | --- | ---: | ---: | ---: |
@@ -256,10 +257,12 @@ Initialer verbindlicher Rahmen für die erste Umsetzung:
 
 Zusätzlich:
 
+- Die Obergrenzen dürfen in Contract- und Fixture-Tests nur gleich streng oder strenger als die bestehende Runtime ausgelegt werden; niedrigere bestehende Limits gewinnen.
+- Jede Production-Änderung an Modell-, Timeout-, Output-, Kosten- oder Rate-Limit-Konfiguration bleibt bis zur Freigabe von `AI-RUNTIME-POLICY-01` gesperrt.
 - je Rolle höchstens ein Retry, nur für klassifizierte transiente Fehler;
 - runweit höchstens zwei Retries;
 - Composer lokal mit höchstens zwei Sekunden Validierungsbudget;
-- initiale Outputobergrenzen: Structure 1.600, GroundingCoverage 1.800, CanonicalAnalysis 2.400 und Critic 1.400 Tokens; niedrigere bestehende Runtimegrenzen gewinnen bis zu einer expliziten getesteten Policyänderung;
+- provisorische Contract-Test-Outputobergrenzen: Structure 1.600, GroundingCoverage 1.800, CanonicalAnalysis 2.400 und Critic 1.400 Tokens; niedrigere bestehende Runtimegrenzen gewinnen;
 - kein unbeschränkter Map/Reduce-Fan-out;
 - ein späterer Multi-Source-Map/Reduce-Ausbau braucht einen eigenen Budget- und Approval-Slice;
 - unbekannte Kosten bleiben `costKnown=false` und werden nie als `0 EUR` ausgegeben;
@@ -364,5 +367,6 @@ Mindestens:
 - Dieser Governance-PR enthält ausschließlich diesen Run-Pack und die additive OpenTasks-Serialisierung.
 - Kein Produktcode, keine Provider-, Secret-, ENV-, Runtime-, Voxy-, Auth- oder PR-`#627`-Änderung.
 - Nach Merge ist der taskbezogene Preflight auf sauberem aktuellem `main` zu wiederholen.
-- Ein späterer Produktbranch entsteht erst nach positivem Preflight und erfülltem PR-`#627`-Foundation-Gate.
+- Ein späterer Produktbranch entsteht erst nach positivem Preflight; vor erfülltem PR-`#627`-Foundation-Gate ist er strikt auf Slice 1 ohne `/create`-, Source-, Provider- oder Runtimeänderung begrenzt.
+- Die Slices 2 bis 4 benötigen ein `main` mit der jeweils erforderlichen dispositionierten beziehungsweise gemergten PR-`#627`-Foundation; Production-Budgetänderungen benötigen zusätzlich die Freigabe von `AI-RUNTIME-POLICY-01`.
 - Die vier Implementierungsslices bleiben seriell und werden nicht als Big-Bang-PR zusammengezogen.
