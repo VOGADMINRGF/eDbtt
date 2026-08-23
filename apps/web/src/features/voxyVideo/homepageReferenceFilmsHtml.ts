@@ -666,8 +666,13 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const profileMemory = renderProfileMemory(plan, at);
   const subtitleText = subtitleCue(segment.text, segmentProgress(plan, at));
   const subtitle = `<div class="homepage-voxy-subtitle" data-subtitle-segment-id="${escapeHtml(segment.id)}" data-caption-mode="sentence-cue" data-full-subtitle="${escapeHtml(segment.text)}"><b>VOXY</b><p>${escapeHtml(subtitleText)}</p></div>`;
-  const shoulderRepair = plan.filmId === "edebatte" && plan.layoutProfile === "vertical_9_16"
-    ? `<div class="homepage-shoulder-repair" data-repair-source="canonical-left-upper-arm-layer" aria-hidden="true"><img class="source-plate homepage-shoulder-repair-source" src="${input.assets.canonStageDataUrl}" alt=""><span class="homepage-shoulder-repair-grade"></span></div>`
+  const isolatesMovingHeadFromCanonicalBody =
+    plan.filmId === "edebatte" && plan.layoutProfile === "vertical_9_16";
+  const headBodySeparationCss = isolatesMovingHeadFromCanonicalBody
+    ? `.head-source-clip{clip-path:polygon(10px 48px,90px 8px,295px 12px,380px 64px,480px 92px,500px 272px,450px 340px,350px 352px,305px 400px,190px 400px,120px 344px,5px 272px)!important}`
+    : "";
+  const canonicalBodyLayer = isolatesMovingHeadFromCanonicalBody
+    ? `<div class="homepage-canonical-body-layer" data-body-source="canonical-body-master" aria-hidden="true"><img class="source-plate homepage-canonical-body-source" src="${input.assets.canonStageDataUrl}" alt=""></div>`
     : "";
   const profileOverlay = `<div class="homepage-profile-overlay" data-compositional-layout="profile-specific" data-maximum-simultaneous-objects="${plan.layout.maximumSimultaneousObjects}">${semanticMotion}${brandHierarchy}${distinctiveStage}${profileMemory}${subtitle}</div>`;
   const { safeArea, regions } = plan.layout;
@@ -678,9 +683,9 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const css = `<style>
     .homepage-profile-overlay{position:absolute;z-index:40;inset:0;overflow:hidden;pointer-events:none}
     .studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
-    .homepage-shoulder-repair{position:absolute;z-index:4;inset:0;width:1920px;height:1080px;overflow:hidden;clip-path:polygon(480px 450px,640px 392px,640px 500px,480px 500px);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 610px,transparent 640px);mask-image:linear-gradient(90deg,#000 0,#000 610px,transparent 640px);pointer-events:none}
-    .homepage-shoulder-repair-source{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
-    .homepage-shoulder-repair-grade{position:absolute;inset:0;background:radial-gradient(circle at 47% 38%,rgba(32,102,255,.05),transparent 29%),linear-gradient(90deg,rgba(1,5,17,.88) 0%,rgba(1,5,17,.38) 29%,transparent 54%,rgba(1,5,17,.76) 88%,#010511 100%)}
+    ${headBodySeparationCss}
+    .homepage-canonical-body-layer{position:absolute;z-index:4;inset:0;width:1920px;height:1080px;overflow:hidden;clip-path:path("M450 720L500 520C505 480 510 450 520 435C555 420 590 412 625 420L680 455L760 720ZM680 720L680 455L755 445L850 410L880 450L900 720ZM850 410C890 415 920 425 940 435C960 470 990 520 1050 720L850 720Z");pointer-events:none}
+    .homepage-canonical-body-source{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
     .brand-lockup{display:none!important}
     .information-dimmer{background:linear-gradient(90deg,rgba(1,6,18,.05),rgba(1,6,18,.08) 58%,rgba(1,6,18,.42) 100%)!important;box-shadow:none!important}
     .homepage-brand-hierarchy{position:absolute;z-index:43;left:56px;top:118px;width:420px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
@@ -781,14 +786,14 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   let html = replaceHomepageLapelPin(base)
     .replace('data-burned-in-captions="false"', 'data-burned-in-captions="true"')
     .replace("</head>", `${css}</head>`)
-    .replace('<div class="frame"></div>', `${shoulderRepair}<div class="frame"></div>`)
+    .replace('<div class="frame"></div>', `${canonicalBodyLayer}<div class="frame"></div>`)
     .replace(
       "</main>",
       `${profileOverlay}</main>`,
     )
     .replace(
       'data-pilot-version="1.4-final-layout"',
-      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-multiformat-broadcast="v3-9" data-mobile-readability-lock="v3-10" data-journey-semantic-sync="v3-10-1" data-social-chrome-cleanup="v3-10-2" data-broadcast-crisp-polish="v3-10-3" data-final-human-review-closing="v3-10-3" data-final-surgical-human-correction="v3-10-4" data-mobile-card-rasterization="whole-pixel" data-journey-semantic-stage="${journeySemanticStage}" data-layout-profile="${plan.layoutProfile}" data-layout-profile-width="${plan.layout.output.width}" data-layout-profile-height="${plan.layout.output.height}" data-layout-scale-only="false" data-caption-cues="sentence-level" data-caption-maximum-lines="2" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-platform-safe-zone="top:${safeArea.top};right:${safeArea.right};bottom:${safeArea.bottom};left:${safeArea.left}" data-host-face-safe-zone="${faceSafeZone}" data-host-presenter-safe-zone="x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + regions.presenter.height}" data-microphone-safe-zone="x${regions.microphone.x}-${regions.microphone.x + regions.microphone.width}:y${regions.microphone.y}-${regions.microphone.y + regions.microphone.height}" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
+      `data-pilot-version="homepage-reference-v3-4-broadcast-readability" data-broadcast-discipline="v3-4" data-presenter-transition-polish="v3-5" data-microphone-clearance-lock="v3-6" data-editorial-clarity="v3-7" data-muted-first-captions="v3-7" data-editorial-simplification="v3-8" data-narrative-navigation="v3-8" data-multiformat-broadcast="v3-9" data-mobile-readability-lock="v3-10" data-journey-semantic-sync="v3-10-1" data-social-chrome-cleanup="v3-10-2" data-broadcast-crisp-polish="v3-10-3" data-final-human-review-closing="v3-10-3" data-final-surgical-human-correction="v3-10-4" data-head-body-separation="${isolatesMovingHeadFromCanonicalBody ? "silhouette-clipped-head-over-canonical-body" : "unchanged"}" data-mobile-card-rasterization="whole-pixel" data-journey-semantic-stage="${journeySemanticStage}" data-layout-profile="${plan.layoutProfile}" data-layout-profile-width="${plan.layout.output.width}" data-layout-profile-height="${plan.layout.output.height}" data-layout-scale-only="false" data-caption-cues="sentence-level" data-caption-maximum-lines="2" data-state-settle-seconds="${STATE_SETTLE_SECONDS}" data-pause-hold="previous-segment" data-min-readable-state-seconds="${MIN_READABLE_STATE_SECONDS}" data-homepage-film="${plan.filmId}" data-context-mode="${plan.contextMode}" data-visual-language="${plan.visualLanguage}" data-homepage-visual-state="${visualState.state}" data-homepage-segment-id="${escapeHtml(segment.id)}" data-motion-event-index="${eventIndex}" data-platform-safe-zone="top:${safeArea.top};right:${safeArea.right};bottom:${safeArea.bottom};left:${safeArea.left}" data-host-face-safe-zone="${faceSafeZone}" data-host-presenter-safe-zone="x${regions.presenter.x}-${regions.presenter.x + regions.presenter.width}:y${regions.presenter.y}-${regions.presenter.y + regions.presenter.height}" data-microphone-safe-zone="x${regions.microphone.x}-${regions.microphone.x + regions.microphone.width}:y${regions.microphone.y}-${regions.microphone.y + regions.microphone.height}" data-host-face-safe-policy="hard-no-lines-or-large-objects" data-presenter-safe-policy="no-semantic-text-or-connector-lines"`,
     );
   if (contextDateReplacement) html = html.replaceAll("SEPTEMBER 2026", contextDateReplacement);
   return html;

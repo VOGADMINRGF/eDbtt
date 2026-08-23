@@ -178,6 +178,19 @@ const FINAL_SURGICAL_V3_10_4_TARGETS = [
   ),
 ] as const satisfies readonly PreviewTarget[];
 
+const SHOULDER_SILHOUETTE_V3_10_4_TARGETS = [
+  {
+    filmId: "edebatte",
+    layoutProfile: "vertical_9_16",
+    moments: [
+      ["shoulder-01-early", "edebatte-greeting", 0.15],
+      ["shoulder-02-middle", "edebatte-product-model", 0.55],
+      ["shoulder-03-maximum-deflection", "edebatte-next-generation", 0.134],
+      ["shoulder-04-late", "edebatte-cta", 0.65],
+    ],
+  },
+] as const satisfies readonly PreviewTarget[];
+
 function cliArgument(name: string): string | null {
   const prefix = `--${name}=`;
   return process.argv.find((entry) => entry.startsWith(prefix))?.slice(prefix.length) ?? null;
@@ -249,6 +262,7 @@ async function main(): Promise<void> {
     && reviewSet !== "social-chrome-v3-10-2"
     && reviewSet !== "broadcast-crisp-v3-10-3"
     && reviewSet !== "final-surgical-v3-10-4"
+    && reviewSet !== "shoulder-silhouette-v3-10-4"
   ) {
     throw new Error(`unsupported_preview_review_set:${reviewSet}`);
   }
@@ -257,6 +271,8 @@ async function main(): Promise<void> {
       process.env.TMPDIR ?? "/tmp",
       reviewSet === "broadcast-crisp-v3-10-3"
         ? "voxy-homepage-v3-10-3-previews"
+        : reviewSet === "shoulder-silhouette-v3-10-4"
+          ? "voxy-homepage-v3-10-4-shoulder-silhouette-proofs"
         : reviewSet === "final-surgical-v3-10-4"
           ? "voxy-homepage-v3-10-4-previews"
         : reviewSet === "social-chrome-v3-10-2"
@@ -292,7 +308,9 @@ async function main(): Promise<void> {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ colorScheme: "dark" });
   const manifest = [] as Array<Record<string, unknown>>;
-  const targets: readonly PreviewTarget[] = reviewSet === "final-surgical-v3-10-4"
+  const targets: readonly PreviewTarget[] = reviewSet === "shoulder-silhouette-v3-10-4"
+    ? SHOULDER_SILHOUETTE_V3_10_4_TARGETS
+    : reviewSet === "final-surgical-v3-10-4"
     ? FINAL_SURGICAL_V3_10_4_TARGETS
     : reviewSet === "broadcast-crisp-v3-10-3"
       ? BROADCAST_CRISP_V3_10_3_TARGETS
@@ -359,7 +377,9 @@ async function main(): Promise<void> {
   await writeFile(
     path.resolve(outputRoot, "preview-manifest.json"),
     `${JSON.stringify({
-      schemaVersion: reviewSet === "broadcast-crisp-v3-10-3"
+      schemaVersion: reviewSet === "shoulder-silhouette-v3-10-4"
+        ? "voxy-homepage-shoulder-silhouette-proof-v3-10-4"
+        : reviewSet === "broadcast-crisp-v3-10-3"
         ? "voxy-homepage-broadcast-crisp-preview-v3-10-3"
         : reviewSet === "social-chrome-v3-10-2"
           ? "voxy-homepage-social-chrome-cleanup-preview-v3-10-2"
