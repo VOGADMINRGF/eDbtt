@@ -51,10 +51,10 @@ Ausgeführt über `pnpm -C apps/web run create:semantic-material-smoke`. Der Har
 | Quelle | Klassifikation / Fetch | Semantisches Resultat | Grounding / Handoff | sichere Provider-Metadaten |
 | --- | --- | --- | --- | --- |
 | offizielles SPD-Wahlprogramm 2025 in Leichter Sprache, HTML | `link`; HTTP 200; `sourceLoaded=true`; 9.804 Zeichen; Content-Hash `a088a1a042ac2371d7a1608b1fba233f04b846210fb36a04c2868e5d55252702` | `result_ready`; 9 validierte Themen; 1 Summary-Statement; nicht degraded | Original-URL einzige Evidence-Referenz; 0 ungrounded Topic-Labels; kein Support-Handoff | `gpt-4o-mini`, 1 Attempt, `succeeded`, Dauer only |
-| UBA „Treibhausgas-Projektionen 2024 – Instrumente“, PDF | `document_url`; HTTP 200; `sourceLoaded=true`; 146 Seiten; 120.000 begrenzte Extraktionszeichen; Content-Hash `07f6e696f0deb846edb819ac06c2290b91cabb84073ebedd70a02f6e468702e8` | `result_ready`; 5 validierte fachliche Themen; 1 Summary-Statement; mehrere Key-Statement-/Claim-/Proposal-Zähler; nicht degraded | Original-PDF-URL einzige Evidence-Referenz; 0 ungrounded Topic-Labels; kein Support-Handoff | `gpt-4o-mini`, 1 Attempt, `succeeded`, Dauer only |
+| Mozilla/PDF.js „Trace-based Just-in-Time Type Specialization for Dynamic Languages“, wissenschaftliches PDF | `document_url`; HTTP 200; `sourceLoaded=true`; 14 Seiten; 83.016 Extraktionszeichen; Content-Hash `66f4ef89082454f7049234b9fe6da11f451a087a311a606c2ca61280194222c7` | `result_ready`; 3 validierte fachliche Themen; 1 Summary-Statement; Key-Statement- und verifizierbare Claim-Zähler; nicht degraded | Original-PDF-URL einzige Evidence-Referenz; 0 ungrounded Topic-Labels; kein Support-Handoff | `gpt-4o-mini`, 1 Attempt, `succeeded`, Dauer only |
 | W3C-WAI „Web Accessibility Perspectives: Video Captions“, YouTube | `youtube_video_url`; Transcript erfolgreich; `sourceLoaded=true`; 431 Zeichen; Content-Hash `ecef947e778abff55434ef4c31c77564d30b6cb024d9d00e3d3104fe05787398` | `result_ready`; 1 validiertes Thema; 1 Summary-Statement; nicht degraded | Original-YouTube-URL einzige Evidence-Referenz; 0 ungrounded Topic-Labels; kein Support-Handoff | `gpt-4o-mini`, 1 Attempt, `succeeded`, Dauer only |
 
-Der erste reale UBA-Lauf lieferte trotz erfolgreicher 146-Seiten-Extraktion keine Themen, weil der Provider nur die ersten 24.000 Zeichen mit Frontmatter und Tabellen erhielt. Der minimale Fix nutzt innerhalb desselben 24.000-Zeichen-Budgets Anfang, Mitte und Ende des extrahierten Bereichs. Danach wurden fünf getrennte Themen validiert. Beim YouTube-Lauf wird für den englischen Transcript-Smoke Englisch als Ausgabesprache verwendet, damit die deterministische lexikalische Grounding-Prüfung keine korrekte Übersetzung als Halluzination fehlklassifiziert.
+Ein erster realer UBA-Lauf lieferte trotz erfolgreicher 146-Seiten-Extraktion keine Themen, weil der Provider nur die ersten 24.000 Zeichen mit Frontmatter und Tabellen erhielt. Der minimale Fix nutzt innerhalb desselben 24.000-Zeichen-Budgets Anfang, Mitte und Ende des extrahierten Bereichs; danach wurden dort fünf getrennte Themen validiert. Wiederholungsläufe scheiterten später ehrlich vor der Extraktion am instabilen UBA-Origin (12,26 Sekunden und anschließend mehr als 20 Sekunden). Deshalb verwendet das reproduzierbare Acceptance-Gate das stabil erreichbare 14-seitige Mozilla-Forschungspapier über denselben PDF-Pfad. Beim YouTube-Lauf wird für den englischen Transcript-Smoke Englisch als Ausgabesprache verwendet, damit die deterministische lexikalische Grounding-Prüfung keine korrekte Übersetzung als Halluzination fehlklassifiziert.
 
 ## Gate B — External-Source-Security
 
@@ -69,6 +69,7 @@ Im Repository existierte keine zentrale SSRF-/Safe-Fetch-Utility. Der neue einzi
 | übergroßes HTML | `Content-Length` und tatsächlich gestreamte Bytes bei 2 MiB begrenzt |
 | übergroßes PDF | `Content-Length` und tatsächlich gestreamte Bytes bei 10 MiB begrenzt |
 | PDF-Parser | höchstens 80 Seiten Text, 120.000 Zeichen, 8 Sekunden, begrenzte Bildgröße, `isEvalSupported=false`, Parser wird zerstört |
+| langsame externe Quelle | Fetch bleibt pro validiertem Hop auf 20 Sekunden begrenzt; nach belegtem UBA-Timeout bei 12,26 Sekunden von 12 Sekunden angehoben, ohne Byte-, Redirect-, Adress- oder Parserlimits zu lockern |
 | PDF-Spoof per MIME oder `.pdf`-Suffix | ohne `%PDF-`-Signatur blockiert |
 | echtes PDF mit falschem Text-/Generic-MIME | über Signatur als PDF erkannt; sonstige unbekannte Binärdaten blockiert |
 
@@ -102,7 +103,7 @@ Der finale Arbeitsstand umfasst 36 Dateien gegen `main`. Alle sind einem belegte
 
 - ursprüngliche fokussierte Matrix-/Create-/Grounding-Suite: 14 Testdateien, 96 Tests grün; darin `create-link-analysis.auth-contract.test.ts` mit 15 Tests
 - zusätzliche External-Source-/SSRF-/PDF-Ressourcentests: localhost, Loopback, RFC1918, Metadata/link-local, Redirect-Revalidierung, DNS-Mischauflösung, Byte-Limits, Content-Type/Spoofing, Seitenlimit und Parser-Timeout
-- zusammengeführte fokussierte Suite nach Hardening: 18 Testdateien, 123 Tests grün
+- zusammengeführte fokussierte Suite nach Hardening einschließlich Material-Routing und Source-Grounding: 19 Testdateien, 127 Tests grün; der `@db/web`-Paketvertrag lief nach dem vorgesehenen Paket-Build
 - `pnpm -C apps/web run typecheck`: grün
 - `pnpm -C apps/web run lint`: grün
 - `pnpm install --frozen-lockfile --ignore-scripts --offline`: grün

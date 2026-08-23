@@ -10,6 +10,7 @@ vi.mock("@/lib/net/safeExternalFetch", () => ({
 }));
 
 import {
+  CREATE_EXTERNAL_FETCH_TIMEOUT_MS,
   CREATE_EXTERNAL_HTML_MAX_BYTES,
   CREATE_EXTERNAL_PDF_MAX_BYTES,
   CREATE_EXTERNAL_PDF_MAX_PAGES,
@@ -47,7 +48,10 @@ describe("Create external-source type and PDF resource safety", () => {
 
     const fetchOptions = mocks.safeExternalFetch.mock.calls[0]?.[1] as {
       maxBytes: (input: { contentType: string; finalUrl: string }) => number;
+      timeoutMs: number;
     };
+    expect(fetchOptions.timeoutMs).toBe(CREATE_EXTERNAL_FETCH_TIMEOUT_MS);
+    expect(fetchOptions.timeoutMs).toBe(20_000);
     expect(fetchOptions.maxBytes({ contentType: "text/html", finalUrl: "https://public.example" })).toBe(
       CREATE_EXTERNAL_HTML_MAX_BYTES,
     );

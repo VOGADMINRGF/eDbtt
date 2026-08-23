@@ -8,6 +8,7 @@ export const CREATE_EXTERNAL_PDF_MAX_BYTES = 10 * 1024 * 1024;
 export const CREATE_EXTERNAL_PDF_MAX_PAGES = 80;
 export const CREATE_EXTERNAL_PDF_MAX_TEXT_LENGTH = 120_000;
 export const CREATE_EXTERNAL_PDF_PARSE_TIMEOUT_MS = 8_000;
+export const CREATE_EXTERNAL_FETCH_TIMEOUT_MS = 20_000;
 
 export type CreateExternalSourceKind = "html" | "pdf" | "youtube_transcript";
 
@@ -153,7 +154,7 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
   const response = await safeExternalFetch(url, {
     accept: "text/html,application/pdf,text/plain;q=0.9,*/*;q=0.2",
     maxBytes: maxSourceBytes,
-    timeoutMs: 12_000,
+    timeoutMs: CREATE_EXTERNAL_FETCH_TIMEOUT_MS,
     userAgent: "eDebatte Create Link Analysis",
   });
   const { buffer, contentType } = response;

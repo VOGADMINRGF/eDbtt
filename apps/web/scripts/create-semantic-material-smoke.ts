@@ -15,7 +15,7 @@ const sources = [
     matrixCase: "scientific_dossier_pdf",
     locale: "de",
     minimumTopics: 3,
-    url: "https://www.umweltbundesamt.de/system/files/medien/11850/publikationen/projektionsbericht_2024_instrumentenpapier.pdf",
+    url: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
   },
   {
     matrixCase: "youtube_with_transcript",
