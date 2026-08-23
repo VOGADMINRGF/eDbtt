@@ -93,10 +93,11 @@ export function proposeAlpha2Lesson(input: {
   supersedesLessonId?: string;
   now?: string;
 }): Alpha2Lesson {
-  const now = input.now ?? new Date().toISOString();
+  const { now: inputNow, ...lessonInput } = input;
+  const now = inputNow ?? new Date().toISOString();
   return Alpha2LessonSchema.parse({
     schemaVersion: "alpha2.lesson.v1",
-    ...input,
+    ...lessonInput,
     status: "candidate",
     createdAt: now,
     updatedAt: now,
