@@ -1,5 +1,5 @@
 import { Job, Queue, QueueEvents, Worker } from "bullmq";
-import IORedis, { type Redis } from "ioredis";
+import IORedis from "ioredis";
 
 export const ALPHA2_EXECUTION_QUEUE = "alpha2-execution";
 
@@ -26,7 +26,7 @@ export interface Alpha2ExecutionDispatcher {
   dispatch(input: Alpha2ExecutionDispatch): Promise<{ jobId: string }>;
 }
 
-let redis: Redis | null = null;
+let redis: any = null;
 let queue: Queue<Alpha2ExecutionJob> | null = null;
 let queueEvents: QueueEvents | null = null;
 
@@ -37,7 +37,7 @@ function resolveAlpha2RedisUrl() {
   throw new Error("alpha2_redis_url_missing");
 }
 
-export function getAlpha2RedisConnection(): Redis {
+export function getAlpha2RedisConnection(): any {
   if (!redis) {
     redis = new IORedis(resolveAlpha2RedisUrl(), {
       maxRetriesPerRequest: null,
