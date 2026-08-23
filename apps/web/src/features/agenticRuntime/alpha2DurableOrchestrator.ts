@@ -212,25 +212,27 @@ export async function runAlpha2DurableStep(input: {
   leaseMs?: number;
   now?: string;
 }): Promise<Alpha2DurableStepResult> {
-  const now = input.now ?? new Date().toISOString();
+  const startedAt = input.now ?? new Date().toISOString();
   const observed = await input.ledger.getByRunId(input.runId);
   if (!observed) return { state: "missing", runId: input.runId };
   if (isAlpha2TerminalRun(observed.run)) return { state: "terminal", run: observed.run };
   if (isAlpha2HumanStoppedRun(observed.run)) {
     return { state: "human_stopped", run: observed.run };
   }
-  if (!isAlpha2RunDue(observed.run, now)) return { state: "not_due", run: observed.run };
+  if (!isAlpha2RunDue(observed.run, startedAt)) {
+    return { state: "not_due", run: observed.run };
+  }
 
   const leased = await input.ledger.tryAcquireLease({
     runId: input.runId,
     owner: input.workerId,
-    now,
+    now: startedAt,
     leaseMs: Math.max(10_000, input.leaseMs ?? 120_000),
   });
   if (!leased) return { state: "lease_not_acquired", runId: input.runId };
 
   try {
-    const start = await moveToRunning({ ledger: input.ledger, leased, now });
+    const start = await moveToRunning({ ledger: input.ledger, leased, now: startedAt });
     if (start.exhausted) return { state: "attempts_exhausted", run: start.current.run };
 
     let outcome: Alpha2WorkerOutcome;
@@ -246,14 +248,15 @@ export async function runAlpha2DurableStep(input: {
       };
     }
 
+    const outcomeAt = input.now ?? new Date().toISOString();
     const persisted = await persistOutcome({
       ledger: input.ledger,
       current: start.current,
       outcome,
-      now: new Date().toISOString(),
+      now: outcomeAt,
     });
 
-    const dispatch = nextDispatch({ run: persisted.run, outcome, now });
+    const dispatch = nextDispatch({ run: persisted.run, outcome, now: outcomeAt });
     if (!dispatch) return { state: "executed", run: persisted.run };
 
     try {
@@ -262,7 +265,7 @@ export async function runAlpha2DurableStep(input: {
         taskId: persisted.run.taskId,
         dispatchKey: dispatch.dispatchKey,
         reason: dispatch.reason,
-        requestedAt: new Date().toISOString(),
+        requestedAt: outcomeAt,
         delayMs: dispatch.delayMs,
       });
       return { state: "executed", run: persisted.run, dispatchedJobId: queued.jobId };
