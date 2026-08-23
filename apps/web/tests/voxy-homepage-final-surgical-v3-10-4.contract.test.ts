@@ -68,6 +68,9 @@ describe("VOXY homepage V3.10.4 — final surgical human correction", () => {
       "clip-path:polygon(480px 450px,620px 399px,620px 500px,480px 500px)",
     );
     expect(vertical).toContain(
+      "mask-image:linear-gradient(90deg,#000 0,#000 570px,transparent 620px)",
+    );
+    expect(vertical).toContain(
       "background:radial-gradient(circle at 47% 38%,rgba(32,102,255,.05),transparent 29%),linear-gradient(90deg,rgba(1,5,17,.88) 0%,rgba(1,5,17,.38) 29%,transparent 54%,rgba(1,5,17,.76) 88%,#010511 100%)",
     );
     expect(vogVertical).not.toContain('data-repair-source="canonical-left-upper-arm-layer"');

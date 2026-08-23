@@ -678,7 +678,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const css = `<style>
     .homepage-profile-overlay{position:absolute;z-index:40;inset:0;overflow:hidden;pointer-events:none}
     .studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
-    .homepage-shoulder-repair{position:absolute;z-index:4;inset:0;width:1920px;height:1080px;overflow:hidden;clip-path:polygon(480px 450px,620px 399px,620px 500px,480px 500px);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 70%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 70%,transparent 100%);pointer-events:none}
+    .homepage-shoulder-repair{position:absolute;z-index:4;inset:0;width:1920px;height:1080px;overflow:hidden;clip-path:polygon(480px 450px,620px 399px,620px 500px,480px 500px);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 570px,transparent 620px);mask-image:linear-gradient(90deg,#000 0,#000 570px,transparent 620px);pointer-events:none}
     .homepage-shoulder-repair-source{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
     .homepage-shoulder-repair-grade{position:absolute;inset:0;background:radial-gradient(circle at 47% 38%,rgba(32,102,255,.05),transparent 29%),linear-gradient(90deg,rgba(1,5,17,.88) 0%,rgba(1,5,17,.38) 29%,transparent 54%,rgba(1,5,17,.76) 88%,#010511 100%)}
     .brand-lockup{display:none!important}

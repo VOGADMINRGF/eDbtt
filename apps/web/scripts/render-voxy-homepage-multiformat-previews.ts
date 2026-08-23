@@ -141,7 +141,11 @@ const FINAL_SURGICAL_V3_10_4_TARGETS = [
   {
     filmId: "edebatte",
     layoutProfile: "vertical_9_16",
-    moments: [REVIEW_MOMENTS.edebatte[0]],
+    moments: [
+      ["opening-early", "edebatte-greeting", 0.15],
+      ["opening-mid", "edebatte-greeting", 0.5],
+      ["opening-late", "edebatte-greeting", 0.85],
+    ],
   },
   {
     filmId: "voiceopengov",
