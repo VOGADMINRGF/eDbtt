@@ -1,0 +1,226 @@
+import { describe, expect, it } from "vitest";
+import {
+  appendAlpha2Checkpoint,
+  createAlpha2RunRecord,
+  isAlpha2RunTransitionAllowed,
+  linkAlpha2ChildRun,
+  transitionAlpha2Run,
+} from "@/features/agenticRuntime/alpha2RunLifecycleContract";
+import {
+  isAlpha2AutomaticActionAllowed,
+  resolveAlpha2ActionGate,
+} from "@/features/agenticRuntime/alpha2RiskGateContract";
+
+const NOW = "2026-08-23T21:00:00.000Z";
+
+describe("Alpha-Foxtrott 2 control-plane contracts", () => {
+  it("creates a provider-agnostic queued root run with bounded budget", () => {
+    const run = createAlpha2RunRecord({
+      runId: "run-root",
+      idempotencyKey: "ALPHA2-RUN-CONTRACT-01:run-root",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      supportingRoles: ["research_source", "governance_compliance"],
+      riskClass: "yellow",
+      route: {
+        mode: "automatic",
+        capabilityClass: "engineering_contract",
+        fallbackAllowed: true,
+      },
+      budget: {
+        maxAttempts: 3,
+        maxModelCalls: 6,
+        maxWallClockMs: 15 * 60 * 1000,
+        maxEstimatedCostEur: 5,
+      },
+      now: NOW,
+    });
+
+    expect(run).toMatchObject({
+      schemaVersion: "alpha2.run.v1",
+      runId: "run-root",
+      rootRunId: "run-root",
+      parentRunId: null,
+      status: "queued",
+      attempt: 0,
+      humanGate: { state: "not_required" },
+      route: {
+        mode: "automatic",
+        capabilityClass: "engineering_contract",
+      },
+    });
+    expect(run.supportingRoles).toEqual(["research_source"]);
+  });
+
+  it("allows bounded resume transitions but keeps terminal runs terminal", () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-transition",
+      idempotencyKey: "transition-key",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-08-23T21:01:00.000Z",
+    });
+    const waiting = transitionAlpha2Run(running, "waiting", {
+      now: "2026-08-23T21:02:00.000Z",
+    });
+    const resumed = transitionAlpha2Run(waiting, "running", {
+      now: "2026-08-23T21:03:00.000Z",
+    });
+    const completed = transitionAlpha2Run(resumed, "completed", {
+      now: "2026-08-23T21:04:00.000Z",
+    });
+
+    expect(resumed.attempt).toBe(2);
+    expect(completed.finishedAt).toBe("2026-08-23T21:04:00.000Z");
+    expect(isAlpha2RunTransitionAllowed("completed", "running")).toBe(false);
+    expect(() => transitionAlpha2Run(completed, "running")).toThrow(
+      "alpha2_invalid_run_transition:completed->running",
+    );
+  });
+
+  it("requires an explicit pending human gate before entering human_gate", () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-gated",
+      idempotencyKey: "gated-key",
+      taskId: "ALPHA2-RISK-GATE-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "orange",
+      route: { mode: "automatic", capabilityClass: "governance" },
+      now: NOW,
+    });
+
+    expect(() => transitionAlpha2Run(queued, "human_gate")).toThrow(
+      "alpha2_human_gate_status_requires_pending_gate",
+    );
+
+    const gated = transitionAlpha2Run(queued, "human_gate", {
+      now: "2026-08-23T21:01:00.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "Architecture decision requires human approval",
+      },
+    });
+
+    expect(gated.humanGate.state).toBe("pending");
+  });
+
+  it("keeps checkpoints idempotent and parent-child linkage explicit", () => {
+    const parent = createAlpha2RunRecord({
+      runId: "mission-1",
+      idempotencyKey: "mission-1",
+      taskId: "ALPHA2-ORCHESTRATOR-LOOP-01",
+      kind: "mission",
+      primaryRole: "governance_compliance",
+      riskClass: "yellow",
+      route: { mode: "automatic", capabilityClass: "orchestration" },
+      now: NOW,
+    });
+    const child = createAlpha2RunRecord({
+      runId: "slice-1",
+      parentRunId: "mission-1",
+      rootRunId: "mission-1",
+      idempotencyKey: "mission-1:slice-1",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+
+    const linked = linkAlpha2ChildRun(parent, child);
+    const checkpointed = appendAlpha2Checkpoint(linked, {
+      checkpointId: "cp-1",
+      createdAt: "2026-08-23T21:05:00.000Z",
+      cursor: "contract_written",
+      evidenceRefs: ["commit:example"],
+      artifactRefs: ["apps/web/src/features/agenticRuntime/alpha2RunLifecycleContract.ts"],
+    });
+    const duplicate = appendAlpha2Checkpoint(checkpointed, {
+      checkpointId: "cp-1",
+      createdAt: "2026-08-23T21:06:00.000Z",
+      cursor: "ignored_duplicate",
+      evidenceRefs: [],
+      artifactRefs: [],
+    });
+
+    expect(linked.childRunIds).toEqual(["slice-1"]);
+    expect(checkpointed.checkpoints).toHaveLength(1);
+    expect(duplicate.checkpoints).toHaveLength(1);
+  });
+
+  it("never auto-executes human-sovereignty actions", () => {
+    const actionKinds = [
+      "notify_external",
+      "merge_code",
+      "deploy",
+      "spend_money",
+      "enter_contract",
+      "change_rights_or_entitlements",
+      "destructive_infrastructure",
+      "security_or_secret",
+    ] as const;
+
+    for (const actionKind of actionKinds) {
+      expect(
+        resolveAlpha2ActionGate({
+          actionKind,
+          riskClass: "green",
+          confidence: "high",
+          reversible: true,
+          explicitPolicyRef: "policy:test",
+        }),
+      ).toMatchObject({
+        decision: "human_only",
+        autoExecutionAllowed: false,
+      });
+    }
+  });
+
+  it("keeps external publication and public political claims review-gated", () => {
+    for (const actionKind of ["publish_external", "public_political_claim"] as const) {
+      expect(
+        resolveAlpha2ActionGate({
+          actionKind,
+          riskClass: "green",
+          confidence: "high",
+          reversible: true,
+          explicitPolicyRef: "policy:test",
+        }),
+      ).toMatchObject({
+        decision: "review_required",
+        autoExecutionAllowed: false,
+      });
+    }
+  });
+
+  it("permits only low-risk reversible writes with explicit policy to auto-run", () => {
+    expect(
+      isAlpha2AutomaticActionAllowed({
+        actionKind: "write_reversible",
+        riskClass: "green",
+        confidence: "high",
+        reversible: true,
+        explicitPolicyRef: "policy:alpha2-low-risk-write-v1",
+      }),
+    ).toBe(true);
+
+    expect(
+      isAlpha2AutomaticActionAllowed({
+        actionKind: "write_reversible",
+        riskClass: "green",
+        confidence: "high",
+        reversible: true,
+      }),
+    ).toBe(false);
+  });
+});
