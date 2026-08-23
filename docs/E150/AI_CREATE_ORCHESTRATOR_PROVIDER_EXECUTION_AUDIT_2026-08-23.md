@@ -10,6 +10,8 @@ Auditierter Runtime-Head: `32a7569afa8dbdc1de1ff4d31309fb4bf3072d92`
 
 ## Kurzbefund
 
+> Korrektur/Ergänzung: Google/Gemini, NotebookLM und der tatsächliche `/create`-zu-E150-Call-Graph sind vollständig im [Google/Gemini-/NotebookLM-Korrekturaudit](./AI_CREATE_ORCHESTRATOR_GOOGLE_GEMINI_NOTEBOOKLM_AUDIT_2026-08-23.md) erfasst. Insbesondere ist der unten genannte „nachgelagerte Analyze/E150-Lauf“ ein separat geprüfter `/api/contributions/analyze`-Pfad; der aktuelle `CreateClient` startet ihn nach Planner oder Linkanalyse nicht automatisch. Der reale `/create`-UI-Happy-Path endet deshalb zunächst beim Planner beziehungsweise der OpenAI-Linkanalyse.
+
 Der reale `/create`-Happy-Path ist in der auditierten Operator-Umgebung **Single-Provider OpenAI**:
 
 - Freitext: ein Planner-Aufruf an OpenAI, real belegt mit `gpt-4o-mini`.
@@ -31,7 +33,7 @@ Die lokale Policy-Ausgabe enthielt ausschließlich Boolesche Verfügbarkeit, Pro
 | OpenAI | ja | ja | ja; Planner, Materialanalyse und E150 erfolgreich | Planner/Material `gpt-4o-mini`; E150 `gpt-5`, reale Antwort `gpt-5-2025-08-07` |
 | Anthropic | ja | nein | nein; ohne Credential nicht aufgerufen, nur Mock-/Contract-Evidence | `claude-sonnet-4-20250514` |
 | Mistral | ja | nein | nein; ohne Credential nicht aufgerufen, nur Mock-/Contract-Evidence | `mistral-large-latest` |
-| Gemini | ja | nein | nein; außerhalb des angefragten Providerfokus, aber Teil des E150-Analyze-Profils | `gemini-2.5-flash` |
+| Gemini | ja, text-only | nein | nein; Exact-Head-Probe `CONFIG_MISSING`; Teil des E150-Analyze-Profils, aber nicht des `/create`-Materialpfads | `gemini-2.5-flash` |
 
 Die deklarierte Reihenfolge war `openai → anthropic → mistral → gemini`; `enabledRuntimeProviders` enthielt nur `openai`. Daraus darf keine Aussage über Secretbelegung oder Erreichbarkeit in einer anderen Umgebung abgeleitet werden. Der Exact-Head-Preview bleibt hinter Vercel SSO; dieser Audit umgeht das Gate nicht.
 

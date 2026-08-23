@@ -75,7 +75,7 @@ Im Repository existierte keine zentrale SSRF-/Safe-Fetch-Utility. Der neue einzi
 
 ## Gate C — vollständige PR-Scope-Zuordnung
 
-Der finale Arbeitsstand umfasst 37 Dateien gegen `main`. Alle sind einem belegten Segment derselben Kette zugeordnet; versehentlich durch einen Installlauf erzeugte Prisma-/Generated- und Fremd-Lockfile-Drift wurde vollständig entfernt.
+Der finale Arbeitsstand umfasst nach dem Google/Gemini-/NotebookLM-Korrekturaudit 38 Dateien gegen `main`. Alle sind einem belegten Segment derselben Kette zugeordnet; versehentlich durch einen Installlauf erzeugte Prisma-/Generated- und Fremd-Lockfile-Drift wurde vollständig entfernt. Die zusätzliche Datei dokumentiert ausschließlich die Provider-/Orchestrierungswahrheit und verändert keine Runtime.
 
 | Vertrag | Zugeordnete Dateien |
 | --- | --- |
