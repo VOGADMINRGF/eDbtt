@@ -64,6 +64,16 @@ function classifyFromUrl(url: string): CreateInputClassification {
   return "link";
 }
 
+function classifyFromMaterialItem(
+  item: NormalizedMaterialItem,
+): CreateInputClassification | null {
+  if (item.kind === "youtube_url") return "youtube_video_url";
+  if (item.kind === "pdf_document") return "document_url";
+  if (item.kind === "web_document" && item.url) return "link";
+  if (item.url) return classifyFromUrl(item.url);
+  return null;
+}
+
 export function classifyCreateInput(params: {
   text?: string | null;
   sourceUrls?: string[] | null;
@@ -76,6 +86,12 @@ export function classifyCreateInput(params: {
   const materialItems = params.materialItems ?? [];
   if (materialItems.some(materialLooksLikeSourceSnapshot)) {
     return "source_snapshot_reference";
+  }
+  const materialUrlClassification = materialItems
+    .map(classifyFromMaterialItem)
+    .find((classification) => classification !== null);
+  if (materialUrlClassification) {
+    return materialUrlClassification;
   }
   if (materialItems.length > 0) {
     return "material_reference";

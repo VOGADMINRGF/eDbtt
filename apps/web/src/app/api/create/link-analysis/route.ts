@@ -22,6 +22,7 @@ import {
   ensureCreateSupportTicket,
   type CreateSupportHandoffPublic,
 } from "@/features/support/createSupportTickets";
+import { loadCreateExternalSource } from "@/features/create/externalSourceIntake";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,69 +66,6 @@ const DocumentAnalysisSchema = z.object({
   topics: z.array(DocumentTopicSchema).min(1),
 });
 
-function decodeHtmlEntities(value: string): string {
-  return value
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">");
-}
-
-function stripHtmlToText(html: string): string {
-  return decodeHtmlEntities(
-    html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
-      .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " "),
-  ).trim();
-}
-
-function extractPdfText(buffer: Buffer): { text: string; pageCount: number | null } {
-  const latin1 = buffer.toString("latin1");
-  const pageCount = (latin1.match(/\/Type\s*\/Page\b/g) ?? []).length || null;
-  const text = Array.from(latin1.matchAll(/\(([^()]{2,240})\)/g))
-    .map((match) =>
-      match[1]
-        ?.replace(/\\[nrt]/g, " ")
-        .replace(/\\([()\\])/g, "$1")
-        .replace(/[^\p{L}\p{N}\s.,;:!?()/+-]/gu, " ")
-        .trim() ?? "",
-    )
-    .filter((value) => value.length > 2)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return { text, pageCount };
-}
-
-function inferDocumentType(url: string, contentType: string): DocumentAnalysisSummary["documentType"] {
-  const haystack = `${url} ${contentType}`.toLowerCase();
-  if (/programm|manifest|grundsatz/.test(haystack)) return "party_program";
-  if (/gesetz|law|bill|verordnung/.test(haystack)) return "law";
-  if (/studie|study/.test(haystack)) return "study";
-  if (/bericht|report|pdf/.test(haystack)) return "report";
-  if (/html|article|news|blog/.test(haystack)) return "article";
-  return "unknown";
-}
-
-function inferDocumentTitle(url: string, html?: string): string | null {
-  const titleMatch = html?.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim();
-  if (titleMatch) return decodeHtmlEntities(titleMatch);
-  try {
-    const parsed = new URL(url);
-    const slug = parsed.pathname.split("/").filter(Boolean).pop() ?? "";
-    return slug ? decodeURIComponent(slug).replace(/[-_]+/g, " ") : null;
-  } catch {
-    return null;
-  }
-}
-
 function isModelNotFoundError(error: unknown): boolean {
   const errorObject = error as {
     status?: number;
@@ -141,51 +79,6 @@ function isModelNotFoundError(error: unknown): boolean {
     errorObject?.meta?.code === "MODEL_NOT_FOUND" ||
     (/model/i.test(message) && /404|not found/i.test(message))
   );
-}
-
-async function fetchSource(url: string) {
-  const response = await fetch(url, {
-    method: "GET",
-    redirect: "follow",
-    signal: AbortSignal.timeout(12_000),
-    headers: {
-      "user-agent": "eDebatte Create Link Analysis",
-      accept: "text/html,application/pdf,text/plain;q=0.9,*/*;q=0.2",
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`link_fetch_failed_${response.status}`);
-  }
-
-  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length === 0) {
-    throw new Error("link_fetch_failed_empty");
-  }
-
-  if (contentType.includes("pdf") || /\.pdf(?:$|[?#])/i.test(url)) {
-    const extracted = extractPdfText(buffer);
-    return {
-      html: null,
-      text: extracted.text,
-      pageCount: extracted.pageCount,
-      contentType,
-      documentType: inferDocumentType(url, contentType),
-      documentTitle: inferDocumentTitle(url),
-    };
-  }
-
-  const html = buffer.toString("utf8");
-  return {
-    html,
-    text: stripHtmlToText(html),
-    pageCount: null,
-    contentType,
-    documentType: inferDocumentType(url, contentType),
-    documentTitle: inferDocumentTitle(url, html),
-  };
 }
 
 async function runDocumentAnalysis(params: {
@@ -447,11 +340,11 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    const source = await fetchSource(body.url);
+    const source = await loadCreateExternalSource(body.url);
     if (source.text.trim().length < 180) {
       return buildFailureResponse({
         analysisState: "fetch_failed",
-        sourceType: "link",
+        sourceType: source.sourceKind === "html" ? "link" : "document",
         sourceLoaded: false,
         technicalErrorCode: "CREATE_LINK_CONTENT_INCOMPLETE",
         reason: "source_content_too_short",
