@@ -1,8 +1,8 @@
 import { z } from "zod";
 import {
-  AGENT_ROLE_IDS,
-  type AgentRoleId,
-} from "@/features/agenticRuntime/agentRegistryBootstrapContract";
+  Alpha2RoleIdSchema,
+  type Alpha2RoleId,
+} from "@/features/agenticRuntime/alpha2AgentFleetContract";
 
 export const ALPHA2_RUN_STATUSES = [
   "queued",
@@ -48,7 +48,6 @@ const Alpha2RunKindSchema = z.enum(ALPHA2_RUN_KINDS);
 const Alpha2RiskClassSchema = z.enum(ALPHA2_RISK_CLASSES);
 const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
-const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
 
 export const Alpha2BudgetSchema = z
   .object({
@@ -116,8 +115,8 @@ export const Alpha2RunRecordSchema = z
     taskId: z.string().min(1),
     kind: Alpha2RunKindSchema,
     status: Alpha2RunStatusSchema,
-    primaryRole: AgentRoleIdSchema,
-    supportingRoles: z.array(AgentRoleIdSchema).default([]),
+    primaryRole: Alpha2RoleIdSchema,
+    supportingRoles: z.array(Alpha2RoleIdSchema).default([]),
     riskClass: Alpha2RiskClassSchema,
     humanGate: Alpha2HumanGateSchema,
     budget: Alpha2BudgetSchema,
@@ -198,8 +197,8 @@ export function createAlpha2RunRecord(input: {
   idempotencyKey: string;
   taskId: string;
   kind: Alpha2RunKind;
-  primaryRole: AgentRoleId;
-  supportingRoles?: AgentRoleId[];
+  primaryRole: Alpha2RoleId;
+  supportingRoles?: Alpha2RoleId[];
   riskClass: Alpha2RiskClass;
   route: Alpha2ModelRoute;
   budget?: Partial<Alpha2Budget>;
