@@ -75,7 +75,7 @@ Im Repository existierte keine zentrale SSRF-/Safe-Fetch-Utility. Der neue einzi
 
 ## Gate C — vollständige PR-Scope-Zuordnung
 
-Der finale Arbeitsstand umfasst 36 Dateien gegen `main`. Alle sind einem belegten Segment derselben Kette zugeordnet; versehentlich durch einen Installlauf erzeugte Prisma-/Generated- und Fremd-Lockfile-Drift wurde vollständig entfernt.
+Der finale Arbeitsstand umfasst 37 Dateien gegen `main`. Alle sind einem belegten Segment derselben Kette zugeordnet; versehentlich durch einen Installlauf erzeugte Prisma-/Generated- und Fremd-Lockfile-Drift wurde vollständig entfernt.
 
 | Vertrag | Zugeordnete Dateien |
 | --- | --- |
@@ -87,7 +87,7 @@ Der finale Arbeitsstand umfasst 36 Dateien gegen `main`. Alle sind einem belegte
 | Material-/Security-/Matrix-Regressions | `apps/web/tests/create-freetext-input-matrix.contract.test.ts`; `apps/web/tests/create-input-classification-matrix.contract.test.ts`; `apps/web/tests/create-link-analysis.auth-contract.test.ts`; `apps/web/tests/create-external-source-analysis.contract.test.ts`; `apps/web/tests/create-external-source-intake.security.test.ts`; `apps/web/tests/create-external-source-pdf-timeout.contract.test.ts`; `apps/web/tests/safe-external-fetch.security.test.ts` |
 | Planner-/Route-/E150-Regressions | `apps/web/tests/admin-ai-create-planner-smoke.route.test.ts`; `apps/web/tests/ai-runtime-env-sync.contract.test.ts`; `apps/web/tests/ai-runtime-policy.contract.test.ts`; `apps/web/tests/analyze-contribution.null-hardening.test.ts`; `apps/web/tests/create-intelligent-followup.route.test.ts`; `apps/web/tests/create-planner-complex-civic-input.contract.test.ts`; `apps/web/tests/create-planner-debug-diagnostics.contract.test.ts`; `apps/web/tests/create-planner-openai-happy-path.contract.test.ts`; `apps/web/tests/create-planner-provider-fallback.contract.test.ts` |
 | Abhängigkeiten und reproduzierbare Runner | `apps/web/package.json`; `package.json`; `pnpm-lock.yaml` |
-| Evidence | `docs/E150/AI_CREATE_ORCHESTRATOR_INPUT_MATRIX_2026-08-23.md` |
+| Evidence | `docs/E150/AI_CREATE_ORCHESTRATOR_INPUT_MATRIX_2026-08-23.md`; `docs/E150/AI_CREATE_ORCHESTRATOR_PROVIDER_EXECUTION_AUDIT_2026-08-23.md` |
 
 ## Root Causes und kleinste Fixes
 
