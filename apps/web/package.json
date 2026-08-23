@@ -24,6 +24,7 @@
     "test:production-guardrails": "pnpm run test:production-public-routes && pnpm run test:production-admin-review && pnpm run test:production-publish-guardrails",
     "ai:provider-smoke": "pnpm exec tsx scripts/ai-provider-smoke.ts",
     "create:input-matrix-smoke": "pnpm exec tsx scripts/create-input-matrix-smoke.ts",
+    "create:semantic-material-smoke": "pnpm exec tsx scripts/create-semantic-material-smoke.ts",
     "prisma:generate": "node ./scripts/prisma-generate-all.mjs",
     "postinstall": "pnpm run prisma:generate",
     "lint": "pnpm exec eslint --cache --cache-location .eslintcache --config eslint.config.js \"src/**/*.{ts,tsx}\""
@@ -54,6 +55,7 @@
     "react-icons": "^4.12.0",
     "redis": "^5.8.2",
     "sanitize-html": "^2.17.0",
+    "undici": "7.28.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {

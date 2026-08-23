@@ -1,6 +1,13 @@
 import { PDFParse } from "pdf-parse";
 import { fetchYoutubeTranscript } from "@features/ai/sources/youtube";
 import type { DocumentAnalysisSummary } from "@/features/create/intelligentFollowupContract";
+import { safeExternalFetch } from "@/lib/net/safeExternalFetch";
+
+export const CREATE_EXTERNAL_HTML_MAX_BYTES = 2 * 1024 * 1024;
+export const CREATE_EXTERNAL_PDF_MAX_BYTES = 10 * 1024 * 1024;
+export const CREATE_EXTERNAL_PDF_MAX_PAGES = 80;
+export const CREATE_EXTERNAL_PDF_MAX_TEXT_LENGTH = 120_000;
+export const CREATE_EXTERNAL_PDF_PARSE_TIMEOUT_MS = 8_000;
 
 export type CreateExternalSourceKind = "html" | "pdf" | "youtube_transcript";
 
@@ -38,16 +45,51 @@ function stripHtmlToText(html: string): string {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<{ text: string; pageCount: number | null }> {
-  const parser = new PDFParse({ data: Uint8Array.from(buffer) });
+  const parser = new PDFParse({
+    data: Uint8Array.from(buffer),
+    isEvalSupported: false,
+    maxImageSize: 4_000_000,
+    stopAtErrors: true,
+    useWasm: false,
+  });
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   try {
-    const result = await parser.getText();
+    const result = await Promise.race([
+      parser.getText({ first: CREATE_EXTERNAL_PDF_MAX_PAGES }),
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error("external_source_pdf_parse_timeout")),
+          CREATE_EXTERNAL_PDF_PARSE_TIMEOUT_MS,
+        );
+      }),
+    ]);
     return {
-      text: result.text.replace(/\s+/g, " ").trim(),
+      text: result.text.replace(/\s+/g, " ").trim().slice(0, CREATE_EXTERNAL_PDF_MAX_TEXT_LENGTH),
       pageCount: result.total > 0 ? result.total : null,
     };
   } finally {
+    if (timeout) clearTimeout(timeout);
     await parser.destroy().catch(() => undefined);
   }
+}
+
+function hasPdfSignature(buffer: Buffer): boolean {
+  return buffer.subarray(0, 1_024).indexOf(Buffer.from("%PDF-")) >= 0;
+}
+
+function maxSourceBytes(input: { contentType: string; finalUrl: string }): number {
+  return input.contentType.includes("pdf") || /\.pdf(?:$|[?#])/i.test(input.finalUrl)
+    ? CREATE_EXTERNAL_PDF_MAX_BYTES
+    : CREATE_EXTERNAL_HTML_MAX_BYTES;
+}
+
+function isSupportedTextContentType(contentType: string): boolean {
+  if (!contentType) return true;
+  return (
+    contentType.includes("text/html") ||
+    contentType.includes("text/plain") ||
+    contentType.includes("application/xhtml+xml")
+  );
 }
 
 function inferDocumentType(
@@ -108,28 +150,23 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
     };
   }
 
-  const response = await fetch(url, {
-    method: "GET",
-    redirect: "follow",
-    signal: AbortSignal.timeout(12_000),
-    headers: {
-      "user-agent": "eDebatte Create Link Analysis",
-      accept: "text/html,application/pdf,text/plain;q=0.9,*/*;q=0.2",
-    },
-    cache: "no-store",
+  const response = await safeExternalFetch(url, {
+    accept: "text/html,application/pdf,text/plain;q=0.9,*/*;q=0.2",
+    maxBytes: maxSourceBytes,
+    timeoutMs: 12_000,
+    userAgent: "eDebatte Create Link Analysis",
   });
-
-  if (!response.ok) {
-    throw new Error(`link_fetch_failed_${response.status}`);
+  const { buffer, contentType } = response;
+  const declaredPdf =
+    contentType.includes("pdf") ||
+    /\.pdf(?:$|[?#])/i.test(url) ||
+    /\.pdf(?:$|[?#])/i.test(response.finalUrl);
+  const actualPdf = hasPdfSignature(buffer);
+  if (declaredPdf && !actualPdf) {
+    throw new Error("external_source_pdf_signature_invalid");
   }
 
-  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length === 0) {
-    throw new Error("link_fetch_failed_empty");
-  }
-
-  if (contentType.includes("pdf") || /\.pdf(?:$|[?#])/i.test(url)) {
+  if (actualPdf) {
     const extracted = await extractPdfText(buffer);
     return {
       sourceKind: "pdf",
@@ -137,12 +174,18 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
       text: extracted.text,
       pageCount: extracted.pageCount,
       contentType,
-      documentType: inferDocumentType(url, contentType),
-      documentTitle: inferDocumentTitle(url),
+      documentType: inferDocumentType(`${url} ${response.finalUrl}`, contentType),
+      documentTitle: inferDocumentTitle(response.finalUrl),
       httpStatus: response.status,
     };
   }
 
+  if (!isSupportedTextContentType(contentType)) {
+    throw new Error("external_source_content_type_unsupported");
+  }
+  if (buffer.includes(0)) {
+    throw new Error("external_source_text_binary_invalid");
+  }
   const html = buffer.toString("utf8");
   return {
     sourceKind: "html",
@@ -150,8 +193,8 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
     text: stripHtmlToText(html),
     pageCount: null,
     contentType,
-    documentType: inferDocumentType(url, contentType),
-    documentTitle: inferDocumentTitle(url, html),
+    documentType: inferDocumentType(`${url} ${response.finalUrl}`, contentType),
+    documentTitle: inferDocumentTitle(response.finalUrl, html),
     httpStatus: response.status,
   };
 }

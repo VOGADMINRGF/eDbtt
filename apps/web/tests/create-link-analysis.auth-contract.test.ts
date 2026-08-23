@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   enforceCreateMutationSecurity: vi.fn(),
   getSessionUser: vi.fn(),
   resolveCreatePlannerModelCandidates: vi.fn(),
+  safeExternalFetch: vi.fn(),
   verifyCreateDraftBinding: vi.fn(),
   fetchYoutubeTranscript: vi.fn(),
 }));
@@ -43,6 +44,9 @@ vi.mock("@/features/support/createSupportTickets", () => ({
 vi.mock("@features/ai/sources/youtube", () => ({
   fetchYoutubeTranscript: (...args: unknown[]) =>
     mocks.fetchYoutubeTranscript(...args),
+}));
+vi.mock("@/lib/net/safeExternalFetch", () => ({
+  safeExternalFetch: (...args: unknown[]) => mocks.safeExternalFetch(...args),
 }));
 
 import { POST } from "@/app/api/create/link-analysis/route";
@@ -156,6 +160,20 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
       id: "dQw4w9WgXcQ",
       lang: "de",
       text: "Das Transkript behandelt bezahlbares Wohnen und sichere Mobilität mit getrennten Aussagen. ".repeat(5),
+    });
+    mocks.safeExternalFetch.mockImplementation(async (url: string) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`external_source_http_${response.status}`);
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length === 0) throw new Error("external_source_empty");
+      return {
+        buffer,
+        contentType: response.headers.get("content-type")?.toLowerCase() ?? "",
+        finalUrl: url,
+        headers: new Headers(response.headers),
+        redirectCount: 0,
+        status: response.status,
+      };
     });
     vi.stubGlobal(
       "fetch",
