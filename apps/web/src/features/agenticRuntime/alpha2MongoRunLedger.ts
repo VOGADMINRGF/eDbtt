@@ -1,3 +1,4 @@
+import type { Model } from "mongoose";
 import { mongo, mongoose } from "@core/db/mongoose";
 import {
   Alpha2RunRecordSchema,
@@ -41,12 +42,10 @@ Alpha2RunLedgerSchema.index({ status: 1, resumeAt: 1, leaseExpiresAt: 1 });
 Alpha2RunLedgerSchema.index({ rootRunId: 1, updatedAt: -1 });
 Alpha2RunLedgerSchema.index({ taskId: 1, updatedAt: -1 });
 
-async function Alpha2LedgerModel() {
+async function Alpha2LedgerModel(): Promise<Model<any>> {
   await mongo();
-  return (
-    mongoose.models[ALPHA2_LEDGER_MODEL] ??
-    mongoose.model(ALPHA2_LEDGER_MODEL, Alpha2RunLedgerSchema)
-  );
+  const existing = mongoose.models[ALPHA2_LEDGER_MODEL] as Model<any> | undefined;
+  return existing ?? mongoose.model<any>(ALPHA2_LEDGER_MODEL, Alpha2RunLedgerSchema);
 }
 
 function toIso(value: unknown): string | null {
