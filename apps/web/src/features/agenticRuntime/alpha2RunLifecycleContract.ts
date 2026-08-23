@@ -126,6 +126,7 @@ export const Alpha2RunRecordSchema = z
     updatedAt: z.string().datetime(),
     startedAt: z.string().datetime().optional(),
     finishedAt: z.string().datetime().optional(),
+    resumeAt: z.string().datetime().optional(),
     attempt: z.number().int().min(0),
     checkpoints: z.array(Alpha2CheckpointSchema).default([]),
     evidenceRefs: z.array(z.string().min(1)).default([]),
@@ -154,6 +155,9 @@ export const Alpha2RunRecordSchema = z
     }
     if (["completed", "cancelled"].includes(run.status) && !run.finishedAt) {
       ctx.addIssue({ code: "custom", message: "alpha2_terminal_run_requires_finished_at" });
+    }
+    if (["completed", "cancelled", "review", "human_gate"].includes(run.status) && run.resumeAt) {
+      ctx.addIssue({ code: "custom", message: "alpha2_nonresumable_status_cannot_have_resume_at" });
     }
     if (run.attempt > run.budget.maxAttempts) {
       ctx.addIssue({ code: "custom", message: "alpha2_attempt_exceeds_budget" });
@@ -245,11 +249,13 @@ export function transitionAlpha2Run(
     now?: string;
     humanGate?: Alpha2HumanGate;
     errorCode?: string;
+    resumeAt?: string;
   } = {},
 ): Alpha2RunRecord {
   assertAlpha2RunTransition(run.status, to);
   const now = input.now ?? new Date().toISOString();
   const nextHumanGate = input.humanGate ?? run.humanGate;
+  const preservesResumeAt = to === "waiting" || to === "failed";
 
   const next = {
     ...run,
@@ -257,7 +263,8 @@ export function transitionAlpha2Run(
     updatedAt: now,
     startedAt: to === "running" ? (run.startedAt ?? now) : run.startedAt,
     finishedAt: ["completed", "cancelled"].includes(to) ? now : undefined,
-    attempt: to === "running" && run.status !== "running" ? run.attempt + 1 : run.attempt,
+    resumeAt: preservesResumeAt ? input.resumeAt : undefined,
+    attempt: to === "running" && run.status === "queued" ? run.attempt + 1 : run.attempt,
     humanGate: nextHumanGate,
     lastErrorCode: to === "failed" ? input.errorCode ?? "alpha2_run_failed" : undefined,
   } satisfies Alpha2RunRecord;
