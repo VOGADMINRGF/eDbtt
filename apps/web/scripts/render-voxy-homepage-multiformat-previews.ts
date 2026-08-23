@@ -145,6 +145,10 @@ const FINAL_SURGICAL_V3_10_4_TARGETS = [
       ["opening-early", "edebatte-greeting", 0.15],
       ["opening-mid", "edebatte-greeting", 0.5],
       ["opening-late", "edebatte-greeting", 0.85],
+      REVIEW_MOMENTS.edebatte[2],
+      REVIEW_MOMENTS.edebatte[4],
+      REVIEW_MOMENTS.edebatte[5],
+      REVIEW_MOMENTS.edebatte[6],
     ],
   },
   {
