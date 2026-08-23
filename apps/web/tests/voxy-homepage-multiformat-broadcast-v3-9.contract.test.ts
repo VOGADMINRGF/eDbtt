@@ -212,10 +212,10 @@ describe("VOXY homepage V3.9 — true multi-format broadcast system", () => {
     const vogCta = publicOverlayText(htmlAtSegment(plan("voiceopengov", "vertical_9_16"), "vog-cta"));
     const edCta = publicOverlayText(htmlAtSegment(plan("edebatte", "vertical_9_16"), "edebatte-cta"));
 
-    expect(participation).toContain("WAS FOLGT AUS DEINER STIMME?");
-    expect(participation).toContain("Mitbestimmung braucht eine definierte Folge.");
-    expect(participation).not.toContain("NUR WÄHLEN?");
-    expect(participation).not.toContain("ALLES DIREKT?");
+    expect(participation).toContain("WIRKSAME MITBESTIMMUNG");
+    expect(participation).toContain("Beteiligung braucht eine definierte Folge.");
+    expect(participation).toContain("NUR WÄHLEN?");
+    expect(participation).toContain("ALLES DIREKT?");
     expect(vogCta).toContain("DEINE STIMME IST MEHR ALS EIN KREUZ.");
     expect(vogCta).toContain("Mitmachen. Informiert bleiben.");
     expect(VOXY_HOMEPAGE_REFERENCE_FILMS.voiceopengov.segments.at(-1)?.text).toBe(

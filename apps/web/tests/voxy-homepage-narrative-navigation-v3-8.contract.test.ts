@@ -90,10 +90,10 @@ describe("VOXY homepage V3.8 — narrative navigation and editorial simplificati
   it("04 turns the participation comparison into one immediate question instead of a seminar diagram", () => {
     const html = htmlAtSegment(plan("voiceopengov", "evergreen"), "vog-participation-balance");
 
-    expect(html).not.toContain("NUR WÄHLEN?");
-    expect(html).not.toContain("ALLES DIREKT?");
-    expect(html).toContain("WAS FOLGT AUS DEINER STIMME?");
-    expect(html).toContain("Mitbestimmung braucht eine definierte Folge.");
+    expect(html).toContain("WIRKSAME MITBESTIMMUNG");
+    expect(html).toContain("NUR WÄHLEN?");
+    expect(html).toContain("ALLES DIREKT?");
+    expect(html).toContain("Beteiligung braucht eine definierte Folge.");
     expect(html).toContain('data-contract-label="WIRKSAME MITBESTIMMUNG"');
   });
 
