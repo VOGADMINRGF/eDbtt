@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { type AgentRoleId } from "@/features/agenticRuntime/agentRegistryBootstrapContract";
+import {
+  AGENT_ROLE_IDS,
+  type AgentRoleId,
+} from "@/features/agenticRuntime/agentRegistryBootstrapContract";
 
 export const ALPHA2_RUN_STATUSES = [
   "queued",
@@ -45,6 +48,7 @@ const Alpha2RunKindSchema = z.enum(ALPHA2_RUN_KINDS);
 const Alpha2RiskClassSchema = z.enum(ALPHA2_RISK_CLASSES);
 const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
+const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
 
 export const Alpha2BudgetSchema = z
   .object({
@@ -112,8 +116,8 @@ export const Alpha2RunRecordSchema = z
     taskId: z.string().min(1),
     kind: Alpha2RunKindSchema,
     status: Alpha2RunStatusSchema,
-    primaryRole: z.string().min(1) as z.ZodType<AgentRoleId>,
-    supportingRoles: z.array(z.string().min(1) as z.ZodType<AgentRoleId>).default([]),
+    primaryRole: AgentRoleIdSchema,
+    supportingRoles: z.array(AgentRoleIdSchema).default([]),
     riskClass: Alpha2RiskClassSchema,
     humanGate: Alpha2HumanGateSchema,
     budget: Alpha2BudgetSchema,
@@ -145,8 +149,8 @@ export const Alpha2RunRecordSchema = z
     if (run.status === "human_gate" && run.humanGate.state !== "pending") {
       ctx.addIssue({ code: "custom", message: "alpha2_human_gate_status_requires_pending_gate" });
     }
-    if (run.status === "completed" && run.humanGate.state === "pending") {
-      ctx.addIssue({ code: "custom", message: "alpha2_completed_run_cannot_have_pending_gate" });
+    if (run.humanGate.state === "pending" && run.status !== "human_gate") {
+      ctx.addIssue({ code: "custom", message: "alpha2_pending_gate_requires_human_gate_status" });
     }
     if (["completed", "cancelled"].includes(run.status) && !run.finishedAt) {
       ctx.addIssue({ code: "custom", message: "alpha2_terminal_run_requires_finished_at" });
