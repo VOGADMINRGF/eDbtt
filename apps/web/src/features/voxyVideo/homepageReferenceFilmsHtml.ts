@@ -669,10 +669,10 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   const isolatesMovingHeadFromCanonicalBody =
     plan.filmId === "edebatte" && plan.layoutProfile === "vertical_9_16";
   const headBodySeparationCss = isolatesMovingHeadFromCanonicalBody
-    ? `.head-source-clip{clip-path:polygon(10px 48px,90px 8px,295px 12px,380px 64px,480px 92px,500px 272px,450px 340px,350px 352px,305px 400px,190px 400px,120px 344px,5px 272px)!important}`
+    ? `.head-source-clip{clip-path:polygon(10px 48px,90px 8px,295px 12px,380px 64px,480px 92px,500px 272px,450px 340px,350px 352px,305px 400px,190px 400px,190px 330px,120px 330px,5px 272px)!important}`
     : "";
-  const canonicalBodyLayer = isolatesMovingHeadFromCanonicalBody
-    ? `<div class="homepage-canonical-body-layer" data-body-source="canonical-body-master" aria-hidden="true"><img class="source-plate homepage-canonical-body-source" src="${input.assets.canonStageDataUrl}" alt=""></div>`
+  const canonicalBodyGapLayer = isolatesMovingHeadFromCanonicalBody
+    ? `<div class="homepage-canonical-body-gap" data-body-source="canonical-master-adjacent-tail-gap" aria-hidden="true"><img class="source-plate homepage-canonical-body-gap-source" src="${input.assets.canonStageDataUrl}" alt=""></div>`
     : "";
   const profileOverlay = `<div class="homepage-profile-overlay" data-compositional-layout="profile-specific" data-maximum-simultaneous-objects="${plan.layout.maximumSimultaneousObjects}">${semanticMotion}${brandHierarchy}${distinctiveStage}${profileMemory}${subtitle}</div>`;
   const { safeArea, regions } = plan.layout;
@@ -684,8 +684,8 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
     .homepage-profile-overlay{position:absolute;z-index:40;inset:0;overflow:hidden;pointer-events:none}
     .studio-stage{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
     ${headBodySeparationCss}
-    .homepage-canonical-body-layer{position:absolute;z-index:4;inset:0;width:1920px;height:1080px;overflow:hidden;clip-path:path("M450 720L500 520C505 480 510 450 520 435C555 420 590 412 625 420L680 455L760 720ZM680 720L680 455L755 445L850 410L880 450L900 720ZM850 410C890 415 920 425 940 435C960 470 990 520 1050 720L850 720Z");pointer-events:none}
-    .homepage-canonical-body-source{filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
+    .homepage-canonical-body-gap{position:absolute;z-index:4;inset:0;width:1920px;height:1080px;overflow:hidden;clip-path:path("M656 381L653 427C652 433 655 438 659 437C662 437 666 434 670 430L690 410L690 381Z");pointer-events:none}
+    .homepage-canonical-body-gap-source{transform:translate(17px,2px) scale(1.075)!important;filter:saturate(1.08) contrast(1.055) brightness(1.035)!important}
     .brand-lockup{display:none!important}
     .information-dimmer{background:linear-gradient(90deg,rgba(1,6,18,.05),rgba(1,6,18,.08) 58%,rgba(1,6,18,.42) 100%)!important;box-shadow:none!important}
     .homepage-brand-hierarchy{position:absolute;z-index:43;left:56px;top:118px;width:420px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
@@ -786,7 +786,7 @@ export function renderVoxyHomepageReferenceFilmFrameHtml(input: {
   let html = replaceHomepageLapelPin(base)
     .replace('data-burned-in-captions="false"', 'data-burned-in-captions="true"')
     .replace("</head>", `${css}</head>`)
-    .replace('<div class="frame"></div>', `${canonicalBodyLayer}<div class="frame"></div>`)
+    .replace('<div class="frame"></div>', `${canonicalBodyGapLayer}<div class="frame"></div>`)
     .replace(
       "</main>",
       `${profileOverlay}</main>`,

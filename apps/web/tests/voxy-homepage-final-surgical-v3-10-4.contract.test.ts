@@ -67,17 +67,21 @@ describe("VOXY homepage V3.10.4 — final surgical human correction", () => {
       'data-head-body-separation="silhouette-clipped-head-over-canonical-body"',
     );
     expect(vertical).toContain(
-      "clip-path:polygon(10px 48px,90px 8px,295px 12px,380px 64px,480px 92px,500px 272px,450px 340px,350px 352px,305px 400px,190px 400px,120px 344px,5px 272px)!important",
+      "clip-path:polygon(10px 48px,90px 8px,295px 12px,380px 64px,480px 92px,500px 272px,450px 340px,350px 352px,305px 400px,190px 400px,190px 330px,120px 330px,5px 272px)!important",
     );
-    expect(vertical).toContain('data-body-source="canonical-body-master"');
     expect(vertical).toContain(
-      'clip-path:path("M450 720L500 520C505 480 510 450 520 435C555 420 590 412 625 420L680 455L760 720ZM680 720L680 455L755 445L850 410L880 450L900 720ZM850 410C890 415 920 425 940 435C960 470 990 520 1050 720L850 720Z")',
+      'data-body-source="canonical-master-adjacent-tail-gap"',
+    );
+    expect(vertical).toContain(
+      'clip-path:path("M656 381L653 427C652 433 655 438 659 437C662 437 666 434 670 430L690 410L690 381Z")',
+    );
+    expect(vertical).toContain(
+      "transform:translate(17px,2px) scale(1.075)!important",
     );
     expect(vertical).not.toContain("homepage-shoulder-repair");
     expect(vertical).not.toContain("canonical-left-upper-arm-layer");
     expect(vertical).not.toContain("mask-image:");
     expect(vogVertical).toContain('data-head-body-separation="unchanged"');
-    expect(vogVertical).not.toContain('data-body-source="canonical-body-master"');
     expect(vogVertical).not.toContain('data-repair-source="canonical-left-upper-arm-layer"');
 
     for (const layoutProfile of [
