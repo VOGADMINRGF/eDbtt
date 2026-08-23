@@ -82,6 +82,28 @@ function indexedFields(run: Alpha2RunRecord) {
   };
 }
 
+function dueStateFilter(now: Date) {
+  return {
+    $or: [
+      { status: "queued" },
+      { status: "running" },
+      { status: "waiting", resumeAt: { $lte: now } },
+      { status: "failed", resumeAt: { $lte: now } },
+    ],
+  };
+}
+
+function availableLeaseFilter(now: Date, owner?: string) {
+  return {
+    $or: [
+      ...(owner ? [{ leaseOwner: owner }] : []),
+      { leaseOwner: null },
+      { leaseExpiresAt: null },
+      { leaseExpiresAt: { $lte: now } },
+    ],
+  };
+}
+
 export class Alpha2MongoRunLedger implements Alpha2RunLedger {
   async createOrGet(run: Alpha2RunRecord): Promise<Alpha2RunLedgerCreateResult> {
     const validated = Alpha2RunRecordSchema.parse(run);
@@ -159,20 +181,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     const updated = await Model.findOneAndUpdate(
       {
         runId: input.runId,
-        status: { $nin: ["completed", "cancelled", "review", "human_gate"] },
-        $and: [
-          {
-            $or: [{ resumeAt: null }, { resumeAt: { $lte: now } }],
-          },
-          {
-            $or: [
-              { leaseOwner: input.owner },
-              { leaseOwner: null },
-              { leaseExpiresAt: null },
-              { leaseExpiresAt: { $lte: now } },
-            ],
-          },
-        ],
+        $and: [dueStateFilter(now), availableLeaseFilter(now, input.owner)],
       },
       {
         $set: {
@@ -200,19 +209,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     const limit = Math.max(1, Math.min(input.limit ?? 50, 500));
 
     const docs = await Model.find({
-      status: { $nin: ["completed", "cancelled", "review", "human_gate"] },
-      $and: [
-        {
-          $or: [{ resumeAt: null }, { resumeAt: { $lte: now } }],
-        },
-        {
-          $or: [
-            { leaseOwner: null },
-            { leaseExpiresAt: null },
-            { leaseExpiresAt: { $lte: now } },
-          ],
-        },
-      ],
+      $and: [dueStateFilter(now), availableLeaseFilter(now)],
     })
       .sort({ updatedAt: 1 })
       .limit(limit);
