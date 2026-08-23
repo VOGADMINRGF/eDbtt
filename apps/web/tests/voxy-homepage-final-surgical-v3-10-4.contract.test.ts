@@ -161,5 +161,8 @@ describe("VOXY homepage V3.10.4 — final surgical human correction", () => {
     expect(renderer).toContain("processingInvoked: false");
     expect(renderer).toContain("accepted_master_audio_copy_not_byte_identical");
     expect(renderer).toContain("accepted_audio_reuse_output_must_not_overlap_source");
+    expect(renderer).toContain('const requestedFilmId = argument("film")');
+    expect(renderer).toContain("unsupported_homepage_film");
+    expect(renderer).toContain("for (const filmId of filmIds)");
   });
 });

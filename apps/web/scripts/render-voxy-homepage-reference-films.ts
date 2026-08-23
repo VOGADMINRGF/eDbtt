@@ -715,6 +715,11 @@ async function main(): Promise<void> {
   };
 
   const results = [];
+  const requestedFilmId = argument("film") as VoxyHomepageFilmId | null;
+  if (requestedFilmId && !FILM_IDS.includes(requestedFilmId)) {
+    throw new Error(`unsupported_homepage_film:${requestedFilmId}`);
+  }
+  const filmIds = requestedFilmId ? [requestedFilmId] : FILM_IDS;
   const requestedLayoutProfile = argument("layout-profile") as HomepageFilmLayoutProfile | null;
   if (
     requestedLayoutProfile &&
@@ -725,7 +730,7 @@ async function main(): Promise<void> {
   const layoutProfiles = requestedLayoutProfile
     ? [requestedLayoutProfile]
     : VOXY_HOMEPAGE_FILM_LAYOUT_PROFILE_IDS;
-  for (const filmId of FILM_IDS) {
+  for (const filmId of filmIds) {
     for (const layoutProfile of layoutProfiles) {
       results.push(
         await renderFilm({
