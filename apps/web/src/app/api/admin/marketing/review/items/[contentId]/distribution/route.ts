@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // The legacy social queue still requires a non-empty organizationId. Global operator
 // marketing has no canonical organization membership, so this is a technical queue
 // partition only. It is not a public brand owner or a legal organization identity.
-export const PLATFORM_MARKETING_QUEUE_SCOPE_ID = "platform-marketing-global";
+const PLATFORM_MARKETING_QUEUE_SCOPE_ID = "platform-marketing-global";
 
 export async function POST(
   req: NextRequest,
