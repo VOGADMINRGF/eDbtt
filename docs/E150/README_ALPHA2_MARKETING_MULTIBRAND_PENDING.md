@@ -1,0 +1,1 @@
+Temporary implementation note: runtime registry/schema wiring is being completed on branch `feat/marketing-multibrand-control-plane-01`. This file may be removed before merge.
