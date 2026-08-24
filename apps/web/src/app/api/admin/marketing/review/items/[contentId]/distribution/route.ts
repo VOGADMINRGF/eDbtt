@@ -45,7 +45,7 @@ export async function POST(
       repo: getSocialDistributionRepo(),
     });
 
-    if (!result.ok) {
+    if (result.ok === false) {
       return NextResponse.json(
         {
           ok: false,
