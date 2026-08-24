@@ -1,4 +1,8 @@
-import { fetchYoutubeTranscript } from "@features/ai/sources/youtube";
+import {
+  fetchYoutubeTranscript,
+  type YoutubeTranscriptFailureReason,
+  type YoutubeTranscriptTransportAttempt,
+} from "@features/ai/sources/youtube";
 import type { DocumentAnalysisSummary } from "@/features/create/intelligentFollowupContract";
 import { safeExternalFetch } from "@/lib/net/safeExternalFetch";
 
@@ -21,7 +25,18 @@ export type CreateExternalSource = {
   documentTitle: string | null;
   httpStatus: number;
   transcriptSegmentCount: number | null;
+  transcriptTransportAttempts: YoutubeTranscriptTransportAttempt[];
 };
+
+export class CreateYoutubeTranscriptError extends Error {
+  constructor(
+    public readonly failureReason: YoutubeTranscriptFailureReason,
+    public readonly transportAttempts: YoutubeTranscriptTransportAttempt[],
+  ) {
+    super(`youtube_transcript_${failureReason}`);
+    this.name = "CreateYoutubeTranscriptError";
+  }
+}
 
 function decodeHtmlEntities(value: string): string {
   return value
@@ -138,8 +153,9 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
   if (isCreateYoutubeUrl(url)) {
     const transcript = await fetchYoutubeTranscript(url);
     if (!transcript.text.trim()) {
-      throw new Error(
-        `youtube_transcript_${transcript.failureReason ?? "unavailable"}`,
+      throw new CreateYoutubeTranscriptError(
+        transcript.failureReason ?? "unavailable",
+        transcript.transportAttempts,
       );
     }
     return {
@@ -152,6 +168,7 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
       documentTitle: `YouTube ${transcript.id}`,
       httpStatus: 200,
       transcriptSegmentCount: transcript.segmentCount ?? null,
+      transcriptTransportAttempts: transcript.transportAttempts,
     };
   }
 
@@ -183,6 +200,7 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
       documentTitle: inferDocumentTitle(response.finalUrl),
       httpStatus: response.status,
       transcriptSegmentCount: null,
+      transcriptTransportAttempts: [],
     };
   }
 
@@ -203,5 +221,6 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
     documentTitle: inferDocumentTitle(response.finalUrl, html),
     httpStatus: response.status,
     transcriptSegmentCount: null,
+    transcriptTransportAttempts: [],
   };
 }

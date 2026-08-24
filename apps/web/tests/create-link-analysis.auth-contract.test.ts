@@ -559,6 +559,18 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
       text: "",
       segmentCount: 0,
       failureReason: "rate_limited",
+      transportAttempts: [
+        {
+          language: "de",
+          endpoint: "innertube_player",
+          method: "POST",
+          status: 429,
+          redirected: false,
+          responseClass: "html",
+          errorType: null,
+          errorCode: null,
+        },
+      ],
     });
 
     const response = await POST(request({ ...validBody, url: youtubeUrl }));
@@ -585,6 +597,13 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
           adapter: "youtube_transcript",
           transcriptStatus: "rate_limited",
           transcriptSegmentCount: 0,
+          transcriptTransportAttempts: [
+            expect.objectContaining({
+              endpoint: "innertube_player",
+              status: 429,
+              responseClass: "html",
+            }),
+          ],
         },
         providerAttempts: [],
       },

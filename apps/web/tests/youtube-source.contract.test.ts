@@ -30,15 +30,14 @@ describe("YouTube transcript source contract", () => {
     const result = await fetchYoutubeTranscript(url);
 
     expect(getYoutubeId(url)).toBe("iWO5N3n1DXU");
-    expect(mocks.fetchTranscript).toHaveBeenNthCalledWith(
-      1,
-      "iWO5N3n1DXU",
-      { lang: "de" },
-    );
+    expect(mocks.fetchTranscript).toHaveBeenNthCalledWith(1, "iWO5N3n1DXU", {
+      lang: "de",
+      fetch: expect.any(Function),
+    });
     expect(mocks.fetchTranscript).toHaveBeenNthCalledWith(
       2,
       "iWO5N3n1DXU",
-      { lang: "en" },
+      { lang: "en", fetch: expect.any(Function) },
     );
     expect(result).toEqual({
       id: "iWO5N3n1DXU",
@@ -46,6 +45,7 @@ describe("YouTube transcript source contract", () => {
       text: "First grounded segment. Second grounded segment.",
       segmentCount: 2,
       failureReason: null,
+      transportAttempts: [],
     });
   });
 
@@ -58,6 +58,7 @@ describe("YouTube transcript source contract", () => {
       text: "",
       segmentCount: 0,
       failureReason: "fetch_failed",
+      transportAttempts: [],
     });
   });
 
@@ -72,6 +73,47 @@ describe("YouTube transcript source contract", () => {
       text: "",
       segmentCount: 0,
       failureReason: "rate_limited",
+      transportAttempts: [],
     });
+  });
+
+  it("records only bounded transport metadata and never upstream URLs or response bodies", async () => {
+    mocks.fetchTranscript.mockImplementationOnce(async (_id, config) => {
+      const response = await config.fetch("https://www.youtube.com/youtubei/v1/player?secret=query", {
+        method: "POST",
+      });
+      expect(await response.text()).toBe("upstream body must stay private");
+      throw Object.assign(new Error("private upstream failure detail"), {
+        cause: { code: "UND_ERR_CONNECT_TIMEOUT" },
+      });
+    });
+    mocks.fetchTranscript.mockRejectedValueOnce(new Error("second language failed"));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("upstream body must stay private", {
+          status: 429,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      ),
+    );
+
+    const result = await fetchYoutubeTranscript("iWO5N3n1DXU");
+
+    expect(result.transportAttempts).toEqual([
+      {
+        language: "de",
+        endpoint: "innertube_player",
+        method: "POST",
+        status: 429,
+        redirected: false,
+        responseClass: "html",
+        errorType: null,
+        errorCode: null,
+      },
+    ]);
+    expect(JSON.stringify(result.transportAttempts)).not.toContain("secret");
+    expect(JSON.stringify(result.transportAttempts)).not.toContain("upstream body");
+    vi.unstubAllGlobals();
   });
 });

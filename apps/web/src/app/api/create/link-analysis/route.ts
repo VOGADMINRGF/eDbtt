@@ -25,9 +25,11 @@ import {
   type CreateSupportHandoffPublic,
 } from "@/features/support/createSupportTickets";
 import {
+  CreateYoutubeTranscriptError,
   isCreateYoutubeUrl,
   loadCreateExternalSource,
 } from "@/features/create/externalSourceIntake";
+import type { YoutubeTranscriptTransportAttempt } from "@features/ai/sources/youtube";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
     reason: string;
     providerAttempts?: CreateExternalAnalysisRun["attempts"];
     transcriptStatus?: string;
+    transcriptTransportAttempts?: YoutubeTranscriptTransportAttempt[];
   }) => {
     let supportHandoff: CreateSupportHandoffPublic;
     try {
@@ -159,6 +162,7 @@ export async function POST(req: NextRequest) {
               ? input.transcriptStatus ?? "unavailable"
               : "not_applicable",
           transcriptSegmentCount: isCreateYoutubeUrl(body.url) ? 0 : null,
+          transcriptTransportAttempts: input.transcriptTransportAttempts ?? [],
         },
         providerAttempts: (input.providerAttempts ?? []).map((attempt) => ({
           provider: "openai" as const,
@@ -209,6 +213,7 @@ export async function POST(req: NextRequest) {
             transcriptStatus:
               source.sourceKind === "youtube_transcript" ? "available" : "not_applicable",
             transcriptSegmentCount: source.transcriptSegmentCount,
+            transcriptTransportAttempts: source.transcriptTransportAttempts,
           },
           providerAttempts: attempts.map((attempt) => ({
             provider: "openai" as const,
@@ -250,6 +255,10 @@ export async function POST(req: NextRequest) {
         : "CREATE_LINK_FETCH_FAILED",
       reason: youtubeTranscriptFailure ? reason : "source_fetch_failed",
       transcriptStatus,
+      transcriptTransportAttempts:
+        error instanceof CreateYoutubeTranscriptError
+          ? error.transportAttempts
+          : [],
     });
   }
 }
