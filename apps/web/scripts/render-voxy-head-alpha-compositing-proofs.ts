@@ -142,20 +142,28 @@ function alphaRasterAudit(file: string) {
     nonZeroPixels: buffer.reduce((value, entry) => value + (entry > 0 ? 1 : 0), 0),
   });
   const full = extrema(raw("null"));
-  const forbiddenBodyStrip = extrema(raw("crop=500:12:0:388"));
-  const forbiddenLeftBorder = extrema(raw("crop=7:400:0:0"));
-  const forbiddenRightBorder = extrema(raw("crop=30:400:470:0"));
+  const forbiddenBodyStrip = extrema(raw("crop=500:10:0:390"));
+  const forbiddenLeftShoulder = extrema(raw("crop=180:70:0:330"));
+  const forbiddenRightShoulder = extrema(raw("crop=190:50:310:350"));
+  const forbiddenLeftBorder = extrema(raw("crop=44:400:0:0"));
   if (
     full.minimum !== 0
     || full.maximum !== 255
     || full.nonZeroPixels === 0
     || forbiddenBodyStrip.maximum !== 0
+    || forbiddenLeftShoulder.maximum !== 0
+    || forbiddenRightShoulder.maximum !== 0
     || forbiddenLeftBorder.maximum !== 0
-    || forbiddenRightBorder.maximum !== 0
   ) {
     throw new Error("head_alpha_outside_silhouette_nonzero");
   }
-  return { full, forbiddenBodyStrip, forbiddenLeftBorder, forbiddenRightBorder };
+  return {
+    full,
+    forbiddenBodyStrip,
+    forbiddenLeftShoulder,
+    forbiddenRightShoulder,
+    forbiddenLeftBorder,
+  };
 }
 
 async function main(): Promise<void> {
