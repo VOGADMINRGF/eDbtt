@@ -35,6 +35,7 @@ import {
 } from "../src/features/voxyVideo/homepageReferenceFilmsContext";
 import { renderVoxyHomepageReferenceFilmFrameHtml } from "../src/features/voxyVideo/homepageReferenceFilmsHtml";
 import { VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH } from "../src/features/voxyVideo/firstExplainerVideo";
+import { validateVoxyCanonicalHeadAlpha } from "../src/features/voxyVideo/headAlphaSilhouette";
 import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import { VOXY_STATIC_CANON_NATIVE_ASSETS } from "../src/features/voxyVideo/staticCanonRecovery";
 import type { VoxyMotionV4EmbeddedAssets } from "../src/features/voxyVideo/motionV4Html";
@@ -353,7 +354,6 @@ async function renderFilm(input: {
       VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
       "apps/web/src/features/voxyVideo/mouthRig.ts",
       "apps/web/src/features/voxyVideo/mouthV41.ts",
-      "apps/web/src/features/voxyVideo/headRelativeFaceRigHtml.ts",
     ];
     if (
       spawnSync("git", ["diff", "--quiet", plan.visualMasterHeadSha, "--", ...frozenInputs], {
@@ -361,6 +361,10 @@ async function renderFilm(input: {
       }).status !== 0
     ) {
       throw new Error(`${filmId}_visual_canon_freeze_failed`);
+    }
+    const headAlphaErrors = validateVoxyCanonicalHeadAlpha();
+    if (headAlphaErrors.length) {
+      throw new Error(`${filmId}_head_alpha_compositing_gate_failed:${headAlphaErrors.join(",")}`);
     }
 
     const levels = audioLevelsFromWav(await readFile(masterAudio), plan.output.fps);

@@ -11,6 +11,10 @@ import {
 import { contextualizeVoxyHomepageReferenceFilmPlan } from "../src/features/voxyVideo/homepageReferenceFilmsContext";
 import type { HomepageFilmLayoutProfile } from "../src/features/voxyVideo/homepageReferenceFilmLayouts";
 import { renderVoxyHomepageReferenceFilmFrameHtml } from "../src/features/voxyVideo/homepageReferenceFilmsHtml";
+import {
+  VOXY_CANONICAL_HEAD_ALPHA,
+  validateVoxyCanonicalHeadAlpha,
+} from "../src/features/voxyVideo/headAlphaSilhouette";
 
 const exactHead = "4".repeat(40);
 const assets = {
@@ -53,45 +57,59 @@ function htmlAtSegment(
   });
 }
 
-describe("VOXY homepage V3.10.4 — final surgical human correction", () => {
-  it("01 clips the moving eDebatte 9:16 head to its silhouette and leaves the canonical body unobscured", () => {
-    const vertical = htmlAtSegment("edebatte", "vertical_9_16", "edebatte-greeting");
-    const vogVertical = htmlAtSegment(
-      "voiceopengov",
-      "vertical_9_16",
-      "vog-greeting",
-    );
+describe("VOXY homepage V3.10.5 — root-cause compositing correction", () => {
+  it("01 gives both films and every format the same true-alpha canonical head layer", () => {
+    expect(validateVoxyCanonicalHeadAlpha()).toEqual([]);
+    expect(VOXY_CANONICAL_HEAD_ALPHA.source).toMatchObject({
+      nativeWidth: 1672,
+      nativeHeight: 941,
+      alphaMinimum: 255,
+      alphaMaximum: 255,
+      containsTransparency: false,
+    });
+    expect(VOXY_CANONICAL_HEAD_ALPHA.outsideSilhouetteContribution).toBe(0);
+    expect(VOXY_CANONICAL_HEAD_ALPHA.alignedSourceInRig).toEqual({
+      x: -585,
+      y: -88.64,
+      width: 2064,
+      height: 1161,
+    });
+    expect(VOXY_CANONICAL_HEAD_ALPHA.legacyRegistrationCorrection).toEqual({
+      x: -37.125,
+      y: -4.125,
+    });
 
-    expect(vertical).toContain('data-final-surgical-human-correction="v3-10-4"');
-    expect(vertical).toContain(
-      'data-head-body-separation="silhouette-clipped-head-over-canonical-body"',
-    );
-    expect(vertical).toContain(
-      "clip-path:polygon(10px 48px,90px 8px,295px 12px,380px 64px,480px 92px,500px 272px,450px 340px,350px 352px,305px 400px,190px 400px,190px 330px,120px 330px,5px 272px)!important",
-    );
-    expect(vertical).toContain(
-      'data-body-source="canonical-master-adjacent-tail-gap"',
-    );
-    expect(vertical).toContain(
-      'clip-path:path("M656 381L653 427C652 433 655 438 659 437C662 437 666 434 670 430L690 410L690 381Z")',
-    );
-    expect(vertical).toContain(
-      "transform:translate(17px,2px) scale(1.075)!important",
-    );
-    expect(vertical).not.toContain("homepage-shoulder-repair");
-    expect(vertical).not.toContain("canonical-left-upper-arm-layer");
-    expect(vertical).not.toContain("mask-image:");
-    expect(vogVertical).toContain('data-head-body-separation="unchanged"');
-    expect(vogVertical).not.toContain('data-repair-source="canonical-left-upper-arm-layer"');
-
-    for (const layoutProfile of [
-      "landscape_16_9",
-      "square_1_1",
-      "feed_4_5",
-    ] as const) {
-      expect(
-        htmlAtSegment("edebatte", layoutProfile, "edebatte-greeting"),
-      ).toContain('data-head-body-separation="unchanged"');
+    for (const filmId of ["edebatte", "voiceopengov"] as const) {
+      for (const layoutProfile of [
+        "vertical_9_16",
+        "landscape_16_9",
+        "square_1_1",
+        "feed_4_5",
+      ] as const) {
+        const segmentId = filmId === "edebatte" ? "edebatte-greeting" : "vog-greeting";
+        const html = htmlAtSegment(filmId, layoutProfile, segmentId);
+        expect(html).toContain('data-root-cause-compositing-fix="v3-10-5"');
+        expect(html).toContain(
+          'data-head-body-separation="canonical-alpha-head-over-canonical-body"',
+        );
+        expect(html).toContain('data-head-alpha-schema="voxy-canonical-head-alpha-v1"');
+        expect(html).toContain('data-head-alpha-outside-contribution="0"');
+        expect(html).toContain('data-head-source-native-bounds="1672x941"');
+        expect(html).toContain('data-head-source-has-alpha="false"');
+        expect(html).toContain(
+          'data-head-source-aligned-in-rig="x-585:y-88.64:w2064:h1161"',
+        );
+        expect(html).toContain(
+          'data-head-legacy-registration-correction="x-37.125:y-4.125"',
+        );
+        expect(html).toContain('maskUnits="userSpaceOnUse"');
+        expect(html).toContain('mask-type="alpha"');
+        expect(html).toContain('class="head-alpha-canon-source"');
+        expect(html).not.toContain("head-source-clip");
+        expect(html).not.toContain("homepage-canonical-body-gap");
+        expect(html).not.toContain("homepage-shoulder-repair");
+        expect(html).not.toContain("canonical-left-upper-arm-layer");
+      }
     }
   });
 
@@ -165,6 +183,11 @@ describe("VOXY homepage V3.10.4 — final surgical human correction", () => {
     expect(renderer).toContain("processingInvoked: false");
     expect(renderer).toContain("accepted_master_audio_copy_not_byte_identical");
     expect(renderer).toContain("accepted_audio_reuse_output_must_not_overlap_source");
+    expect(renderer).toContain("validateVoxyCanonicalHeadAlpha");
+    expect(renderer).toContain("head_alpha_compositing_gate_failed");
+    expect(renderer).not.toContain(
+      '"apps/web/src/features/voxyVideo/headRelativeFaceRigHtml.ts",',
+    );
     expect(renderer).toContain('const requestedFilmId = argument("film")');
     expect(renderer).toContain("unsupported_homepage_film");
     expect(renderer).toContain("for (const filmId of filmIds)");
