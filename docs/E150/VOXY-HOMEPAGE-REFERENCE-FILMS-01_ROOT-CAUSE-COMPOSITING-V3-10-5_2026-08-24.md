@@ -5,13 +5,39 @@
 - Branch: `pr/voxy-homepage-reference-films-01`
 - Draft-PR: `#624`
 - Implementierungs-, Proof- und Render-Exact-Head: `00ff10e80dc8985da1df64de8e9a6df23b9d13e5`
-- Status: `review`; Human Visual/Film Final Acceptance bleibt `pending`
+- PR-/Evidence-Head vor diesem Closing-Manifest: `566ccc18f1a669abe9911e04846dc8ee6d97fd06`
+- Status: Human Final Acceptance für V3.10.5 `accepted`; operative SSOT-Serialisierung siehe Abschnitt „OpenTasks-/Closing-Governance“
 
 ## Scope und Freeze
 
 V3.10.5 ersetzt die verworfenen film- und schulterlokalen V3.10.4-Reparaturen durch eine gemeinsame strukturelle Trennung von bewegtem Kopf und kanonischem Body. Derselbe Fix gilt in der Produktionspipeline für eDebatte und VoiceOpenGov.
 
 Unverändert blieben D1 und sämtliche Audioquellen, `spokenText` und der `Weg`/`Weeg`-Pronunciation-Fix, Texte, Captions, Szenen, Dramaturgie, eDebatte-Grafiken, VoiceOpenGov-Grafiken und -Typografie, Timing, 2-s-Dwell, 250-ms-Settling sowie Branding. Es gab keine Veröffentlichung, kein Deployment, keine Homepage-Integration und keinen Merge.
+
+## Human Final Acceptance · 2026-08-24
+
+Die Human Final Acceptance gilt ausschließlich für den bereits menschlich geprüften privaten V3.10.5-Review-Root:
+
+`/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-00ff10e8-node20`
+
+Vor dieser Manifestierung wurden Root, Provenienz und Medien erneut ohne Renderoperation verifiziert:
+
+- eDebatte: `voxy-edebatte-homepage-reference-v1.mp4`, SHA-256 `a5f8875a49249210474f7c1bc5ea31d97fe15816abfb0509cb28f6496eb0120c`, `1080 × 1920`, 24 fps, `69.310 s`
+- VoiceOpenGov: `voxy-voiceopengov-homepage-reference-v1.mp4`, SHA-256 `ccffe3b04b8369fe7e05398934533d0d2bbf5f88b4bb801ffac0e222c188cbf8`, `1080 × 1920`, 24 fps, `66.900 s`
+- beide private Render-Manifeste nennen als `exactHeadSha` den Implementierungs-/Proof-/Render-Head `00ff10e80dc8985da1df64de8e9a6df23b9d13e5`
+- der spätere PR-/Evidence-Head `566ccc18f1a669abe9911e04846dc8ee6d97fd06` ist getrennt dokumentiert und wird nicht als Render-Head bezeichnet
+- es wurde kein neues MP4, Audio oder TTS-Artefakt erzeugt
+
+Menschlich akzeptiert sind damit für V3.10.5:
+
+- `humanHomepageFilmAcceptance = accepted`
+- `humanNews5VisualAcceptance = accepted`
+- `humanVoxyVoiceAcceptance = accepted`
+- beide finalen 9:16-Filme einschließlich VoiceOpenGov-Typografie und -Spacing, eDebatte-Source-/Evidence-Geometrie, VoiceOpenGov-Participation-/Process-Geometrie, Character-/Studio-Canon, VOG-Pin, eDebatte-Mark, NEWS-5.0-/Evidence-first-Grammatik, 2-s-Dwell, 250-ms-Settling und Social-Chrome-Entfernung
+- D1 als kanonische aktive Stimme, die bestehende byteidentische Audiofassung und die ausschließlich im Pronunciation-/`spokenText`-Layer liegende Aussprachekorrektur für `Weg`; sichtbarer Text und Captions bleiben korrekt `Weg`
+- der gemeinsame Canonical-Alpha-Compositor mit separatem Studiohintergrund, kanonischem Body-Master, Head-Motion ausschließlich innerhalb der echten Alpha-Silhouette, Head-Layer-Beitrag `0` außerhalb dieser Silhouette und ohne additive `neck-plate`, Feather-Strips, Schulter-Patches oder frame-spezifische Reparaturen
+
+Für diese beiden Reference-Filme verbleibt kein Human Visual-, Film- oder Voice-Gate. `productionEligible = false`, `autoPublish = false` und `homepageIntegrationIncluded = false` bleiben davon unberührt. Historische V3.10.3-/V3.10.4-Zwischenstände bleiben historische Evidence; ausschließlich der oben gehashte V3.10.5-Review-Root ist Final Canon.
 
 ## Tatsächliche Root Cause
 
@@ -154,7 +180,14 @@ Damit blieben D1, die akzeptierte `Weg`-Aussprache und die gesamte Caption-/Audi
 - Privacy: private Artefakte außerhalb von Git; kein Upload
 - `productionEligible = false`
 - `autoPublish = false`
-- `humanHomepageFilmAcceptance = pending`
-- `humanNews5VisualAcceptance = pending`
+- `humanHomepageFilmAcceptance = accepted`
+- `humanNews5VisualAcceptance = accepted`
+- `humanVoxyVoiceAcceptance = accepted`
 
-Der technische Kandidat ist bereit für die erneute menschliche Sichtprüfung. Der Task und PR `#624` bleiben bis zur expliziten Human Final Acceptance auf `review`.
+## OpenTasks-/Closing-Governance
+
+Die Human Final Acceptance ist in dieser V3.10.5-Evidence verbindlich manifestiert und darf nicht wegen des separaten SSOT-Writer-Konflikts als `pending` gelesen werden.
+
+`docs/E150/OpenTasks.md` wurde in diesem Closing-Pass bewusst nicht verändert: `origin/main` liegt 59 Commits vor dem PR-Branch und hat den kanonischen operativen Kopf seit dem gemeinsamen Merge-Base über den aktiven Governance-/Single-Writer-Pfad weitergeschrieben. Dort steht `VOXY-HOMEPAGE-REFERENCE-FILMS-01` noch auf dem vor Implementierungsbeginn serialisierten Status `codex_ready`, während der PR-Branch den tatsächlichen Verlauf bis `review` enthält. Eine lokale Änderung auf `done` oder die parallele Aufnahme des Folge-Tasks würde diesen Writer-Pfad überholen und den kanonischen Kopf nicht verlustfrei fortschreiben.
+
+Der korrekte nächste Governance-Schritt ist daher die verlustfreie Single-Writer-Serialisierung von `VOXY-HOMEPAGE-REFERENCE-FILMS-01 = done` und des Handoffs `VOG-50-THEMES-TO-EDEBATTE-VIDEO-PIPELINE-01` auf Basis dieser Acceptance-Evidence. Der Folge-Handoff ist separat in `docs/E150/VOG-50-THEMES-TO-EDEBATTE-VIDEO-PIPELINE-01_GOVERNANCE-HANDOFF_2026-08-24.md` dokumentiert. Bis diese SSOT-Serialisierung und die Synchronisierung des 59 Commits zurückliegenden PR-Branches abgeschlossen sind, bleibt PR `#624` Draft und wird nicht als merge-ready ausgegeben. Es wurde weder gemergt noch Auto-Merge aktiviert.
