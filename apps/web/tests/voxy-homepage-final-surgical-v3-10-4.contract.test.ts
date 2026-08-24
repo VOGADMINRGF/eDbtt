@@ -68,16 +68,13 @@ describe("VOXY homepage V3.10.5 — root-cause compositing correction", () => {
       containsTransparency: false,
     });
     expect(VOXY_CANONICAL_HEAD_ALPHA.outsideSilhouetteContribution).toBe(0);
-    expect(VOXY_CANONICAL_HEAD_ALPHA.alignedSourceInRig).toEqual({
-      x: -585,
-      y: -88.64,
+    expect(VOXY_CANONICAL_HEAD_ALPHA.acceptedMotionSourceInRig).toEqual({
+      x: -547.875,
+      y: -84.515,
       width: 2064,
       height: 1161,
     });
-    expect(VOXY_CANONICAL_HEAD_ALPHA.legacyRegistrationCorrection).toEqual({
-      x: -37.125,
-      y: -4.125,
-    });
+    expect(VOXY_CANONICAL_HEAD_ALPHA.faceRigOffset).toEqual({ x: 0, y: 0 });
 
     for (const filmId of ["edebatte", "voiceopengov"] as const) {
       for (const layoutProfile of [
@@ -97,11 +94,12 @@ describe("VOXY homepage V3.10.5 — root-cause compositing correction", () => {
         expect(html).toContain('data-head-source-native-bounds="1672x941"');
         expect(html).toContain('data-head-source-has-alpha="false"');
         expect(html).toContain(
-          'data-head-source-aligned-in-rig="x-585:y-88.64:w2064:h1161"',
+          'data-head-source-bounds-in-rig="x-547.875:y-84.515:w2064:h1161"',
         );
         expect(html).toContain(
-          'data-head-legacy-registration-correction="x-37.125:y-4.125"',
+          'data-head-source-registration-policy="accepted-motion-v4"',
         );
+        expect(html).toContain('data-head-face-rig-offset="x0:y0"');
         expect(html).toContain('maskUnits="userSpaceOnUse"');
         expect(html).toContain('mask-type="alpha"');
         expect(html).toContain('class="head-alpha-canon-source"');

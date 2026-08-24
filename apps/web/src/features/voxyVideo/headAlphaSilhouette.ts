@@ -14,16 +14,17 @@ export const VOXY_CANONICAL_HEAD_ALPHA = {
     containsTransparency: false,
   },
   rigBounds: { x: 495, y: 55, width: 500, height: 400 },
-  alignedSourceInRig: {
-    // Exact registration of the canonical stage camera in rig coordinates.
-    // This removes the legacy plate's +37.125/+4.125 px misregistration.
-    x: -585,
-    y: -88.64,
+  acceptedMotionSourceInRig: {
+    // Preserve the human-accepted Motion-v4 head/face registration exactly.
+    // Structural alpha separation, not a face-position change, fixes the body leak.
+    x: -547.875,
+    y: -84.515,
     width: 2064,
     height: 1161,
   },
-  legacyRegistrationCorrection: { x: -37.125, y: -4.125 },
-  contributionBounds: { x: 7, y: 17.875, width: 456, height: 366 },
+  canonicalStageDelta: { x: 37.125, y: 4.125 },
+  faceRigOffset: { x: 0, y: 0 },
+  contributionBounds: { x: 44, y: 15, width: 456, height: 374 },
   maskUnits: "userSpaceOnUse",
   maskType: "alpha",
   outsideSilhouetteContribution: 0,
@@ -48,12 +49,11 @@ export const VOXY_CANONICAL_HEAD_ALPHA = {
 } as const;
 
 export function renderVoxyCanonicalHeadAlphaShape(color: string): string {
-  const correction = VOXY_CANONICAL_HEAD_ALPHA.legacyRegistrationCorrection;
-  return `<g transform="translate(${correction.x} ${correction.y})"><path d="M157 23C140 22 129 29 124 45C120 61 119 83 119 111V276C119 301 130 314 154 317L194 319V373C194 386 204 389 214 379L266 328L439 337C466 338 482 326 487 301C493 266 494 188 489 153C486 130 474 110 455 95C450 91 445 89 438 89L343 82C335 81 330 77 325 70L302 35C298 29 291 28 282 28Z" fill="${color}"/>
+  return `<path d="M157 23C140 22 129 29 124 45C120 61 119 83 119 111V276C119 301 130 314 154 317L194 319V373C194 386 204 389 214 379L266 328L439 337C466 338 482 326 487 301C493 266 494 188 489 153C486 130 474 110 455 95C450 91 445 89 438 89L343 82C335 81 330 77 325 70L302 35C298 29 291 28 282 28Z" fill="${color}"/>
     <path d="M282 28C348 30 424 35 453 48C476 59 490 86 497 122L489 158C484 133 473 111 455 95C450 91 445 89 438 89L343 82C335 81 330 77 325 70L302 35C298 29 291 28 282 28Z" fill="${color}"/>
     <path d="M157 23C129 24 100 48 87 80C79 99 76 120 77 141" fill="none" stroke="${color}" stroke-width="16" stroke-linecap="round"/>
     <path d="M80 113C64 110 54 123 50 145C44 178 46 236 54 263C60 283 73 292 88 286C102 281 111 266 113 244L114 155C112 131 99 116 80 113Z" fill="${color}"/>
-    <path d="M486 119C496 118 500 122 500 128V285C499 290 495 293 488 292Z" fill="${color}"/></g>`;
+    <path d="M486 119C496 118 500 122 500 128V285C499 290 495 293 488 292Z" fill="${color}"/>`;
 }
 
 export function validateVoxyCanonicalHeadAlpha(): string[] {
@@ -73,10 +73,10 @@ export function validateVoxyCanonicalHeadAlpha(): string[] {
     errors.push("head_alpha_contract_invalid");
   }
   if (
-    VOXY_CANONICAL_HEAD_ALPHA.alignedSourceInRig.x !== -585 ||
-    VOXY_CANONICAL_HEAD_ALPHA.alignedSourceInRig.y !== -88.64 ||
-    VOXY_CANONICAL_HEAD_ALPHA.legacyRegistrationCorrection.x !== -37.125 ||
-    VOXY_CANONICAL_HEAD_ALPHA.legacyRegistrationCorrection.y !== -4.125
+    VOXY_CANONICAL_HEAD_ALPHA.acceptedMotionSourceInRig.x !== -547.875 ||
+    VOXY_CANONICAL_HEAD_ALPHA.acceptedMotionSourceInRig.y !== -84.515 ||
+    VOXY_CANONICAL_HEAD_ALPHA.faceRigOffset.x !== 0 ||
+    VOXY_CANONICAL_HEAD_ALPHA.faceRigOffset.y !== 0
   ) {
     errors.push("head_source_registration_invalid");
   }

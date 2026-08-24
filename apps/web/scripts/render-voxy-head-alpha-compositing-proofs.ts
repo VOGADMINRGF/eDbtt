@@ -308,7 +308,8 @@ async function main(): Promise<void> {
       sourceAsset: VOXY_CANONICAL_HEAD_ALPHA.source,
       sourceBoundingBox: {
         native: `${VOXY_CANONICAL_HEAD_ALPHA.source.nativeWidth}x${VOXY_CANONICAL_HEAD_ALPHA.source.nativeHeight}`,
-        alignedInHeadRig: VOXY_CANONICAL_HEAD_ALPHA.alignedSourceInRig,
+        acceptedMotionSourceInHeadRig:
+          VOXY_CANONICAL_HEAD_ALPHA.acceptedMotionSourceInRig,
       },
       alphaSchema: VOXY_CANONICAL_HEAD_ALPHA_SCHEMA_VERSION,
       contributionBounds: VOXY_CANONICAL_HEAD_ALPHA.contributionBounds,
