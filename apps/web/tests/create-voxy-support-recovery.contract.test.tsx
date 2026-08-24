@@ -58,6 +58,7 @@ describe("/create Voxy and support recovery contract", () => {
         onOpenDossierCreate={NOOP}
         onPrepareVote={NOOP}
         onRetryPlanner={NOOP}
+        onRequestEditorialReview={NOOP}
         onSaveOnly={NOOP}
         onDeferWork={NOOP}
         continuationValue=""
@@ -71,6 +72,8 @@ describe("/create Voxy and support recovery contract", () => {
     expect(html).toContain("Ich habe die Meldung an unser IT-Team übergeben.");
     expect(html).toContain("EDB-20260729-ABC12345");
     expect(html).toContain("Ticket ansehen");
+    expect(html).toContain("Für diesen fehlgeschlagenen Lauf wurde kein Analyse- oder Recherchekontingent abgebucht.");
+    expect(html).toContain("Redaktionell prüfen lassen");
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('aria-atomic="true"');

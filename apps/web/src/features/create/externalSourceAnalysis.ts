@@ -116,6 +116,16 @@ export type CreateExternalAnalysisRun = {
   }>;
 };
 
+export class CreateExternalAnalysisError extends Error {
+  readonly attempts: CreateExternalAnalysisRun["attempts"];
+
+  constructor(message: string, attempts: CreateExternalAnalysisRun["attempts"]) {
+    super(message);
+    this.name = "CreateExternalAnalysisError";
+    this.attempts = attempts.map((attempt) => ({ ...attempt }));
+  }
+}
+
 export function buildCreateExternalAnalysisExcerpt(text: string, maxLength = 24_000): string {
   const normalized = text.trim();
   if (normalized.length <= maxLength) return normalized;
@@ -191,13 +201,23 @@ export async function runCreateExternalSourceAnalysis(params: {
       attempts.push({ durationMs: Date.now() - startedAt, model: analysisModel, status: "failed" });
       lastError = error;
       if (!isModelNotFoundError(error) || analysisModel === analysisModels[analysisModels.length - 1]) {
-        throw error;
+        throw new CreateExternalAnalysisError("create_link_analysis_provider_failed", attempts);
       }
     }
   }
-  if (!response) throw lastError instanceof Error ? lastError : new Error("create_link_analysis_failed");
+  if (!response) {
+    throw new CreateExternalAnalysisError(
+      lastError instanceof Error ? "create_link_analysis_provider_failed" : "create_link_analysis_failed",
+      attempts,
+    );
+  }
 
-  const parsed = DocumentAnalysisSchema.parse(JSON.parse(response.text));
+  let parsed: z.infer<typeof DocumentAnalysisSchema>;
+  try {
+    parsed = DocumentAnalysisSchema.parse(JSON.parse(response.text));
+  } catch {
+    throw new CreateExternalAnalysisError("create_link_analysis_response_invalid", attempts);
+  }
   return {
     attempts,
     analysis: {

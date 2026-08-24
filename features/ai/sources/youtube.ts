@@ -11,10 +11,10 @@ export async function fetchYoutubeTranscript(urlOrId: string, langs = ["de","en"
     try {
       const parts = await YoutubeTranscript.fetchTranscript(id, { lang });
       const text = parts.map(p => p.text).join(" ");
-      return { id, lang, text };
+      return { id, lang, text, segmentCount: parts.length };
     } catch {/* try next lang */}
   }
-  return { id, lang: null, text: "" };
+  return { id, lang: null, text: "", segmentCount: 0 };
 }
 
 export async function bundleYoutubeSources(urls: string[], maxChars = 12000) {

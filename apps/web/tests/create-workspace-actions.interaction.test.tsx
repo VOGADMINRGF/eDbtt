@@ -389,7 +389,7 @@ function Harness(props: {
                 sourceUrl: linkDetection.primaryUrl,
                 sourceLoaded: false,
                 userMessage:
-                  "Die vollständige Link- und Dokumentanalyse nutzt dein verfügbares Analyse-/Recherche-Kontingent.",
+                  "Eine vertiefte Link- und Dokumentanalyse kann ein Analyse- oder Recherchekontingent nutzen und startet erst nach deiner Bestätigung.",
               }),
             );
             return;
@@ -448,7 +448,7 @@ describe("create workspace actions interaction", () => {
     await user.click(screen.getByRole("button", { name: "Link analysieren" }));
 
     expect(screen.getByTestId("analysis-state").textContent).toBe("entitlement_required");
-    expect(screen.getAllByText(/Analyse-\/Recherche-Kontingent/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Analyse- oder Recherchekontingent/).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Analyse starten" })).toBeTruthy();
   });
 

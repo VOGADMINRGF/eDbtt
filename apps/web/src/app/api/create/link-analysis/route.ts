@@ -5,7 +5,11 @@ import {
   buildCreateTechnicalFollowup,
   buildCreateValidatedDocumentFollowup,
 } from "@/features/create/intelligentFollowupResults";
-import { runCreateExternalSourceAnalysis } from "@/features/create/externalSourceAnalysis";
+import {
+  CreateExternalAnalysisError,
+  runCreateExternalSourceAnalysis,
+  type CreateExternalAnalysisRun,
+} from "@/features/create/externalSourceAnalysis";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import {
   enforceCreateMutationSecurity,
@@ -20,7 +24,10 @@ import {
   ensureCreateSupportTicket,
   type CreateSupportHandoffPublic,
 } from "@/features/support/createSupportTickets";
-import { loadCreateExternalSource } from "@/features/create/externalSourceIntake";
+import {
+  isCreateYoutubeUrl,
+  loadCreateExternalSource,
+} from "@/features/create/externalSourceIntake";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,6 +108,7 @@ export async function POST(req: NextRequest) {
     sourceLoaded: boolean;
     technicalErrorCode: string;
     reason: string;
+    providerAttempts?: CreateExternalAnalysisRun["attempts"];
   }) => {
     let supportHandoff: CreateSupportHandoffPublic;
     try {
@@ -112,7 +120,7 @@ export async function POST(req: NextRequest) {
         technicalErrorCode: input.technicalErrorCode,
         provider: input.analysisState === "ai_failed" ? "openai" : null,
         reason: input.reason,
-        attemptCount: 1,
+        attemptCount: input.providerAttempts?.length ?? 0,
         draftId: draftBinding.draftId,
         locale: body.locale ?? "de",
       });
@@ -141,7 +149,22 @@ export async function POST(req: NextRequest) {
             : supportHandoff.safeUserMessage,
       }),
       supportHandoff,
-      trace: { correlationId },
+      trace: {
+        correlationId,
+        source: {
+          adapter: isCreateYoutubeUrl(body.url) ? "youtube_transcript" : "external_fetch",
+          transcriptStatus:
+            isCreateYoutubeUrl(body.url) && !input.sourceLoaded
+              ? "unavailable"
+              : "not_applicable",
+        },
+        providerAttempts: (input.providerAttempts ?? []).map((attempt) => ({
+          provider: "openai" as const,
+          model: attempt.model,
+          resultCode: attempt.status,
+          durationMs: attempt.durationMs,
+        })),
+      },
     });
   };
 
@@ -158,7 +181,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const { analysis } = await runCreateExternalSourceAnalysis({
+      const { analysis, attempts } = await runCreateExternalSourceAnalysis({
         sourceUrl: body.url,
         text: source.text,
         locale: body.locale ?? "de",
@@ -176,24 +199,50 @@ export async function POST(req: NextRequest) {
           documentAnalysis: analysis,
         }),
         supportHandoff: null,
-        trace: { correlationId },
+        trace: {
+          correlationId,
+          source: {
+            adapter: source.sourceKind,
+            httpStatus: source.httpStatus,
+            transcriptStatus:
+              source.sourceKind === "youtube_transcript" ? "available" : "not_applicable",
+            transcriptSegmentCount: source.transcriptSegmentCount,
+          },
+          providerAttempts: attempts.map((attempt) => ({
+            provider: "openai" as const,
+            model: attempt.model,
+            resultCode: attempt.status,
+            durationMs: attempt.durationMs,
+          })),
+        },
       });
-    } catch {
+    } catch (error) {
+      const providerAttempts =
+        error instanceof CreateExternalAnalysisError ? error.attempts : [];
       return buildFailureResponse({
         analysisState: "ai_failed",
         sourceType: "document",
         sourceLoaded: true,
         technicalErrorCode: "CREATE_LINK_AI_FAILED",
-        reason: "document_analysis_failed",
+        reason:
+          error instanceof CreateExternalAnalysisError
+            ? error.message
+            : "document_analysis_failed",
+        providerAttempts,
       });
     }
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "source_fetch_failed";
+    const youtubeTranscriptUnavailable =
+      isCreateYoutubeUrl(body.url) && reason === "youtube_transcript_unavailable";
     return buildFailureResponse({
       analysisState: "fetch_failed",
-      sourceType: "link",
+      sourceType: youtubeTranscriptUnavailable ? "document" : "link",
       sourceLoaded: false,
-      technicalErrorCode: "CREATE_LINK_FETCH_FAILED",
-      reason: "source_fetch_failed",
+      technicalErrorCode: youtubeTranscriptUnavailable
+        ? "CREATE_YOUTUBE_TRANSCRIPT_UNAVAILABLE"
+        : "CREATE_LINK_FETCH_FAILED",
+      reason: youtubeTranscriptUnavailable ? reason : "source_fetch_failed",
     });
   }
 }

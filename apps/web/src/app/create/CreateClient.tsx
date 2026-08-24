@@ -2511,9 +2511,59 @@ export default function CreateClient({
     surfaceLocale,
   ]);
 
-  const handleRequestEditorialReview = React.useCallback(() => {
-    void navigateWithCreateHandoff("request_review", "/community/contributions");
-  }, [navigateWithCreateHandoff]);
+  const handleRequestEditorialReview = React.useCallback(async () => {
+    const sourceText = intelligentFollowup?.sourceText.trim() ?? "";
+    if (!sourceText || reviewRequestState === "saving" || reviewRequestState === "saved") return;
+    setReviewRequestState("saving");
+    setReviewRequestMessage(null);
+    try {
+      const analysis = intelligentFollowup?.meta?.analysis;
+      const technicalTicketNumber =
+        supportHandoff?.status === "created" ? supportHandoff.ticket.ticketNumber : null;
+      const response = await fetch("/api/editorial/review-requests", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sourceType: "create_analysis",
+          sourceId: technicalTicketNumber ?? savedDraftId ?? undefined,
+          originalText: sourceText,
+          analysisRunId: analysis?.orchestrationRunId ?? undefined,
+          truthStatus: "review_required",
+          sourceSupport: analysis?.sourceLoaded ? "partial" : "open",
+          sourceStatus:
+            surfaceLocale === "en"
+              ? "Technical analysis incomplete"
+              : "Technische Analyse unvollständig",
+          reviewRecommended: true,
+          reason: "user_requested_review",
+          fallbackUsed: intelligentFollowup?.degraded === true,
+        }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.ok) {
+        throw new Error(body?.error ?? "editorial_review_request_failed");
+      }
+      setReviewRequestState("saved");
+      setReviewRequestMessage(
+        surfaceLocale === "en"
+          ? "Editorial review requested. The technical incident remains separate."
+          : "Redaktionelle Prüfung angefragt. Der technische Fall bleibt davon getrennt.",
+      );
+    } catch {
+      setReviewRequestState("error");
+      setReviewRequestMessage(
+        surfaceLocale === "en"
+          ? "The editorial review request could not be saved. Please try again."
+          : "Die redaktionelle Prüfbitte konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      );
+    }
+  }, [
+    intelligentFollowup,
+    reviewRequestState,
+    savedDraftId,
+    supportHandoff,
+    surfaceLocale,
+  ]);
 
   const handlePrepareSubmission = React.useCallback(() => {
     void navigateWithCreateHandoff("submit_draft", "/community/contributions");
@@ -2680,8 +2730,8 @@ export default function CreateClient({
           sourceLoaded: false,
           userMessage:
             surfaceLocale === "en"
-              ? "The full link and document analysis uses your available analysis or research allowance."
-              : "Die vollständige Link- und Dokumentanalyse nutzt dein verfügbares Analyse-/Recherche-Kontingent.",
+              ? "A deeper link and document analysis can use an analysis or research allowance and starts only after your confirmation."
+              : "Eine vertiefte Link- und Dokumentanalyse kann ein Analyse- oder Recherchekontingent nutzen und startet erst nach deiner Bestätigung.",
         }),
       );
       setActionNotice(null);

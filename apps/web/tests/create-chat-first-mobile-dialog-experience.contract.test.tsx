@@ -408,7 +408,9 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Alle 5 Themen anzeigen");
     expect(html).toContain("Nur mit diesen 4 weiterarbeiten");
     expect(html).toContain("Später");
-    expect(html).toContain("Die vollständige Quellenprüfung nutzt 1 Recherche-Kontingent.");
+    expect(html).toContain(
+      "Eine vertiefte Quellenprüfung kann 1 Recherche-Kontingent nutzen und startet nicht automatisch.",
+    );
     expect(html).not.toContain("0 EUR");
   });
 

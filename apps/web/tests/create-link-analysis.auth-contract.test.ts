@@ -469,7 +469,7 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
   });
 
   it("uses the existing transcript source path for YouTube instead of analyzing page HTML", async () => {
-    const youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+    const youtubeUrl = "https://www.youtube.com/watch?v=iWO5N3n1DXU";
 
     const response = await POST(
       request({
@@ -489,6 +489,21 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
     expect(mocks.buildCreateValidatedDocumentFollowup).toHaveBeenCalledWith(
       expect.objectContaining({ sourceUrl: youtubeUrl }),
     );
+    await expect(response.json()).resolves.toMatchObject({
+      trace: {
+        source: {
+          adapter: "youtube_transcript",
+          httpStatus: 200,
+          transcriptStatus: "available",
+        },
+        providerAttempts: [
+          expect.objectContaining({
+            provider: "openai",
+            resultCode: "succeeded",
+          }),
+        ],
+      },
+    });
   });
 
   it("degrades visibly without provider analysis when a YouTube transcript is unavailable", async () => {
@@ -517,6 +532,12 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
       }),
     );
     expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledTimes(1);
+    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        technicalErrorCode: "CREATE_YOUTUBE_TRANSCRIPT_UNAVAILABLE",
+        reason: "youtube_transcript_unavailable",
+      }),
+    );
   });
 
   it("returns the existing safe degraded/support contract for an unreachable URL", async () => {
@@ -562,6 +583,19 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
     expect(JSON.stringify(mocks.callOpenAIJson.mock.calls)).not.toContain(
       "model-three",
     );
-    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledTimes(1);
+    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attemptCount: 2,
+        reason: "create_link_analysis_provider_failed",
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      trace: {
+        providerAttempts: [
+          { provider: "openai", model: "model-one", resultCode: "failed" },
+          { provider: "openai", model: "model-two", resultCode: "failed" },
+        ],
+      },
+    });
   });
 });

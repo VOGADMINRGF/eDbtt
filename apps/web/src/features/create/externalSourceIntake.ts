@@ -21,6 +21,7 @@ export type CreateExternalSource = {
   documentType: DocumentAnalysisSummary["documentType"];
   documentTitle: string | null;
   httpStatus: number;
+  transcriptSegmentCount: number | null;
 };
 
 function decodeHtmlEntities(value: string): string {
@@ -148,6 +149,7 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
       documentType: "unknown",
       documentTitle: `YouTube ${transcript.id}`,
       httpStatus: 200,
+      transcriptSegmentCount: transcript.segmentCount ?? null,
     };
   }
 
@@ -178,6 +180,7 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
       documentType: inferDocumentType(`${url} ${response.finalUrl}`, contentType),
       documentTitle: inferDocumentTitle(response.finalUrl),
       httpStatus: response.status,
+      transcriptSegmentCount: null,
     };
   }
 
@@ -197,5 +200,6 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
     documentType: inferDocumentType(`${url} ${response.finalUrl}`, contentType),
     documentTitle: inferDocumentTitle(response.finalUrl, html),
     httpStatus: response.status,
+    transcriptSegmentCount: null,
   };
 }

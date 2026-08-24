@@ -1668,7 +1668,7 @@ function resolveTopicExpansionCostLabel(
 ): string {
   if (!access) return "";
   if (access.costState === "uses_search_credit") {
-    return "Die vollständige Quellenprüfung nutzt 1 Recherche-Kontingent.";
+    return "Eine vertiefte Quellenprüfung kann 1 Recherche-Kontingent nutzen und startet nicht automatisch.";
   }
   if (access.costState === "addon_required") {
     return "Für die vollständige Quellenprüfung ist ein Recherche-Kontingent erforderlich.";
@@ -1825,6 +1825,9 @@ function AnalysisStateBubble(props: {
   onPrimaryAction?: () => void;
   onSaveOnly?: () => void;
   onDeferWork?: () => void;
+  onRequestEditorialReview?: () => void;
+  reviewRequestState?: CreateReviewRequestState;
+  reviewRequestMessage?: string | null;
   locale: CreateVoxyLocale;
   supportHandoff?: CreateSupportHandoffPublic | null;
   statusRef?: React.Ref<React.ElementRef<"div">>;
@@ -1948,6 +1951,16 @@ function AnalysisStateBubble(props: {
                 {copy.viewTicket}
               </a>
             ) : null}
+            {analysisFailed && props.onRequestEditorialReview ? (
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] w-full px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:w-auto"
+                onClick={props.onRequestEditorialReview}
+                disabled={props.reviewRequestState === "saving" || props.reviewRequestState === "saved"}
+              >
+                {resolveReviewRequestLabel(props.reviewRequestState ?? "idle")}
+              </button>
+            ) : null}
             {props.onSaveOnly && !analysisFailed ? (
               <button
                 type="button"
@@ -1967,6 +1980,11 @@ function AnalysisStateBubble(props: {
               </button>
             ) : null}
           </div>
+          {analysisFailed && props.reviewRequestMessage ? (
+            <p className="mt-3 text-xs leading-relaxed text-cyan-900 dark:text-cyan-200">
+              {props.reviewRequestMessage}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -4060,6 +4078,9 @@ export default function CreateVisualFollowup({
                   onDeferWork={onDeferWork}
                   locale={locale}
                   supportHandoff={supportHandoff}
+                  onRequestEditorialReview={onRequestEditorialReview}
+                  reviewRequestState={reviewRequestState}
+                  reviewRequestMessage={reviewRequestMessage}
                   statusRef={dynamicStatusRef}
                 />
               ) : null}
