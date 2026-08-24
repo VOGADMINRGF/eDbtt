@@ -19,6 +19,7 @@ import {
 const exactHead = "4".repeat(40);
 const assets = {
   canonStageDataUrl: "data:image/png;base64,AA==",
+  canonicalCleanStudioBackgroundDataUrl: "data:image/svg+xml;base64,AA==",
   studioLockupDataUrl: "data:image/svg+xml;base64,AA==",
   lapelPinDataUrl: "data:image/svg+xml;base64,AA==",
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,AA==",
@@ -103,6 +104,17 @@ describe("VOXY homepage V3.10.5 — root-cause compositing correction", () => {
         expect(html).toContain('maskUnits="userSpaceOnUse"');
         expect(html).toContain('mask-type="alpha"');
         expect(html).toContain('class="head-alpha-canon-source"');
+        expect(html).toContain(
+          'data-body-layer="canonical-master-with-static-head-removed"',
+        );
+        expect(html).toContain('data-body-head-pixel-contribution="0"');
+        expect(html).toContain(
+          'data-body-under-head="canonical-turtleneck-continuation"',
+        );
+        expect(html).toContain(
+          'data-character-lock="accepted_static_master_structurally_separated_head_body"',
+        );
+        expect(html).not.toContain('<div class="motion-plate neck-plate">');
         expect(html).not.toContain("head-source-clip");
         expect(html).not.toContain("homepage-canonical-body-gap");
         expect(html).not.toContain("homepage-shoulder-repair");

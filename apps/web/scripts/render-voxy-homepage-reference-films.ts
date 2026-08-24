@@ -35,7 +35,10 @@ import {
 } from "../src/features/voxyVideo/homepageReferenceFilmsContext";
 import { renderVoxyHomepageReferenceFilmFrameHtml } from "../src/features/voxyVideo/homepageReferenceFilmsHtml";
 import { VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH } from "../src/features/voxyVideo/firstExplainerVideo";
-import { validateVoxyCanonicalHeadAlpha } from "../src/features/voxyVideo/headAlphaSilhouette";
+import {
+  VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND,
+  validateVoxyCanonicalHeadAlpha,
+} from "../src/features/voxyVideo/headAlphaSilhouette";
 import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import { VOXY_STATIC_CANON_NATIVE_ASSETS } from "../src/features/voxyVideo/staticCanonRecovery";
 import type { VoxyMotionV4EmbeddedAssets } from "../src/features/voxyVideo/motionV4Html";
@@ -352,6 +355,7 @@ async function renderFilm(input: {
       VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
       VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
       VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
+      VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND.repositoryPath,
       "apps/web/src/features/voxyVideo/mouthRig.ts",
       "apps/web/src/features/voxyVideo/mouthV41.ts",
     ];
@@ -701,6 +705,10 @@ async function main(): Promise<void> {
 
   const sourcePaths = {
     canonStage: path.resolve(repositoryRoot, VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath),
+    cleanStudioBackground: path.resolve(
+      repositoryRoot,
+      VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND.repositoryPath,
+    ),
     studioLockup: path.resolve(repositoryRoot, VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH),
     lapelPin: path.resolve(repositoryRoot, VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin),
     edebattePocketMark: path.resolve(
@@ -710,6 +718,10 @@ async function main(): Promise<void> {
   };
   const assets: VoxyMotionV4EmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
+    canonicalCleanStudioBackgroundDataUrl: dataUrl(
+      await readFile(sourcePaths.cleanStudioBackground),
+      "image/svg+xml",
+    ),
     studioLockupDataUrl: dataUrl(await readFile(sourcePaths.studioLockup), "image/svg+xml"),
     lapelPinDataUrl: dataUrl(await readFile(sourcePaths.lapelPin), "image/svg+xml"),
     edebattePocketMarkDataUrl: dataUrl(

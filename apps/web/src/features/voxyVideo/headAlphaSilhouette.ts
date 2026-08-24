@@ -1,6 +1,13 @@
 export const VOXY_CANONICAL_HEAD_ALPHA_SCHEMA_VERSION =
   "voxy-canonical-head-alpha-v1" as const;
 
+export const VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND = {
+  repositoryPath:
+    "apps/web/public/brands/voxy/studio/voxy-studio-background-16x9.svg",
+  sha256:
+    "e2036cf20bb5621666fee9a52200531d80448095fd9f53e4287de71d4e1bb480",
+} as const;
+
 export const VOXY_CANONICAL_HEAD_ALPHA = {
   source: {
     repositoryPath:
@@ -14,6 +21,12 @@ export const VOXY_CANONICAL_HEAD_ALPHA = {
     containsTransparency: false,
   },
   rigBounds: { x: 495, y: 55, width: 500, height: 400 },
+  canonicalBodySourceInMaster: {
+    x: -90,
+    y: -33.64,
+    width: 2064,
+    height: 1161,
+  },
   acceptedMotionSourceInRig: {
     // Preserve the human-accepted Motion-v4 head/face registration exactly.
     // Structural alpha separation, not a face-position change, fixes the body leak.
@@ -56,6 +69,21 @@ export function renderVoxyCanonicalHeadAlphaShape(color: string): string {
     <path d="M486 119C496 118 500 122 500 128V285C499 290 495 293 488 292Z" fill="${color}"/>`;
 }
 
+export function renderVoxyCanonicalBodyMasterLayer(input: {
+  canonStageDataUrl: string;
+  cleanStudioBackgroundDataUrl?: string;
+  className: "studio-stage" | "source-plate";
+  maskId: string;
+}): string {
+  const bodySource = VOXY_CANONICAL_HEAD_ALPHA.canonicalBodySourceInMaster;
+  const rig = VOXY_CANONICAL_HEAD_ALPHA.rigBounds;
+  const delta = VOXY_CANONICAL_HEAD_ALPHA.canonicalStageDelta;
+  const cleanBackground = input.cleanStudioBackgroundDataUrl
+    ? `<image data-body-under-head="canonical-clean-studio" href="${input.cleanStudioBackgroundDataUrl}" x="0" y="0" width="1920" height="1080" preserveAspectRatio="none"/>`
+    : "";
+  return `<svg class="${input.className} canonical-body-master" viewBox="0 0 1920 1080" width="1920" height="1080" aria-hidden="true" data-body-layer="canonical-master-with-static-head-removed" data-body-head-pixel-contribution="0">${cleanBackground}<defs><linearGradient id="${input.maskId}-turtleneck" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#03050a"/><stop offset=".48" stop-color="#090b10"/><stop offset="1" stop-color="#03050a"/></linearGradient><mask id="${input.maskId}" x="0" y="0" width="1920" height="1080" maskUnits="userSpaceOnUse" mask-type="luminance"><rect x="0" y="0" width="1920" height="1080" fill="#fff"/><g transform="translate(${rig.x - delta.x} ${rig.y - delta.y})">${renderVoxyCanonicalHeadAlphaShape("#000")}</g></mask></defs><path data-body-under-head="canonical-turtleneck-continuation" d="M620 340C680 315 810 315 855 340C875 395 888 470 900 560H580C590 470 600 395 620 340Z" fill="url(#${input.maskId}-turtleneck)"/><g mask="url(#${input.maskId})"><image href="${input.canonStageDataUrl}" x="${bodySource.x}" y="${bodySource.y}" width="${bodySource.width}" height="${bodySource.height}" preserveAspectRatio="none"/></g></svg>`;
+}
+
 export function validateVoxyCanonicalHeadAlpha(): string[] {
   const errors: string[] = [];
   if (
@@ -75,6 +103,8 @@ export function validateVoxyCanonicalHeadAlpha(): string[] {
   if (
     VOXY_CANONICAL_HEAD_ALPHA.acceptedMotionSourceInRig.x !== -547.875 ||
     VOXY_CANONICAL_HEAD_ALPHA.acceptedMotionSourceInRig.y !== -84.515 ||
+    VOXY_CANONICAL_HEAD_ALPHA.canonicalBodySourceInMaster.x !== -90 ||
+    VOXY_CANONICAL_HEAD_ALPHA.canonicalBodySourceInMaster.y !== -33.64 ||
     VOXY_CANONICAL_HEAD_ALPHA.faceRigOffset.x !== 0 ||
     VOXY_CANONICAL_HEAD_ALPHA.faceRigOffset.y !== 0
   ) {

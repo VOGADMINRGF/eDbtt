@@ -19,6 +19,7 @@ import {
 const HEAD = "0123456789abcdef0123456789abcdef01234567";
 const ASSETS = {
   canonStageDataUrl: "data:image/png;base64,canon",
+  canonicalCleanStudioBackgroundDataUrl: "data:image/svg+xml;base64,background",
   studioLockupDataUrl: "data:image/svg+xml;base64,lockup",
   lapelPinDataUrl: "data:image/svg+xml;base64,lapel",
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,pocket",

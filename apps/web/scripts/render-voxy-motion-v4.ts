@@ -29,6 +29,7 @@ import {
 import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import { VOXY_STATIC_CANON_NATIVE_ASSETS } from "../src/features/voxyVideo/staticCanonRecovery";
 import { VOXY_MOUTH_CANON_GATE_OUTPUT } from "../src/features/voxyVideo/mouthCanonGate";
+import { VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND } from "../src/features/voxyVideo/headAlphaSilhouette";
 
 function argument(name: string): string | null {
   const prefix = `--${name}=`;
@@ -162,12 +163,20 @@ async function main(): Promise<void> {
 
   const sourcePaths = {
     canonStage: path.resolve(repositoryRoot, VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath),
+    cleanStudioBackground: path.resolve(
+      repositoryRoot,
+      VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND.repositoryPath,
+    ),
     studioLockup: path.resolve(repositoryRoot, VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH),
     lapelPin: path.resolve(repositoryRoot, VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin),
     edebattePocketMark: path.resolve(repositoryRoot, VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark),
   };
   const assets: VoxyMotionV4EmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
+    canonicalCleanStudioBackgroundDataUrl: dataUrl(
+      await readFile(sourcePaths.cleanStudioBackground),
+      "image/svg+xml",
+    ),
     studioLockupDataUrl: dataUrl(await readFile(sourcePaths.studioLockup), "image/svg+xml"),
     lapelPinDataUrl: dataUrl(await readFile(sourcePaths.lapelPin), "image/svg+xml"),
     edebattePocketMarkDataUrl: dataUrl(await readFile(sourcePaths.edebattePocketMark), "image/svg+xml"),
