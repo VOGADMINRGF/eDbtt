@@ -40,12 +40,14 @@ Nicht Teil dieser Governance-Manifestierung sind der Import der 50 Themen, Reche
 
 ## Serialisierungsblocker und nächster Schritt
 
-Der PR-Branch von `VOXY-HOMEPAGE-REFERENCE-FILMS-01` liegt beim Closing 59 Commits hinter `origin/main`. `origin/main` hat `docs/E150/OpenTasks.md` seit dem gemeinsamen Merge-Base über den aktiven Governance-/Single-Writer-Pfad weitergeschrieben und führt den Vorgänger dort noch auf seinem früheren Status `codex_ready`. Deshalb wird in diesem PR keine parallele OpenTasks-Zeile für den Folge-Task erzwungen.
+Der frühere Main-/Single-Writer-Konflikt des Vorgängers wurde in PR `#624` durch den verlustfreien Merge von `origin/main@fd6bbe7757e39e70e50056d7e7a3082dbf0caa4f` aufgelöst. `VOXY-HOMEPAGE-REFERENCE-FILMS-01` steht im synchronisierten PR-Branch kanonisch auf `done`; die Human Final Acceptance und beide MP4-Hashes bleiben unverändert.
+
+Der Folge-Task wird trotzdem noch nicht parallel in `OpenTasks.md` serialisiert: PR `#624` ist noch nicht in `main` gemergt, die offenen PRs `#628` und `#588` verändern weiterhin ihre jeweils eigenen OpenTasks-Zeilen und ein separater taskbezogener Preflight für `VOG-50-THEMES-TO-EDEBATTE-VIDEO-PIPELINE-01` wurde nicht ausgeführt. Es wurden keine Themen importiert und keine Videos oder Audios gerendert.
 
 Der nächste zulässige Schritt ist eine verlustfreie Single-Writer-Serialisierung, die:
 
 - die akzeptierte V3.10.5-Evidence und die beiden exakten MP4-Hashes übernimmt,
-- `VOXY-HOMEPAGE-REFERENCE-FILMS-01` auf `done` setzt,
+- nach Merge von PR `#624` den Vorgängerstatus `done` auf aktuellem `main` bestätigt,
 - `VOG-50-THEMES-TO-EDEBATTE-VIDEO-PIPELINE-01` mit Abhängigkeit vom geschlossenen Vorgänger und PR `#624` in den kanonischen operativen Kopf aufnimmt,
 - einen ausführbaren Status erst nach separatem positivem Preflight vergibt,
 - Review-first und das Verbot von Auto-Publish erhält.
