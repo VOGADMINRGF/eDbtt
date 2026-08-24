@@ -23,7 +23,7 @@
     "displayStack": ["inherit"],
     "bodyStack": ["inherit"]
   },
-  "voxyMode": "vog_context",
+  "voxyMode": "contextual",
   "website": "https://voiceopengov.org/",
   "imprintUrl": null,
   "privacyUrl": null,
