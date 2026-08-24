@@ -1,4 +1,3 @@
-import { PDFParse } from "pdf-parse";
 import { fetchYoutubeTranscript } from "@features/ai/sources/youtube";
 import type { DocumentAnalysisSummary } from "@/features/create/intelligentFollowupContract";
 import { safeExternalFetch } from "@/lib/net/safeExternalFetch";
@@ -47,6 +46,7 @@ function stripHtmlToText(html: string): string {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<{ text: string; pageCount: number | null }> {
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({
     data: Uint8Array.from(buffer),
     isEvalSupported: false,
