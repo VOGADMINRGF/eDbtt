@@ -41,6 +41,16 @@ export function resolveCanonicalMarketingBrandProfile(
   return MarketingBrandProfileRefSchema.parse(CANONICAL_MARKETING_BRAND_PROFILES[brand]);
 }
 
+export function resolveMarketingPublicBrandFromProfileId(
+  brandProfileId: string,
+): MarketingPublicBrand | null {
+  for (const value of Object.values(CANONICAL_MARKETING_BRAND_PROFILES)) {
+    if (value.brandProfileId === brandProfileId) return value.brand;
+  }
+  if (brandProfileId === "brand-edebatte-dark") return "edebatte";
+  return null;
+}
+
 export function assertMarketingBrandProfileMatch(input: {
   brand: MarketingPublicBrand;
   brandProfileId: string;
