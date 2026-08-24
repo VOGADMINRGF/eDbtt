@@ -131,7 +131,9 @@ export function buildMarketingSocialDistributionPreparation(
   const backlinkUrl = brand ? safeBacklinkForBrand(content, brand) : null;
   if (!backlinkUrl) blockers.push("brand_safe_verified_cta_required");
 
-  if (content.status === "draft") blockers.push("content_not_review_ready");
+  if (content.status !== "review_ready" && content.status !== "approved") {
+    blockers.push("content_not_review_ready");
+  }
   if (content.review.required !== true) blockers.push("review_contract_missing");
   if (!contentText(content).trim()) blockers.push("content_text_missing");
   if (content.autoPublishEligible !== false) blockers.push("auto_publish_must_remain_disabled");
