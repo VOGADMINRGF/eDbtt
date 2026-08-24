@@ -138,7 +138,9 @@ export async function loadCreateExternalSource(url: string): Promise<CreateExter
   if (isCreateYoutubeUrl(url)) {
     const transcript = await fetchYoutubeTranscript(url);
     if (!transcript.text.trim()) {
-      throw new Error("youtube_transcript_unavailable");
+      throw new Error(
+        `youtube_transcript_${transcript.failureReason ?? "unavailable"}`,
+      );
     }
     return {
       sourceKind: "youtube_transcript",

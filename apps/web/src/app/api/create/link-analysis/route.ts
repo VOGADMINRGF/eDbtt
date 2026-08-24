@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
     technicalErrorCode: string;
     reason: string;
     providerAttempts?: CreateExternalAnalysisRun["attempts"];
+    transcriptStatus?: string;
   }) => {
     let supportHandoff: CreateSupportHandoffPublic;
     try {
@@ -155,8 +156,9 @@ export async function POST(req: NextRequest) {
           adapter: isCreateYoutubeUrl(body.url) ? "youtube_transcript" : "external_fetch",
           transcriptStatus:
             isCreateYoutubeUrl(body.url) && !input.sourceLoaded
-              ? "unavailable"
+              ? input.transcriptStatus ?? "unavailable"
               : "not_applicable",
+          transcriptSegmentCount: isCreateYoutubeUrl(body.url) ? 0 : null,
         },
         providerAttempts: (input.providerAttempts ?? []).map((attempt) => ({
           provider: "openai" as const,
@@ -233,16 +235,21 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     const reason = error instanceof Error ? error.message : "source_fetch_failed";
-    const youtubeTranscriptUnavailable =
-      isCreateYoutubeUrl(body.url) && reason === "youtube_transcript_unavailable";
+    const youtubeTranscriptFailure =
+      isCreateYoutubeUrl(body.url) && reason.startsWith("youtube_transcript_");
+    const transcriptStatus = youtubeTranscriptFailure
+      ? reason.slice("youtube_transcript_".length)
+      : undefined;
+    const transcriptErrorCode = transcriptStatus?.toUpperCase() ?? "FETCH_FAILED";
     return buildFailureResponse({
       analysisState: "fetch_failed",
-      sourceType: youtubeTranscriptUnavailable ? "document" : "link",
+      sourceType: youtubeTranscriptFailure ? "document" : "link",
       sourceLoaded: false,
-      technicalErrorCode: youtubeTranscriptUnavailable
-        ? "CREATE_YOUTUBE_TRANSCRIPT_UNAVAILABLE"
+      technicalErrorCode: youtubeTranscriptFailure
+        ? `CREATE_YOUTUBE_TRANSCRIPT_${transcriptErrorCode}`
         : "CREATE_LINK_FETCH_FAILED",
-      reason: youtubeTranscriptUnavailable ? reason : "source_fetch_failed",
+      reason: youtubeTranscriptFailure ? reason : "source_fetch_failed",
+      transcriptStatus,
     });
   }
 }

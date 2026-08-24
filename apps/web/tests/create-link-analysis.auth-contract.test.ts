@@ -512,6 +512,7 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
       id: "dQw4w9WgXcQ",
       lang: null,
       text: "",
+      failureReason: "unavailable",
     });
 
     const response = await POST(
@@ -538,6 +539,56 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
         reason: "youtube_transcript_unavailable",
       }),
     );
+    await expect(response.json()).resolves.toMatchObject({
+      trace: {
+        source: {
+          adapter: "youtube_transcript",
+          transcriptStatus: "unavailable",
+          transcriptSegmentCount: 0,
+        },
+        providerAttempts: [],
+      },
+    });
+  });
+
+  it("distinguishes a safe YouTube rate-limit boundary from a missing transcript", async () => {
+    const youtubeUrl = "https://www.youtube.com/watch?v=iWO5N3n1DXU";
+    mocks.fetchYoutubeTranscript.mockResolvedValueOnce({
+      id: "iWO5N3n1DXU",
+      lang: null,
+      text: "",
+      segmentCount: 0,
+      failureReason: "rate_limited",
+    });
+
+    const response = await POST(request({ ...validBody, url: youtubeUrl }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.callOpenAIJson).not.toHaveBeenCalled();
+    expect(mocks.ensureCreateSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        technicalErrorCode: "CREATE_YOUTUBE_TRANSCRIPT_RATE_LIMITED",
+        reason: "youtube_transcript_rate_limited",
+        attemptCount: 0,
+      }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      result: {
+        meta: {
+          analysis: {
+            state: "fetch_failed",
+          },
+        },
+      },
+      trace: {
+        source: {
+          adapter: "youtube_transcript",
+          transcriptStatus: "rate_limited",
+          transcriptSegmentCount: 0,
+        },
+        providerAttempts: [],
+      },
+    });
   });
 
   it("returns the existing safe degraded/support contract for an unreachable URL", async () => {

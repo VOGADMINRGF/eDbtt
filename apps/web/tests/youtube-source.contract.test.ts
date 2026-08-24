@@ -45,6 +45,7 @@ describe("YouTube transcript source contract", () => {
       lang: "en",
       text: "First grounded segment. Second grounded segment.",
       segmentCount: 2,
+      failureReason: null,
     });
   });
 
@@ -56,6 +57,21 @@ describe("YouTube transcript source contract", () => {
       lang: null,
       text: "",
       segmentCount: 0,
+      failureReason: "fetch_failed",
+    });
+  });
+
+  it("reports a safe rate-limit reason without exposing the upstream error", async () => {
+    const error = new Error("upstream detail must not leave the adapter");
+    error.name = "YoutubeTranscriptTooManyRequestError";
+    mocks.fetchTranscript.mockRejectedValue(error);
+
+    await expect(fetchYoutubeTranscript("iWO5N3n1DXU")).resolves.toEqual({
+      id: "iWO5N3n1DXU",
+      lang: null,
+      text: "",
+      segmentCount: 0,
+      failureReason: "rate_limited",
     });
   });
 });
