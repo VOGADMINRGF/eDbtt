@@ -567,6 +567,8 @@ describe("/api/create/link-analysis authenticated draft contract", () => {
           status: 429,
           redirected: false,
           responseClass: "html",
+          payloadClass: "challenge",
+          upstreamState: null,
           errorType: null,
           errorCode: null,
         },

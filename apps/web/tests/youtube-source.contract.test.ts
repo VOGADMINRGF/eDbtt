@@ -82,7 +82,7 @@ describe("YouTube transcript source contract", () => {
       const response = await config.fetch("https://www.youtube.com/youtubei/v1/player?secret=query", {
         method: "POST",
       });
-      expect(await response.text()).toBe("upstream body must stay private");
+      expect(await response.text()).toContain("upstream body must stay private");
       throw Object.assign(new Error("private upstream failure detail"), {
         cause: { code: "UND_ERR_CONNECT_TIMEOUT" },
       });
@@ -91,7 +91,7 @@ describe("YouTube transcript source contract", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response("upstream body must stay private", {
+        new Response("unusual traffic; upstream body must stay private", {
           status: 429,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
@@ -108,12 +108,54 @@ describe("YouTube transcript source contract", () => {
         status: 429,
         redirected: false,
         responseClass: "html",
+        payloadClass: "invalid_payload",
+        upstreamState: null,
         errorType: null,
         errorCode: null,
       },
     ]);
     expect(JSON.stringify(result.transportAttempts)).not.toContain("secret");
     expect(JSON.stringify(result.transportAttempts)).not.toContain("upstream body");
+    vi.unstubAllGlobals();
+  });
+
+  it("classifies successful-but-captionless serverless responses as runtime incompatible", async () => {
+    mocks.fetchTranscript.mockImplementation(async (_id, config) => {
+      await config.fetch("https://www.youtube.com/youtubei/v1/player", { method: "POST" });
+      await config.fetch("https://www.youtube.com/watch?v=iWO5N3n1DXU");
+      throw new Error("bundled adapter failure");
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) =>
+        input.includes("youtubei")
+          ? new Response(JSON.stringify({ playabilityStatus: { status: "LOGIN_REQUIRED" } }), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            })
+          : new Response("<html><body>Sign in to confirm you are not a bot</body></html>", {
+              status: 200,
+              headers: { "content-type": "text/html" },
+            }),
+      ),
+    );
+
+    const result = await fetchYoutubeTranscript("iWO5N3n1DXU");
+
+    expect(result.failureReason).toBe("runtime_incompatible");
+    expect(result.transportAttempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          endpoint: "innertube_player",
+          payloadClass: "player_without_captions",
+          upstreamState: "LOGIN_REQUIRED",
+        }),
+        expect.objectContaining({
+          endpoint: "watch_html",
+          payloadClass: "watch_without_captions",
+        }),
+      ]),
+    );
     vi.unstubAllGlobals();
   });
 });

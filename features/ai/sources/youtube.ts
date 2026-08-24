@@ -6,6 +6,7 @@ export type YoutubeTranscriptFailureReason =
   | "disabled"
   | "language_unavailable"
   | "unavailable"
+  | "runtime_incompatible"
   | "fetch_failed";
 
 export type YoutubeTranscriptTransportAttempt = {
@@ -15,6 +16,17 @@ export type YoutubeTranscriptTransportAttempt = {
   status: number | null;
   redirected: boolean | null;
   responseClass: "json" | "xml" | "html" | "text" | "other" | null;
+  payloadClass:
+    | "captions_present"
+    | "player_without_captions"
+    | "watch_with_captions"
+    | "watch_without_captions"
+    | "consent_interstitial"
+    | "recaptcha"
+    | "challenge"
+    | "invalid_payload"
+    | "not_inspected";
+  upstreamState: string | null;
   errorType: string | null;
   errorCode: string | null;
 };
@@ -43,6 +55,76 @@ function safeErrorToken(value: unknown): string | null {
   return token || null;
 }
 
+async function classifyYoutubePayload(
+  endpoint: YoutubeTranscriptTransportAttempt["endpoint"],
+  response: Response,
+): Promise<Pick<YoutubeTranscriptTransportAttempt, "payloadClass" | "upstreamState">> {
+  try {
+    if (endpoint === "innertube_player") {
+      const data = (await response.clone().json()) as {
+        captions?: { playerCaptionsTracklistRenderer?: { captionTracks?: unknown[] } };
+        playabilityStatus?: { status?: unknown };
+      };
+      const captionTracks = data.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      return {
+        payloadClass:
+          Array.isArray(captionTracks) && captionTracks.length > 0
+            ? "captions_present"
+            : "player_without_captions",
+        upstreamState: safeErrorToken(data.playabilityStatus?.status),
+      };
+    }
+    if (endpoint === "watch_html") {
+      const html = await response.clone().text();
+      if (/class=["']g-recaptcha|recaptcha/i.test(html)) {
+        return { payloadClass: "recaptcha", upstreamState: null };
+      }
+      if (/consent\.youtube\.com|consent\.google\.com|consent-bump/i.test(html)) {
+        return { payloadClass: "consent_interstitial", upstreamState: null };
+      }
+      if (/unusual traffic|automated quer(?:y|ies)|botguard|challenge/i.test(html)) {
+        return { payloadClass: "challenge", upstreamState: null };
+      }
+      const status = html.match(
+        /"playabilityStatus"\s*:\s*\{\s*"status"\s*:\s*"([A-Z_]+)"/,
+      )?.[1];
+      return {
+        payloadClass: html.includes('"captionTracks":')
+          ? "watch_with_captions"
+          : "watch_without_captions",
+        upstreamState: safeErrorToken(status),
+      };
+    }
+  } catch {
+    return { payloadClass: "invalid_payload", upstreamState: null };
+  }
+  return { payloadClass: "not_inspected", upstreamState: null };
+}
+
+function isRuntimeIncompatibleTrace(
+  failures: YoutubeTranscriptFailureReason[],
+  attempts: YoutubeTranscriptTransportAttempt[],
+): boolean {
+  if (failures.length === 0 || failures.some((failure) => failure !== "fetch_failed")) {
+    return false;
+  }
+  return (
+    attempts.some(
+      (attempt) =>
+        attempt.endpoint === "innertube_player" &&
+        attempt.status === 200 &&
+        attempt.payloadClass === "player_without_captions",
+    ) &&
+    attempts.some(
+      (attempt) =>
+        attempt.endpoint === "watch_html" &&
+        attempt.status === 200 &&
+        attempt.payloadClass !== "watch_with_captions",
+    ) &&
+    !attempts.some((attempt) => attempt.endpoint === "caption_timedtext")
+  );
+}
+
 function buildTracedYoutubeFetch(
   language: string,
   attempts: YoutubeTranscriptTransportAttempt[],
@@ -59,6 +141,7 @@ function buildTracedYoutubeFetch(
     const method = String(init?.method ?? "GET").toUpperCase() === "POST" ? "POST" : "GET";
     try {
       const response = await fetch(input, init);
+      const payload = await classifyYoutubePayload(endpoint, response);
       attempts.push({
         language,
         endpoint,
@@ -66,6 +149,7 @@ function buildTracedYoutubeFetch(
         status: response.status,
         redirected: response.redirected,
         responseClass: classifyResponse(response.headers.get("content-type")),
+        ...payload,
         errorType: null,
         errorCode: null,
       });
@@ -82,6 +166,8 @@ function buildTracedYoutubeFetch(
         status: null,
         redirected: null,
         responseClass: null,
+        payloadClass: "not_inspected",
+        upstreamState: null,
         errorType: safeErrorToken(error instanceof Error ? error.name : typeof error),
         errorCode: safeErrorToken(cause?.code),
       });
@@ -134,9 +220,11 @@ export async function fetchYoutubeTranscript(
       failures.push(classifyTranscriptFailure(error));
     }
   }
-  const failureReason = failures.includes("rate_limited")
-    ? "rate_limited"
-    : failures.at(-1) ?? "fetch_failed";
+  const failureReason = isRuntimeIncompatibleTrace(failures, transportAttempts)
+    ? "runtime_incompatible"
+    : failures.includes("rate_limited")
+      ? "rate_limited"
+      : failures.at(-1) ?? "fetch_failed";
   return {
     id,
     lang: null,
