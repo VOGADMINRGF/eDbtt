@@ -13,10 +13,9 @@ vi.mock("@/lib/server/auth/admin", () => ({
   requireAdminOrResponse: (...args: unknown[]) => mocks.requireAdminOrResponse(...args),
 }));
 
-import {
-  PLATFORM_MARKETING_QUEUE_SCOPE_ID,
-  POST,
-} from "@/app/api/admin/marketing/review/items/[contentId]/distribution/route";
+import { POST } from "@/app/api/admin/marketing/review/items/[contentId]/distribution/route";
+
+const PLATFORM_MARKETING_QUEUE_SCOPE_ID = "platform-marketing-global";
 
 function requestFor(contentId: string) {
   return new NextRequest(
