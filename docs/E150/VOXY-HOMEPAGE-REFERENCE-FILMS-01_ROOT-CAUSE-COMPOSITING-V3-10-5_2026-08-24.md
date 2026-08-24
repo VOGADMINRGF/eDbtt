@@ -4,7 +4,7 @@
 - Task: `VOXY-HOMEPAGE-REFERENCE-FILMS-01`
 - Branch: `pr/voxy-homepage-reference-films-01`
 - Draft-PR: `#624`
-- Implementierungs-, Proof- und Render-Exact-Head: `0a751a83a918b80bd1e74a4450ca25c2de87e57c`
+- Implementierungs-, Proof- und Render-Exact-Head: `00ff10e80dc8985da1df64de8e9a6df23b9d13e5`
 - Status: `review`; Human Visual/Film Final Acceptance bleibt `pending`
 
 ## Scope und Freeze
@@ -47,7 +47,7 @@ Neu:
 Die gemeinsame Implementierung liegt in:
 
 - `apps/web/src/features/voxyVideo/headAlphaSilhouette.ts`
-- `apps/web/src/features/voxyVideo/headRelativeFaceRigHtml.ts`
+- `apps/web/src/features/voxyVideo/canonicalAlphaHeadRelativeFaceRigHtml.ts`
 - `apps/web/src/features/voxyVideo/motionV4Html.ts`
 
 `renderVoxyCanonicalBodyMasterLayer` registriert den kanonischen Body mit `x=-90`, `y=-33.64`, `w=2064`, `h=1161`, entfernt daraus die statische Kopf-/Speech-Bubble-Silhouette und lässt Schulter, Sakko, beide Revers, Hals-/Torsoanschluss, Pin und Mikrofon unverändert aus dem Body-Master bestehen. Unter dem ausgesparten Kopf liegen nur der kanonische Clean-Studio-Hintergrund und die durchgehende dunkle Rollkragenfortsetzung. Der frühere additive `neck-plate`-Renderpfad wurde vollständig entfernt.
@@ -56,35 +56,37 @@ Die gemeinsame Implementierung liegt in:
 
 Es gibt keine CSS-Schulterrechtecke, keine Feather-Strips, keine film-/frame-spezifischen Übermalungen, keine Body-Gap-Patches und keine `neck-plate` mehr.
 
+Der neue Modus wird über das kanonische Clean-Studio-Asset explizit aktiviert. Beide Homepage-Reference-Filme und die Motion-v4-/v4.1-Evidence verwenden diesen Modus gemeinsam. Der separate historische Offline-Voiced-Explainer bleibt dagegen auf seiner akzeptierten, eingefrorenen Visual-Baseline; sein `headRelativeFaceRigHtml.ts` ist gegenüber dem Visual-Master-Head `58548d2a5f6e4a59e84464a5c4aea3875f38662c` diff-frei. Damit wird kein älterer Human-Visual-Contract stillschweigend umdefiniert.
+
 ## Isolierter Movement- und Alpha-Proof vor Full Render
 
 Privater Exact-Head-Proof-Root:
 
-`/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20`
+`/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20`
 
 Manifest:
 
-`/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/head-alpha-proof-manifest.json`
+`/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/head-alpha-proof-manifest.json`
 
-Manifest SHA-256: `f3260b179b492b0e02dbb07f818bd3be50d6e32ea6da3190b5e9c20507ab13a6`
+Manifest SHA-256: `c238fac88ffb2d84cae9939ba7f100ef19fe8d86408afda76b1b0306ef032856`
 
 Der Proof rendert je Film acht Zustände aus derselben Produktionspipeline: früh, Mundöffnung, maximale Auslenkung rechts, Mund offen, Übergangsmitte, maximale Auslenkung links, spät und Zyklusende. Geprüft wurden beide Schultern, beide Revers, Hals-/Torsoanschluss, VOG-Pin und Mikrofonseite.
 
 ### eDebatte
 
-- Movement Contact Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/edebatte/movement-contact-sheet.png`
+- Movement Contact Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/edebatte/movement-contact-sheet.png`
 - SHA-256: `9e58807a6395f9473abc776d116b292df403b91229c8c21f04cdef7bb2473129`
-- Alpha-/Layer-Contact-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/edebatte/alpha-layer-contact-sheet.png`
+- Alpha-/Layer-Contact-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/edebatte/alpha-layer-contact-sheet.png`
 - SHA-256: `e79741af7564ae6592d60254f779b9c80490ac303368a46a9081fbbfc829cb8f`
-- Alpha-only PNG: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/edebatte/head-source-alpha-only.png`
+- Alpha-only PNG: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/edebatte/head-source-alpha-only.png`
 
 ### VoiceOpenGov
 
-- Movement Contact Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/voiceopengov/movement-contact-sheet.png`
+- Movement Contact Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/voiceopengov/movement-contact-sheet.png`
 - SHA-256: `6d4fbd44d7bb6eeccb61ba0497b0930e6528933721b4846a0ad025eb4e9bec38`
-- Alpha-/Layer-Contact-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/voiceopengov/alpha-layer-contact-sheet.png`
+- Alpha-/Layer-Contact-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/voiceopengov/alpha-layer-contact-sheet.png`
 - SHA-256: `208370b4bde3d6eef26b713c56bf24d36341a8159b08da9d69ca351a31232c06`
-- Alpha-only PNG: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/voiceopengov/head-source-alpha-only.png`
+- Alpha-only PNG: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/voiceopengov/head-source-alpha-only.png`
 
 Die Alpha-only-PNGs beider Marken sind byteidentisch (`4f64ff8e7c55677b32338bcfae93f7a9b9ff84be7104c8ed7e9549edc04a9164`). Der maschinelle Alpha-Audit ergab jeweils:
 
@@ -100,8 +102,8 @@ Die diagnostischen Magenta-Layer-Sheets zeigen ausschließlich die bewegte Kopf-
 
 16:9, 1:1 und 4:5 wurden an maximaler Links-/Rechtsbewegung über denselben Contract geprüft, ohne unnötige Full-Render:
 
-- eDebatte: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/edebatte/format-regression-contact-sheet.png` (`63906ca0b74dd7831776ef5f52c35c04d135526ff929833c71b9cecec7edad64`)
-- VoiceOpenGov: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-0a751a83-node20/voiceopengov/format-regression-contact-sheet.png` (`698a473b234238ddec15942c236b103214199995ded7d627d06ced6dfffdc72f`)
+- eDebatte: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/edebatte/format-regression-contact-sheet.png` (`63906ca0b74dd7831776ef5f52c35c04d135526ff929833c71b9cecec7edad64`)
+- VoiceOpenGov: `/Users/RF/Arbeitsmappe/private-assets/voxy/proofs/voxy-homepage-root-cause-compositing-v3-10-5-00ff10e8-node20/voiceopengov/format-regression-contact-sheet.png` (`698a473b234238ddec15942c236b103214199995ded7d627d06ced6dfffdc72f`)
 
 Beide Kontaktbögen sind frei von Schulter-, Revers-, Hals-/Torso-, Pin- und Mikrofonregressionen.
 
@@ -111,18 +113,18 @@ Die Full-Render wurden erst nach bestandenem gemeinsamen Movement-/Alpha-Proof e
 
 ### eDebatte
 
-- MP4: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-0a751a83-node20/edebatte/vertical_9_16/voxy-edebatte-homepage-reference-v1.mp4`
+- MP4: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-00ff10e8-node20/edebatte/vertical_9_16/voxy-edebatte-homepage-reference-v1.mp4`
 - SHA-256: `a5f8875a49249210474f7c1bc5ea31d97fe15816abfb0509cb28f6496eb0120c`
 - `1080 × 1920`, 24 fps, H.264, Dauer `69.310 s`, 1.664 Frames
-- MP4-dekodiertes Movement-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-0a751a83-node20/full-mp4-movement-evidence/edebatte/full-mp4-movement-contact-sheet.png`
+- MP4-dekodiertes Movement-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-00ff10e8-node20/full-mp4-movement-evidence/edebatte/full-mp4-movement-contact-sheet.png`
 - Movement-Sheet SHA-256: `bd1bdf866e433f2c91687e76b97684c80e0701c102d5ac958dd00c2b8fd24af3`
 
 ### VoiceOpenGov
 
-- MP4: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-0a751a83-node20/voiceopengov/vertical_9_16/voxy-voiceopengov-homepage-reference-v1.mp4`
+- MP4: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-00ff10e8-node20/voiceopengov/vertical_9_16/voxy-voiceopengov-homepage-reference-v1.mp4`
 - SHA-256: `ccffe3b04b8369fe7e05398934533d0d2bbf5f88b4bb801ffac0e222c188cbf8`
 - `1080 × 1920`, 24 fps, H.264, Dauer `66.900 s`, 1.606 Frames
-- MP4-dekodiertes Movement-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-0a751a83-node20/full-mp4-movement-evidence/voiceopengov/full-mp4-movement-contact-sheet.png`
+- MP4-dekodiertes Movement-Sheet: `/Users/RF/Arbeitsmappe/private-assets/voxy/pilots/voxy-homepage-reference-films-v3-10-5-final-human-review-00ff10e8-node20/full-mp4-movement-evidence/voiceopengov/full-mp4-movement-contact-sheet.png`
 - Movement-Sheet SHA-256: `ba123a8de8906de2d5cedd5ddd5c9899cc95a239959478b8bf8d82df48682b24`
 
 Die direkt aus den fertigen MP4s dekodierten frühen, maximalen und späteren Bewegungsframes zeigen bei beiden Marken keine harte Kante, keinen dunklen Keil, keine Naht, keinen Patch und keinen Lichtwechsel im Sakko-/Reversverlauf.
@@ -143,7 +145,7 @@ Damit blieben D1, die akzeptierte `Weg`-Aussprache und die gesamte Caption-/Audi
 
 ## Technische Gates
 
-- 19 fokussierte Contract-Suites / 154 Tests: PASS
+- 20 fokussierte Contract-Suites / 161 Tests: PASS
 - produktionsnahe Mouth-Canon- und Mouth-v4.1-Gates am Exact Head: PASS
 - `pnpm -C apps/web typecheck`: PASS
 - `pnpm -C apps/web lint`: PASS
