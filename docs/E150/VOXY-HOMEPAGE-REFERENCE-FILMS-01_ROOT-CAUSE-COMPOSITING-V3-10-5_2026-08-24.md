@@ -3,9 +3,11 @@
 - Datum: 2026-08-24
 - Task: `VOXY-HOMEPAGE-REFERENCE-FILMS-01`
 - Branch: `pr/voxy-homepage-reference-films-01`
-- Draft-PR: `#624`
+- PR: `#624` (`Ready for Review`)
 - Implementierungs-, Proof- und Render-Exact-Head: `00ff10e80dc8985da1df64de8e9a6df23b9d13e5`
 - PR-/Evidence-Head vor diesem Closing-Manifest: `566ccc18f1a669abe9911e04846dc8ee6d97fd06`
+- Human-Acceptance-Manifest-Head: `c94edbcf5135ee717ac64d9da5db05c09e076c22`
+- Main-Sync-/Done-Closing-Head: `81162e1971b3028f0dd5de01f1d16e53e4254270`
 - Status: Human Final Acceptance für V3.10.5 `accepted`; operative SSOT-Serialisierung siehe Abschnitt „OpenTasks-/Closing-Governance“
 
 ## Scope und Freeze
@@ -27,6 +29,8 @@ Vor dieser Manifestierung wurden Root, Provenienz und Medien erneut ohne Rendero
 - beide private Render-Manifeste nennen als `exactHeadSha` den Implementierungs-/Proof-/Render-Head `00ff10e80dc8985da1df64de8e9a6df23b9d13e5`
 - der spätere PR-/Evidence-Head `566ccc18f1a669abe9911e04846dc8ee6d97fd06` ist getrennt dokumentiert und wird nicht als Render-Head bezeichnet
 - es wurde kein neues MP4, Audio oder TTS-Artefakt erzeugt
+
+Die privaten Render-Manifeste bleiben als unveränderte Renderzeitpunkt-Provenienz erhalten und tragen deshalb weiterhin den vor der Sichtprüfung gültigen technischen Wert `pending`. Sie werden nicht nachträglich umgeschrieben. Der spätere Human-Acceptance-Manifest-Commit `c94edbcf5135ee717ac64d9da5db05c09e076c22` bindet die beiden oben genannten MP4-Hashes und den Exact Render Head revisionsgebunden an den nachfolgenden Closing-Status `accepted`; für den aktuellen Abnahmestand ist dieser spätere Closing-Status maßgeblich.
 
 Menschlich akzeptiert sind damit für V3.10.5:
 
@@ -190,4 +194,4 @@ Die Human Final Acceptance ist in dieser V3.10.5-Evidence verbindlich manifestie
 
 Der frühere Writer-Konflikt ist verlustfrei aufgelöst. `origin/main@fd6bbe7757e39e70e50056d7e7a3082dbf0caa4f` wurde ohne History-Rewrite oder Force-Push über Merge-Commit `48a6060d3c0c68904fb28fc093fd974df64c4c5d` in den bestehenden PR-Branch integriert. Die kanonischen Governance-Writer PR `#626` und PR `#630` waren zu diesem Zeitpunkt bereits gemergt. Die noch offenen PRs `#628` und `#588` verändern ausschließlich ihre jeweils eigene operative Taskzeile und besitzen keine Writer-Zuständigkeit für `VOXY-HOMEPAGE-REFERENCE-FILMS-01`.
 
-PR `#624` ist damit der legitime Single Writer für seine eigene Zeile und serialisiert `VOXY-HOMEPAGE-REFERENCE-FILMS-01 = done`, ohne einen anderen Taskstatus zu verändern. Der Folge-Handoff bleibt separat in `docs/E150/VOG-50-THEMES-TO-EDEBATTE-VIDEO-PIPELINE-01_GOVERNANCE-HANDOFF_2026-08-24.md` dokumentiert und wird in diesem Pass nicht als neuer OpenTasks-Eintrag serialisiert: PR `#624` ist noch nicht gemergt, die offenen Writer `#628` und `#588` sind noch nicht disponiert und ein separater Folge-Task-Preflight wurde nicht ausgeführt. Ready-for-Review wird erst nach vollständigen Exact-Head-Gates gesetzt; Merge und Auto-Merge bleiben ausgeschlossen.
+PR `#624` ist damit der legitime Single Writer für seine eigene Zeile und serialisiert `VOXY-HOMEPAGE-REFERENCE-FILMS-01 = done`, ohne einen anderen Taskstatus zu verändern. Der Folge-Handoff bleibt separat in `docs/E150/VOG-50-THEMES-TO-EDEBATTE-VIDEO-PIPELINE-01_GOVERNANCE-HANDOFF_2026-08-24.md` dokumentiert und wird in diesem Pass nicht als neuer OpenTasks-Eintrag serialisiert: PR `#624` ist noch nicht gemergt, die offenen Writer `#628` und `#588` sind noch nicht disponiert und ein separater Folge-Task-Preflight wurde nicht ausgeführt. PR `#624` ist nach vollständigen Exact-Head-Gates `Ready for Review`. Merge, Auto-Merge, Production-Deployment, Homepage-Integration und Publishing bleiben ausgeschlossen.
