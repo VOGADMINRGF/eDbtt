@@ -57,7 +57,7 @@ describe("create planner debug diagnostics contract", () => {
     else process.env.CREATE_PLANNER_TIMEOUT_MS = originalPlannerTimeout;
   });
 
-  it("falls back to OPENAI_MODEL when OPENAI_PLANNER_MODEL returns MODEL_NOT_FOUND", async () => {
+  it("falls back to the fast model when OPENAI_PLANNER_MODEL returns MODEL_NOT_FOUND", async () => {
     process.env.OPENAI_PLANNER_MODEL = "gpt-4.1-mini";
     process.env.OPENAI_MODEL = "gpt-5";
     mocks.callOpenAIJson
@@ -106,11 +106,11 @@ describe("create planner debug diagnostics contract", () => {
 
     expect(mocks.callOpenAIJson).toHaveBeenCalledTimes(2);
     expect(mocks.callOpenAIJson.mock.calls[0]?.[0]).toMatchObject({ model: "gpt-4.1-mini" });
-    expect(mocks.callOpenAIJson.mock.calls[1]?.[0]).toMatchObject({ model: "gpt-5" });
+    expect(mocks.callOpenAIJson.mock.calls[1]?.[0]).toMatchObject({ model: "gpt-4o-mini" });
     expect(planner.source).toBe("openai");
     expect(planner.plannerDegraded).toBe(false);
     expect(planner.degradedReason).toBeNull();
-    expect(planner.plannerDebug.usedModel).toBe("gpt-5");
+    expect(planner.plannerDebug.usedModel).toBe("gpt-4o-mini");
   });
 
   it("stops after the first successful candidate without running a duplicate provider call", async () => {
@@ -234,7 +234,7 @@ describe("create planner debug diagnostics contract", () => {
     expect(planner.plannerDebug.responseLength).toBe("kein json".length);
     expect(planner.plannerDebug.responseHash).toMatch(/^[a-f0-9]{64}$/);
     expect(JSON.stringify(planner)).not.toContain("kein json");
-    expect(planner.plannerDebug.attemptedModel).toBe("gpt-5");
+    expect(planner.plannerDebug.attemptedModel).toBe("gpt-4o-mini");
   });
 
   it("does not misclassify unauthorized provider errors as MODEL_NOT_FOUND", async () => {

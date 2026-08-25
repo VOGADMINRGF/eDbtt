@@ -54,6 +54,22 @@ type VerifiedCreateUserActor = {
   affectedUserId: string;
 };
 
+type CreateFollowupFailureBoundary =
+  | "mark_external_execution_started"
+  | "planner_runtime";
+
+type CreateFollowupFailureReason =
+  | "mark_external_execution_started_failed"
+  | "planner_runtime_failed";
+
+function createFollowupFailureReason(
+  boundary: CreateFollowupFailureBoundary,
+): CreateFollowupFailureReason {
+  return boundary === "mark_external_execution_started"
+    ? "mark_external_execution_started_failed"
+    : "planner_runtime_failed";
+}
+
 function supportFailureMessage(locale: string) {
   return locale.toLowerCase().startsWith("en")
     ? "Your contribution is saved. Please try again and use the technical reference if the problem persists."
@@ -235,8 +251,11 @@ export async function POST(req: NextRequest) {
           };
         }
 
+        let failureBoundary: CreateFollowupFailureBoundary =
+          "mark_external_execution_started";
         try {
           await markExternalExecutionStarted();
+          failureBoundary = "planner_runtime";
           const result = await buildCreateIntelligentFollowup({
             text: body.text,
             locale,
@@ -273,7 +292,8 @@ export async function POST(req: NextRequest) {
               userScope: "present" as const,
             },
           };
-        } catch {
+        } catch (_error) {
+          const failureReason = createFollowupFailureReason(failureBoundary);
           const supportHandoff = await createSupportHandoff({
             actor: verifiedActor,
             requestId,
@@ -281,7 +301,7 @@ export async function POST(req: NextRequest) {
             planner: null,
             draftId: draftBinding.draftId,
             locale,
-            reasonOverride: "unhandled_orchestration_error",
+            reasonOverride: failureReason,
             technicalErrorCodeOverride: "CREATE_FOLLOWUP_FAILED",
           });
           return {
@@ -302,6 +322,7 @@ export async function POST(req: NextRequest) {
               operationId,
               operationType,
               userScope: "present" as const,
+              failureBoundary: failureReason,
             },
           };
         }

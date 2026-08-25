@@ -201,7 +201,7 @@ function localizedCopy(locale: "de" | "en", ticketNumber: string) {
   if (locale === "en") {
     return {
       safeUserMessage:
-        "Your contribution is saved. The analysis could not be completed. The incident was handed over to our IT team.",
+        "Your contribution is saved. The analysis could not be completed. No analysis or research allowance was deducted for this failed run. The incident was handed over to our IT team.",
       notificationTitle: `Ticket ${ticketNumber} has been resolved`,
       notificationBody:
         "The technical incident affecting your contribution has been resolved. You can continue your saved draft.",
@@ -210,7 +210,7 @@ function localizedCopy(locale: "de" | "en", ticketNumber: string) {
   }
   return {
     safeUserMessage:
-      "Dein Beitrag ist gespeichert. Die Analyse konnte nicht abgeschlossen werden. Der Fall wurde an unser IT-Team übergeben.",
+      "Dein Beitrag ist gespeichert. Die Analyse konnte nicht abgeschlossen werden. Für diesen fehlgeschlagenen Lauf wurde kein Analyse- oder Recherchekontingent abgebucht. Der Fall wurde an unser IT-Team übergeben.",
     notificationTitle: `Ticket ${ticketNumber} wurde gelöst`,
     notificationBody:
       "Der technische Fall zu deinem Beitrag wurde gelöst. Du kannst deinen gespeicherten Arbeitsstand fortsetzen.",

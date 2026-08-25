@@ -3,7 +3,7 @@ import { callAnthropic } from "@features/ai/providers/anthropic";
 import { callMistral } from "@features/ai/providers/mistral";
 import { logAiUsage } from "@core/telemetry/aiUsage";
 import type { AiErrorKind, AiPipelineName } from "@core/telemetry/aiUsageTypes";
-import { getAiRuntimePolicy } from "@features/ai/aiRuntimePolicy";
+import { getCreatePlannerRuntimePolicy } from "@features/ai/aiRuntimePolicy";
 import { stableHash } from "@core/utils/hash";
 import type {
   CreatePlannerProviderAttemptIdentity,
@@ -193,6 +193,7 @@ const CREATE_PLANNER_JSON_SCHEMA = {
     "topicCandidates",
     "clusterCandidates",
     "scopeCandidates",
+    "stance",
     "openQuestions",
     "graphSearchTerms",
     "materialSignals",
@@ -390,7 +391,7 @@ function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
 }
 
 export function resolveCreatePlannerTimeoutMs(): number {
-  return getAiRuntimePolicy().plannerTimeoutMs;
+  return getCreatePlannerRuntimePolicy().plannerTimeoutMs;
 }
 
 function detectBroadCommunalTopicFields(text: string): string[] {
@@ -646,7 +647,7 @@ function dedupeModelCandidates(candidates: Array<string | null | undefined>): st
 }
 
 export function resolveCreatePlannerModelCandidates(): string[] {
-  return dedupeModelCandidates(getAiRuntimePolicy().openai.plannerModelCandidates);
+  return dedupeModelCandidates(getCreatePlannerRuntimePolicy().openai.plannerModelCandidates);
 }
 
 function isModelNotFoundError(error: unknown): boolean {
@@ -1419,7 +1420,7 @@ async function tryOpenAiPlannerWithModel(
   model: string,
   budget: PlannerAttemptBudget,
 ): Promise<PlannerAttempt> {
-  const policy = getAiRuntimePolicy();
+  const policy = getCreatePlannerRuntimePolicy();
   if (!policy.openai.apiKeyPresent) {
     return {
       ok: false,
@@ -1468,7 +1469,7 @@ async function tryOpenAiPlannerWithModel(
   const user = [
     "Analysiere den folgenden Beitrag als planner_only.",
     "Liefere genau diese JSON-Felder:",
-    "plannerTopic, plannerCore, plannerScope, plannerStance, plannerClusters, plannerOpenQuestions, shortSummary, topicCandidates, clusterCandidates, scopeCandidates, openQuestions, graphSearchTerms, materialSignals, recommendedLane.",
+    "plannerTopic, plannerCore, plannerScope, plannerStance, plannerClusters, plannerOpenQuestions, shortSummary, topicCandidates, clusterCandidates, scopeCandidates, stance, openQuestions, graphSearchTerms, materialSignals, recommendedLane.",
     "Regeln:",
     "- Keine Veröffentlichung, kein Speichern, kein Mergen, kein DeepSearch, kein Faktencheck, keine Quellenbehauptungen.",
     "- 'Öffentliches Anliegen' ist nur erlaubt, wenn absolut kein Thema erkennbar ist.",
@@ -1493,7 +1494,7 @@ async function tryOpenAiPlannerWithModel(
       user,
       model,
       temperature: 0.2,
-      max_tokens: getAiRuntimePolicy().plannerMaxOutputTokens,
+      max_tokens: getCreatePlannerRuntimePolicy().plannerMaxOutputTokens,
       timeoutMs,
       response_format: {
         name: "create_planner_result",
@@ -1658,7 +1659,7 @@ async function tryOpenAiPlanner(
       debug: createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
-        providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
+        providerAvailable: getCreatePlannerRuntimePolicy().openai.apiKeyPresent,
         providerErrorCode: "planner_model_missing",
         rawPayloadValid: false,
         rawTextValid: false,
@@ -1686,7 +1687,7 @@ async function tryOpenAiPlanner(
     debug: createPlannerDebug({
       attemptedProvider: "openai",
       usedProvider: "local_fallback",
-      providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
+      providerAvailable: getCreatePlannerRuntimePolicy().openai.apiKeyPresent,
       providerErrorCode: "openai_model_unavailable",
       rawPayloadValid: false,
       rawTextValid: false,
@@ -1699,7 +1700,7 @@ async function tryOpenAiPlanner(
 type CreatePlannerFallbackProvider = "anthropic" | "mistral";
 
 function resolveCreatePlannerFallbackProvider(): CreatePlannerFallbackProvider | null {
-  const policy = getAiRuntimePolicy();
+  const policy = getCreatePlannerRuntimePolicy();
   for (const provider of policy.providerOrder) {
     if (
       provider === "anthropic" &&
@@ -1743,7 +1744,7 @@ async function tryFallbackPlanner(
   provider: CreatePlannerFallbackProvider,
   budget: PlannerAttemptBudget,
 ): Promise<PlannerAttempt> {
-  const policy = getAiRuntimePolicy();
+  const policy = getCreatePlannerRuntimePolicy();
   const model =
     provider === "anthropic" ? policy.anthropic.model : policy.mistral.model;
   const controller = new AbortController();
@@ -1924,8 +1925,8 @@ async function recordCreatePlannerAiUsage(params: {
     (provider === "openai"
       ? resolveCreatePlannerModelCandidates()[0]
       : provider === "anthropic"
-        ? getAiRuntimePolicy().anthropic.model
-        : getAiRuntimePolicy().mistral.model) ??
+        ? getCreatePlannerRuntimePolicy().anthropic.model
+        : getCreatePlannerRuntimePolicy().mistral.model) ??
     "unknown";
   await logAiUsage({
     createdAt: new Date(),
@@ -2025,7 +2026,7 @@ export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promis
       ...createPlannerDebug({
         attemptedProvider: "openai",
         usedProvider: "local_fallback",
-        providerAvailable: getAiRuntimePolicy().openai.apiKeyPresent,
+        providerAvailable: getCreatePlannerRuntimePolicy().openai.apiKeyPresent,
         providerErrorCode: "planner_attempt_unreachable_state",
         rawPayloadValid: false,
         rawTextValid: false,

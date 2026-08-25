@@ -4,9 +4,15 @@ export type { Prisma } from "./generated";
 const g = globalThis as unknown as { __web?: PrismaClient };
 let clientSingleton: PrismaClient | undefined = g.__web;
 
+function isMongoDatasourceUrl(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized.startsWith("mongodb://") || normalized.startsWith("mongodb+srv://");
+}
+
 export function resolveWebDatabaseUrl(): string | null {
   const url = process.env.WEB_DATABASE_URL?.trim();
-  return url || null;
+  if (!url || !isMongoDatasourceUrl(url)) return null;
+  return url;
 }
 
 export function isWebDatabaseConfigured(): boolean {
@@ -14,10 +20,16 @@ export function isWebDatabaseConfigured(): boolean {
 }
 
 function createClient() {
+  const rawUrl = process.env.WEB_DATABASE_URL?.trim();
   const url = resolveWebDatabaseUrl();
   const shadowUrl = process.env.DATABASE_URL?.trim();
 
   if (!url) {
+    if (rawUrl) {
+      throw new Error(
+        "WEB_DATABASE_URL must use a MongoDB datasource URL (mongodb:// or mongodb+srv://).",
+      );
+    }
     if (shadowUrl) {
       throw new Error(
         "WEB_DATABASE_URL missing; DATABASE_URL fallback is disabled for the web runtime.",

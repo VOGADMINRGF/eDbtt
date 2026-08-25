@@ -353,6 +353,7 @@ function buildProfiles(params: {
   plannerMaxOutputTokens: number;
   smokeTimeoutMs: number;
   smokeMaxOutputTokens: number;
+  fullContractTimeoutMs: number;
   contributionTraceTimeoutMs: number;
   contributionTraceMaxOutputTokens: number;
   qualityClarifyTimeoutMs: number;
@@ -376,15 +377,15 @@ function buildProfiles(params: {
       maxOutputTokens: DIRECT_RUNTIME_MAX_OUTPUT_TOKENS,
     },
     fullContract: {
-      timeoutMs: params.smokeTimeoutMs,
+      timeoutMs: params.fullContractTimeoutMs,
       maxOutputTokens: FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS,
     },
     fullContractLite: {
-      timeoutMs: params.smokeTimeoutMs,
+      timeoutMs: params.fullContractTimeoutMs,
       maxOutputTokens: FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS,
     },
     fullContractRepair: {
-      timeoutMs: params.smokeTimeoutMs,
+      timeoutMs: params.fullContractTimeoutMs,
       maxOutputTokens: FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS,
     },
     contributionTrace: {
@@ -406,6 +407,7 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
   });
   const providerOrder = normalizeProviderOrder(env, maxProviders);
   const openaiModel = readTrimmed(env, "OPENAI_MODEL") ?? OPENAI_DEFAULT_MODEL;
+  const openaiFastModel = readTrimmed(env, "OPENAI_FAST_MODEL") ?? OPENAI_FAST_DEFAULT_MODEL;
   const anthropicModel = readTrimmed(env, "ANTHROPIC_MODEL") ?? ANTHROPIC_DEFAULT_MODEL;
   const mistralModel = readTrimmed(env, "MISTRAL_MODEL") ?? MISTRAL_DEFAULT_MODEL;
   const geminiModel = readTrimmed(env, "GEMINI_MODEL") ?? GEMINI_DEFAULT_MODEL;
@@ -417,6 +419,11 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
   });
   const smokeTimeoutMs = readPositiveInteger(env, "OPENAI_SMOKE_TIMEOUT_MS", {
     defaultValue: 30_000,
+    min: 600,
+    max: 45_000,
+  });
+  const fullContractTimeoutMs = readPositiveInteger(env, "E150_FULL_CONTRACT_TIMEOUT_MS", {
+    defaultValue: 45_000,
     min: 600,
     max: 45_000,
   });
@@ -436,10 +443,18 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     max: 120_000,
   });
   const orchestratorBudgetMs = readPositiveInteger(env, "E150_ANALYZE_BUDGET_MS", {
-    defaultValue: budgetMs,
+    defaultValue: 50_000,
     min: 1_000,
-    max: 120_000,
+    max: 50_000,
   });
+
+  if (orchestratorBudgetMs < fullContractTimeoutMs + 5_000) {
+    throw new AiRuntimePolicyError(
+      "E150_ANALYZE_BUDGET_MS must leave at least 5000ms above E150_FULL_CONTRACT_TIMEOUT_MS",
+      "OUT_OF_RANGE",
+      "E150_ANALYZE_BUDGET_MS",
+    );
+  }
   const telemetryBufferMax = readPositiveInteger(env, "AI_TELEMETRY_BUFFER_MAX", {
     defaultValue: 1_000,
     min: 1,
@@ -498,6 +513,7 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
     plannerMaxOutputTokens: CREATE_PLANNER_MAX_OUTPUT_TOKENS,
     smokeTimeoutMs,
     smokeMaxOutputTokens,
+    fullContractTimeoutMs,
     contributionTraceTimeoutMs,
     contributionTraceMaxOutputTokens: CONTRIBUTION_TRACE_MAX_OUTPUT_TOKENS,
     qualityClarifyTimeoutMs,
@@ -561,10 +577,14 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
       apiKeyPresent: hasProviderCredential(env, "openai"),
       baseUrl: readTrimmed(env, "OPENAI_BASE_URL") ?? null,
       model: openaiModel,
-      plannerModelCandidates: dedupe([readTrimmed(env, "OPENAI_PLANNER_MODEL"), openaiModel]),
+      plannerModelCandidates: dedupe([
+        readTrimmed(env, "OPENAI_PLANNER_MODEL"),
+        openaiFastModel,
+        openaiModel,
+      ]),
       smokeModelCandidates: dedupe([readTrimmed(env, "OPENAI_SMOKE_MODEL"), openaiModel, OPENAI_DEFAULT_MODEL]),
       traceModel: readTrimmed(env, "OPENAI_TRACE_MODEL") ?? OPENAI_TRACE_DEFAULT_MODEL,
-      fastModel: readTrimmed(env, "OPENAI_FAST_MODEL") ?? openaiModel ?? OPENAI_FAST_DEFAULT_MODEL,
+      fastModel: openaiFastModel,
     },
     anthropic: {
       apiKeyPresent: hasProviderCredential(env, "anthropic"),
@@ -634,6 +654,22 @@ export function getAiRuntimePolicyFromEnv(env: EnvMap = process.env): AiRuntimeP
 
 export function getAiRuntimePolicy(): AiRuntimePolicy {
   return getAiRuntimePolicyFromEnv(process.env);
+}
+
+export function getCreatePlannerRuntimePolicyFromEnv(
+  env: EnvMap = process.env,
+): AiRuntimePolicy {
+  // The planner does not consume E150 full-contract deadlines; E150 callers
+  // continue to validate those values through getAiRuntimePolicyFromEnv.
+  return getAiRuntimePolicyFromEnv({
+    ...env,
+    E150_FULL_CONTRACT_TIMEOUT_MS: undefined,
+    E150_ANALYZE_BUDGET_MS: undefined,
+  });
+}
+
+export function getCreatePlannerRuntimePolicy(): AiRuntimePolicy {
+  return getCreatePlannerRuntimePolicyFromEnv(process.env);
 }
 
 export function getAiRuntimeProfile(

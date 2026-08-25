@@ -14,6 +14,7 @@ describe("ai runtime env example sync", () => {
       "CREATE_PLANNER_TIMEOUT_MS=",
       "OPENAI_SMOKE_MODEL=",
       "OPENAI_SMOKE_TIMEOUT_MS=",
+      "E150_FULL_CONTRACT_TIMEOUT_MS=",
       "OPENAI_SMOKE_MAX_OUTPUT_TOKENS=",
       "OPENAI_FAST_MODEL=",
       "OPENAI_TRACE_MODEL=",
@@ -27,6 +28,7 @@ describe("ai runtime env example sync", () => {
       "ARI_TIMEOUT_MS=",
       "AI_BUDGET_MS_DEFAULT=",
       "E150_ANALYZE_BUDGET_MS=",
+      "ANALYZE_HARD_TIMEOUT_MS=",
       "CONTRIBUTION_TRACE_TIMEOUT_MS=",
       "QUALITY_CLARIFY_TIMEOUT_MS=",
       "AI_TELEMETRY_BUFFER_MAX=",
@@ -45,5 +47,23 @@ describe("ai runtime env example sync", () => {
     for (const key of requiredKeys) {
       expect(envExample).toContain(key);
     }
+  });
+
+  it("keeps the productive analyze timing hierarchy valid", () => {
+    const envExample = readFileSync(path.resolve(process.cwd(), ".env.example"), "utf8");
+
+    const readNumber = (key: string) => {
+      const match = envExample.match(new RegExp(`^${key}=(\\d+)$`, "m"));
+      expect(match, `${key} must be numeric in .env.example`).not.toBeNull();
+      return Number(match?.[1]);
+    };
+
+    const providerTimeout = readNumber("E150_FULL_CONTRACT_TIMEOUT_MS");
+    const orchestratorBudget = readNumber("E150_ANALYZE_BUDGET_MS");
+    const routeHardTimeout = readNumber("ANALYZE_HARD_TIMEOUT_MS");
+
+    expect(providerTimeout).toBe(45_000);
+    expect(orchestratorBudget - providerTimeout).toBeGreaterThanOrEqual(5_000);
+    expect(routeHardTimeout - orchestratorBudget).toBeGreaterThanOrEqual(5_000);
   });
 });

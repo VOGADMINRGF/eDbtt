@@ -100,7 +100,7 @@ describe("/api/admin/ai/create-planner-smoke", () => {
       source: "openai",
       qualityStatus: "specific",
       topicCount: 3,
-      modelCandidates: ["gpt-4.1-mini", "gpt-5"],
+      modelCandidates: ["gpt-4.1-mini", "gpt-4o-mini", "gpt-5"],
       timeoutMs: 10_000,
     });
     expect(mocks.buildCreatePlanner).toHaveBeenCalledWith(
@@ -175,8 +175,8 @@ describe("/api/admin/ai/create-planner-smoke", () => {
         plannerDebug: {
           attemptedProvider: "openai",
           usedProvider: "openai",
-          attemptedModel: "gpt-5",
-          usedModel: "gpt-5",
+          attemptedModel: "gpt-4o-mini",
+          usedModel: "gpt-4o-mini",
           providerAvailable: true,
           providerErrorCode: null,
           providerErrorMessage: null,
@@ -195,10 +195,10 @@ describe("/api/admin/ai/create-planner-smoke", () => {
 
     expect(body.ok).toBe(true);
     expect(body.rows[0]).toMatchObject({
-      selectedSmokeModel: "gpt-5",
-      effectiveModel: "gpt-5",
+      selectedSmokeModel: "gpt-4o-mini",
+      effectiveModel: "gpt-4o-mini",
       openAiSmokeModelMismatch: false,
     });
-    expect(body.plannerSmoke.modelCandidates).toEqual(["gpt-5"]);
+    expect(body.plannerSmoke.modelCandidates).toEqual(["gpt-4o-mini", "gpt-5"]);
   });
 });

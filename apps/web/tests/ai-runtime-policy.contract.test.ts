@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AiRuntimePolicyError,
+  getCreatePlannerRuntimePolicyFromEnv,
   getAiRuntimePolicyFromEnv,
   resolveAiRuntimeProviderMissingReason,
   resolveAiRuntimeModeFromEnv,
@@ -30,12 +31,75 @@ describe("ai runtime policy contract", () => {
     expect(policy.smokeTimeoutMs).toBe(30_000);
     expect(policy.smokeMaxOutputTokens).toBe(2_200);
     expect(policy.maxOutputTokens).toBe(2_600);
-    expect(policy.openai.plannerModelCandidates).toEqual(["gpt-4.1-mini", "gpt-5"]);
+    expect(policy.openai.plannerModelCandidates).toEqual(["gpt-4.1-mini", "gpt-4o-mini", "gpt-5"]);
     expect(policy.openai.smokeModelCandidates).toEqual(["gpt-5"]);
     expect(policy.social.autoPublishEnabled).toBe(false);
     expect(policy.social.realtimePublishEnabled).toBe(false);
     expect(policy.social.requireReview).toBe(true);
     expect(policy.loggingMode).toBe("metadata_only");
+  });
+
+  it("routes planner work through the fast model before the full model when no planner model is configured", () => {
+    const policy = getAiRuntimePolicyFromEnv({
+      OPENAI_API_KEY: "test-openai",
+      OPENAI_MODEL: "gpt-5",
+    });
+
+    expect(policy.openai.fastModel).toBe("gpt-4o-mini");
+    expect(policy.openai.plannerModelCandidates).toEqual(["gpt-4o-mini", "gpt-5"]);
+  });
+
+  it("honors an explicit fast model between an explicit planner model and the full model", () => {
+    const policy = getAiRuntimePolicyFromEnv({
+      OPENAI_API_KEY: "test-openai",
+      OPENAI_MODEL: "gpt-5",
+      OPENAI_PLANNER_MODEL: "planner-special",
+      OPENAI_FAST_MODEL: "fast-special",
+    });
+
+    expect(policy.openai.fastModel).toBe("fast-special");
+    expect(policy.openai.plannerModelCandidates).toEqual([
+      "planner-special",
+      "fast-special",
+      "gpt-5",
+    ]);
+  });
+
+  it("keeps productive E150 timing separate from smoke diagnostics", () => {
+    const policy = getAiRuntimePolicyFromEnv({});
+
+    expect(policy.smokeTimeoutMs).toBe(30_000);
+    expect(policy.profiles.fullContract.timeoutMs).toBe(45_000);
+    expect(policy.orchestratorBudgetMs).toBe(50_000);
+    expect(policy.profiles.fullContract.maxOutputTokens).toBe(2_600);
+  });
+
+  it("fails closed when E150 budget cannot contain the full-contract timeout", () => {
+    expect(() =>
+      getAiRuntimePolicyFromEnv({
+        E150_FULL_CONTRACT_TIMEOUT_MS: "45000",
+        E150_ANALYZE_BUDGET_MS: "35000",
+      }),
+    ).toThrowError(AiRuntimePolicyError);
+  });
+
+  it("isolates create planner policy from invalid E150 timing while E150 stays fail-closed", () => {
+    const env = {
+      OPENAI_API_KEY: "test-openai",
+      OPENAI_PLANNER_MODEL: "gpt-4o-mini",
+      CREATE_PLANNER_TIMEOUT_MS: "10000",
+      E150_FULL_CONTRACT_TIMEOUT_MS: "45000",
+      E150_ANALYZE_BUDGET_MS: "55000",
+    };
+
+    expect(() => getAiRuntimePolicyFromEnv(env)).toThrowError(AiRuntimePolicyError);
+
+    const plannerPolicy = getCreatePlannerRuntimePolicyFromEnv(env);
+    expect(plannerPolicy.plannerTimeoutMs).toBe(10_000);
+    expect(plannerPolicy.openai.apiKeyPresent).toBe(true);
+    expect(plannerPolicy.openai.plannerModelCandidates[0]).toBe("gpt-4o-mini");
+    expect(plannerPolicy.profiles.fullContract.timeoutMs).toBe(45_000);
+    expect(plannerPolicy.orchestratorBudgetMs).toBe(50_000);
   });
 
   it("fails closed for negative planner timeouts", () => {

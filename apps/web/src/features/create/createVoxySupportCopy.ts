@@ -60,6 +60,8 @@ export function getCreateVoxyCopy(
         "I handed the incident over to our IT team.",
       resolutionNotice:
         "You’ll receive a notification as soon as the incident has been resolved.",
+      allowancePreserved:
+        "No analysis or research allowance was deducted for this failed run.",
       noTicket:
         "No topics were derived. Please try again. If the problem persists, use the technical reference shown below.",
       technicalReference: "Technical reference",
@@ -81,6 +83,8 @@ export function getCreateVoxyCopy(
       "Ich habe die Meldung an unser IT-Team übergeben.",
     resolutionNotice:
       "Sobald der Fall gelöst ist, bekommst du eine Nachricht.",
+    allowancePreserved:
+      "Für diesen fehlgeschlagenen Lauf wurde kein Analyse- oder Recherchekontingent abgebucht.",
     noTicket:
       "Es wurden keine Themen abgeleitet. Bitte versuche es erneut. Falls der Fehler bestehen bleibt, nutze die angezeigte Fehlerreferenz.",
     technicalReference: "Fehlerreferenz",
@@ -97,6 +101,7 @@ export function buildCreateSupportFailureCopy(input: {
       title: copy.savedFailureTitle,
       paragraphs: [
         copy.savedFailureLead,
+        copy.allowancePreserved,
         copy.handedOff,
         `${input.locale === "en" ? "Your ticket" : "Dein Ticket"}: ${
           input.handoff.ticket.ticketNumber
@@ -110,6 +115,7 @@ export function buildCreateSupportFailureCopy(input: {
     title: copy.savedFailureTitle,
     paragraphs: [
       copy.savedFailureLead,
+      copy.allowancePreserved,
       copy.noTicket,
       input.handoff?.status === "failed"
         ? `${copy.technicalReference}: ${input.handoff.technicalReference}`
