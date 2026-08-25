@@ -15,6 +15,12 @@ import {
   type Alpha2ContinuousDispatchResult,
 } from "@/features/agenticRuntime/alpha2ContinuousDispatcher";
 import type { Alpha2ContinuationPlanner } from "@/features/agenticRuntime/alpha2ContinuousDispatchContract";
+import {
+  continueAlpha2AfterRepairableFailure,
+  type Alpha2RepairContinuationResult,
+  type Alpha2RepairPlanner,
+  type Alpha2RepairableFailure,
+} from "@/features/agenticRuntime/alpha2RepairContinuation";
 import { getAlpha2MongoRunLedger } from "@/features/agenticRuntime/alpha2MongoRunLedger";
 import {
   isAlpha2HumanStoppedRun,
@@ -58,6 +64,7 @@ export async function handleAlpha2ExecutionJob(input: {
   job: Job<Alpha2ExecutionJob>;
   executorResolver: Alpha2ExecutorResolver;
   continuationPlanner?: Alpha2ContinuationPlanner;
+  repairPlanner?: Alpha2RepairPlanner;
   workerId: string;
 }) {
   const ledger = getAlpha2MongoRunLedger();
@@ -74,8 +81,26 @@ export async function handleAlpha2ExecutionJob(input: {
     executor,
   });
 
+  let repair: Alpha2RepairContinuationResult | undefined;
+  if (
+    input.repairPlanner &&
+    step.state === "executed" &&
+    step.run.status === "failed" &&
+    step.outcome.type === "failed" &&
+    step.outcome.repairable === true
+  ) {
+    repair = await continueAlpha2AfterRepairableFailure({
+      failedRun: step.run,
+      failure: step.outcome as Alpha2RepairableFailure,
+      ledger,
+      dispatcher,
+      planner: input.repairPlanner,
+    });
+  }
+
   let continuation: Alpha2ContinuousDispatchResult | undefined;
   if (
+    !repair &&
     input.continuationPlanner &&
     step.state === "executed" &&
     step.run.status === "completed"
@@ -88,12 +113,14 @@ export async function handleAlpha2ExecutionJob(input: {
     });
   }
 
+  if (repair) return { ...step, repair };
   return continuation ? { ...step, continuation } : step;
 }
 
 export function startAlpha2ControlPlaneRuntime(input: {
   executorResolver: Alpha2ExecutorResolver;
   continuationPlanner?: Alpha2ContinuationPlanner;
+  repairPlanner?: Alpha2RepairPlanner;
   workerId?: string;
   concurrency?: number;
   recoveryIntervalMs?: number;
@@ -111,6 +138,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
         job,
         executorResolver: input.executorResolver,
         continuationPlanner: input.continuationPlanner,
+        repairPlanner: input.repairPlanner,
         workerId,
       }),
   });
