@@ -1,10 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@core/db/mongoose", () => ({
+  mongo: vi.fn(),
+  mongoose: {
+    connection: {
+      collection: vi.fn(),
+    },
+  },
+}));
+
 import { summarizeAlpha2MissionRuns } from "@/features/agenticRuntime/alpha2MissionControlReadModel";
 import { encodeAlpha2ContinuationCursor } from "@/features/agenticRuntime/alpha2ContinuousDispatchContract";
 import {
   appendAlpha2Checkpoint,
   createAlpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
+import type { Alpha2RunRecord } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 
 function payload(input: {
   runId: string;
@@ -22,7 +33,7 @@ function payload(input: {
     route: { mode: "automatic", capabilityClass: "orchestration" },
     now: "2026-08-23T21:00:00.000Z",
   });
-  let run = {
+  let run: Alpha2RunRecord = {
     ...base,
     status: input.status,
     resumeAt: input.resumeAt,
