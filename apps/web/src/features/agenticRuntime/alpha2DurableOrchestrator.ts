@@ -34,6 +34,7 @@ export type Alpha2WorkerOutcome =
       errorCode: string;
       retryable: boolean;
       retryAfterMs?: number;
+      repairable?: boolean;
     });
 
 export interface Alpha2WorkerExecutor {
@@ -53,6 +54,7 @@ export type Alpha2DurableStepResult =
   | {
       state: "executed";
       run: Alpha2RunRecord;
+      outcome: Alpha2WorkerOutcome;
       dispatchedJobId?: string;
     };
 
@@ -162,7 +164,9 @@ async function persistOutcome(input: {
       break;
     case "failed": {
       const canRetry =
-        input.outcome.retryable && input.current.run.attempt < input.current.run.budget.maxAttempts;
+        !input.outcome.repairable &&
+        input.outcome.retryable &&
+        input.current.run.attempt < input.current.run.budget.maxAttempts;
       run = transitionAlpha2Run(run, "failed", {
         now: input.now,
         errorCode: input.outcome.errorCode,
@@ -190,6 +194,7 @@ function nextDispatch(input: {
 
   if (
     input.outcome.type === "failed" &&
+    !input.outcome.repairable &&
     input.outcome.retryable &&
     Boolean(input.run.resumeAt)
   ) {
@@ -257,7 +262,7 @@ export async function runAlpha2DurableStep(input: {
     });
 
     const dispatch = nextDispatch({ run: persisted.run, outcome, now: outcomeAt });
-    if (!dispatch) return { state: "executed", run: persisted.run };
+    if (!dispatch) return { state: "executed", run: persisted.run, outcome };
 
     try {
       const queued = await input.dispatcher.dispatch({
@@ -268,10 +273,15 @@ export async function runAlpha2DurableStep(input: {
         requestedAt: outcomeAt,
         delayMs: dispatch.delayMs,
       });
-      return { state: "executed", run: persisted.run, dispatchedJobId: queued.jobId };
+      return {
+        state: "executed",
+        run: persisted.run,
+        outcome,
+        dispatchedJobId: queued.jobId,
+      };
     } catch {
       // MongoDB remains authoritative. A later recovery scan recreates the queue job.
-      return { state: "executed", run: persisted.run };
+      return { state: "executed", run: persisted.run, outcome };
     }
   } finally {
     await input.ledger.releaseLease({ runId: input.runId, owner: input.workerId });
