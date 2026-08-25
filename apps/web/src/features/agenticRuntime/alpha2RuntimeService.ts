@@ -10,6 +10,11 @@ import {
   startAlpha2RecoveryScheduler,
   type Alpha2WorkerExecutor,
 } from "@/features/agenticRuntime/alpha2DurableOrchestrator";
+import {
+  continueAlpha2AfterCompletedRun,
+  type Alpha2ContinuousDispatchResult,
+} from "@/features/agenticRuntime/alpha2ContinuousDispatcher";
+import type { Alpha2ContinuationPlanner } from "@/features/agenticRuntime/alpha2ContinuousDispatchContract";
 import { getAlpha2MongoRunLedger } from "@/features/agenticRuntime/alpha2MongoRunLedger";
 import {
   isAlpha2HumanStoppedRun,
@@ -52,6 +57,7 @@ export async function persistAndDispatchAlpha2Run(input: {
 export async function handleAlpha2ExecutionJob(input: {
   job: Job<Alpha2ExecutionJob>;
   executorResolver: Alpha2ExecutorResolver;
+  continuationPlanner?: Alpha2ContinuationPlanner;
   workerId: string;
 }) {
   const ledger = getAlpha2MongoRunLedger();
@@ -60,17 +66,34 @@ export async function handleAlpha2ExecutionJob(input: {
   if (!stored) return { state: "missing" as const, runId: input.job.data.runId };
   const executor = await input.executorResolver.resolve(stored.run);
 
-  return runAlpha2DurableStep({
+  const step = await runAlpha2DurableStep({
     runId: stored.run.runId,
     workerId: input.workerId,
     ledger,
     dispatcher,
     executor,
   });
+
+  let continuation: Alpha2ContinuousDispatchResult | undefined;
+  if (
+    input.continuationPlanner &&
+    step.state === "executed" &&
+    step.run.status === "completed"
+  ) {
+    continuation = await continueAlpha2AfterCompletedRun({
+      completedRun: step.run,
+      ledger,
+      dispatcher,
+      planner: input.continuationPlanner,
+    });
+  }
+
+  return continuation ? { ...step, continuation } : step;
 }
 
 export function startAlpha2ControlPlaneRuntime(input: {
   executorResolver: Alpha2ExecutorResolver;
+  continuationPlanner?: Alpha2ContinuationPlanner;
   workerId?: string;
   concurrency?: number;
   recoveryIntervalMs?: number;
@@ -87,6 +110,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
       handleAlpha2ExecutionJob({
         job,
         executorResolver: input.executorResolver,
+        continuationPlanner: input.continuationPlanner,
         workerId,
       }),
   });

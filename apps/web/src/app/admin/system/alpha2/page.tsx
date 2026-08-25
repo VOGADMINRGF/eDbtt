@@ -74,6 +74,41 @@ export default async function Alpha2MissionControlPage() {
         <Metric label="Leases" value={number(snapshot.runtime.leasedRuns)} detail="aktive Worker-Leases" />
       </section>
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Continuous Dispatch" subtitle="Observe → Delegate → Verify → Continue">
+          <dl className="space-y-3 text-sm">
+            <Row
+              label="Nächste berechtigte Aktion"
+              value={
+                snapshot.runtime.nextEligibleAction
+                  ? `${snapshot.runtime.nextEligibleAction.taskId} · ${snapshot.runtime.nextEligibleAction.status}`
+                  : "–"
+              }
+            />
+            <Row
+              label="Letzte autonome Fortsetzung"
+              value={
+                snapshot.runtime.lastAutonomousContinuation
+                  ? `${snapshot.runtime.lastAutonomousContinuation.runId} → ${snapshot.runtime.lastAutonomousContinuation.nextRunId ?? "Folgeschritt"}`
+                  : "–"
+              }
+            />
+            <Row
+              label="Zeitpunkt"
+              value={dateTime(snapshot.runtime.lastAutonomousContinuation?.updatedAt)}
+            />
+          </dl>
+        </Panel>
+
+        <Panel title="Stop-Grund" subtitle="nur echte Gates statt Go-Schleife">
+          <dl className="space-y-3 text-sm">
+            <Row label="Human Gate" value={snapshot.runtime.humanGateReason ?? "–"} />
+            <Row label="Idle" value={snapshot.runtime.idleReason ?? "–"} />
+            <Row label="Prinzip" value="automatisch bis Review / Human Gate" />
+          </dl>
+        </Panel>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-3">
         <Panel title="Agent-Flotte" subtitle="kanonische Registry">
           <dl className="space-y-3 text-sm">

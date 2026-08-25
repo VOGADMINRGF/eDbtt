@@ -6,6 +6,7 @@ import {
   summarizeAlpha2ProviderPerformance,
   type Alpha2ProviderPerformance,
 } from "@/features/agenticRuntime/alpha2EvalContract";
+import { parseAlpha2ContinuationCursor } from "@/features/agenticRuntime/alpha2ContinuousDispatchContract";
 import {
   ALPHA2_RUN_STATUSES,
   Alpha2RunRecordSchema,
@@ -29,6 +30,9 @@ export type Alpha2MissionControlRecentRun = Pick<
   version: number;
   leaseOwner: string | null;
   leaseExpiresAt: string | null;
+  humanGateReason: string | null;
+  continuationState: "dispatched" | "human_gate" | "idle" | "complete" | null;
+  continuationDetail: string | null;
 };
 
 export type Alpha2MissionControlSnapshot = {
@@ -44,6 +48,18 @@ export type Alpha2MissionControlSnapshot = {
     failedRuns: number;
     scheduledRuns: number;
     leasedRuns: number;
+    nextEligibleAction: {
+      runId: string;
+      taskId: string;
+      status: Alpha2RunStatus;
+    } | null;
+    lastAutonomousContinuation: {
+      runId: string;
+      nextRunId: string | null;
+      updatedAt: string;
+    } | null;
+    humanGateReason: string | null;
+    idleReason: string | null;
     recentRuns: Alpha2MissionControlRecentRun[];
   };
   fleet: {
@@ -80,6 +96,12 @@ function toIso(value: unknown): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function isEligibleNow(run: Alpha2MissionControlRecentRun, now: string) {
+  if (run.status === "queued" || run.status === "running") return true;
+  if (run.status !== "waiting" && run.status !== "failed") return false;
+  return Boolean(run.resumeAt) && Date.parse(run.resumeAt!) <= Date.parse(now);
+}
+
 export function summarizeAlpha2MissionRuns(input: {
   totalRuns: number;
   statusRows: Array<{ _id: Alpha2RunStatus; count: number }>;
@@ -95,6 +117,10 @@ export function summarizeAlpha2MissionRuns(input: {
     const parsed = Alpha2RunRecordSchema.safeParse(row.payload);
     if (!parsed.success) return [];
     const run = parsed.data;
+    const continuation = [...run.checkpoints]
+      .reverse()
+      .map((checkpoint) => parseAlpha2ContinuationCursor(checkpoint.cursor))
+      .find(Boolean) ?? null;
     return [
       {
         runId: run.runId,
@@ -110,6 +136,9 @@ export function summarizeAlpha2MissionRuns(input: {
         version: Number(row.version ?? 0),
         leaseOwner: row.leaseOwner ? String(row.leaseOwner) : null,
         leaseExpiresAt: toIso(row.leaseExpiresAt),
+        humanGateReason: run.humanGate.state === "pending" ? run.humanGate.reason ?? null : null,
+        continuationState: continuation?.state ?? null,
+        continuationDetail: continuation?.detail ?? null,
       },
     ];
   });
@@ -123,6 +152,10 @@ export function summarizeAlpha2MissionRuns(input: {
   const leasedRuns = recentRuns.filter(
     (run) => run.leaseExpiresAt && Date.parse(run.leaseExpiresAt) > Date.parse(input.now),
   ).length;
+  const next = recentRuns.find((run) => isEligibleNow(run, input.now)) ?? null;
+  const continued = recentRuns.find((run) => run.continuationState === "dispatched") ?? null;
+  const humanGate = recentRuns.find((run) => run.humanGateReason) ?? null;
+  const idle = recentRuns.find((run) => run.continuationState === "idle") ?? null;
 
   return {
     totalRuns: input.totalRuns,
@@ -132,6 +165,18 @@ export function summarizeAlpha2MissionRuns(input: {
     failedRuns: statusCounts.failed,
     scheduledRuns,
     leasedRuns,
+    nextEligibleAction: next
+      ? { runId: next.runId, taskId: next.taskId, status: next.status }
+      : null,
+    lastAutonomousContinuation: continued
+      ? {
+          runId: continued.runId,
+          nextRunId: continued.continuationDetail,
+          updatedAt: continued.updatedAt,
+        }
+      : null,
+    humanGateReason: humanGate?.humanGateReason ?? null,
+    idleReason: idle?.continuationDetail ?? null,
     recentRuns,
   };
 }
@@ -162,6 +207,10 @@ export async function buildAlpha2MissionControlSnapshot(input: {
       failedRuns: 0,
       scheduledRuns: 0,
       leasedRuns: 0,
+      nextEligibleAction: null,
+      lastAutonomousContinuation: null,
+      humanGateReason: null,
+      idleReason: null,
       recentRuns: [],
     },
     fleet: {
