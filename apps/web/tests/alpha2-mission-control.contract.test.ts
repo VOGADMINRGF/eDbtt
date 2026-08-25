@@ -9,6 +9,13 @@ vi.mock("@core/db/mongoose", () => ({
   },
 }));
 
+vi.mock("@/features/agenticRuntime/alpha2MongoLearningStore", () => ({
+  getAlpha2MongoLearningStore: vi.fn(() => ({
+    listEvals: vi.fn(async () => []),
+    listAcceptedLessons: vi.fn(async () => []),
+  })),
+}));
+
 import { summarizeAlpha2MissionRuns } from "@/features/agenticRuntime/alpha2MissionControlReadModel";
 import { encodeAlpha2ContinuationCursor } from "@/features/agenticRuntime/alpha2ContinuousDispatchContract";
 import {
