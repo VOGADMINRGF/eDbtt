@@ -20,6 +20,7 @@ import {
 import { VOXY_MOUTH_V41_GATE_OUTPUT } from "../src/features/voxyVideo/mouthV41Gate";
 import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/pocketMarkFinalGate";
 import { VOXY_STATIC_CANON_NATIVE_ASSETS } from "../src/features/voxyVideo/staticCanonRecovery";
+import { VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND } from "../src/features/voxyVideo/headAlphaSilhouette";
 
 function argument(name: string): string | null {
   const prefix = `--${name}=`;
@@ -109,12 +110,15 @@ async function main(): Promise<void> {
     "apps/web/scripts/render-voxy-motion-v4-1.ts",
     "apps/web/src/features/voxyVideo/motionV4.ts",
     "apps/web/src/features/voxyVideo/motionV4Html.ts",
+    "apps/web/src/features/voxyVideo/canonicalAlphaHeadRelativeFaceRigHtml.ts",
+    "apps/web/src/features/voxyVideo/headAlphaSilhouette.ts",
     "apps/web/src/features/voxyVideo/motionV41.ts",
     "apps/web/src/features/voxyVideo/motionV41Html.ts",
     "apps/web/src/features/voxyVideo/mouthRig.ts",
     "apps/web/src/features/voxyVideo/mouthV41.ts",
     "apps/web/src/features/voxyVideo/mouthV41Gate.ts",
     "apps/web/src/features/voxyVideo/headRelativeFaceRigHtml.ts",
+    VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND.repositoryPath,
     VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     VOXY_STATIC_CANON_NATIVE_ASSETS.lapelPin,
     VOXY_STATIC_CANON_NATIVE_ASSETS.edebattePocketMark,
@@ -189,6 +193,10 @@ async function main(): Promise<void> {
       repositoryRoot,
       VOXY_POCKET_MARK_COMPOSITION_SOURCE.repositoryPath,
     ),
+    cleanStudioBackground: path.resolve(
+      repositoryRoot,
+      VOXY_CANONICAL_CLEAN_STUDIO_BACKGROUND.repositoryPath,
+    ),
     studioLockup: path.resolve(
       repositoryRoot,
       VOXY_FIRST_EXPLAINER_STUDIO_LOCKUP_PATH,
@@ -201,6 +209,10 @@ async function main(): Promise<void> {
   };
   const assets: VoxyMotionV41EmbeddedAssets = {
     canonStageDataUrl: dataUrl(await readFile(sourcePaths.canonStage), "image/png"),
+    canonicalCleanStudioBackgroundDataUrl: dataUrl(
+      await readFile(sourcePaths.cleanStudioBackground),
+      "image/svg+xml",
+    ),
     studioLockupDataUrl: dataUrl(
       await readFile(sourcePaths.studioLockup),
       "image/svg+xml",
