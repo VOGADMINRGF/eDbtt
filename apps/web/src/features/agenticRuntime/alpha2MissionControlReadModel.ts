@@ -1,4 +1,3 @@
-import { mongo, mongoose } from "@core/db/mongoose";
 import {
   getAlpha2ControlPlaneLimits,
   loadAlpha2AgentFleetRegistry,
@@ -7,7 +6,6 @@ import {
   summarizeAlpha2ProviderPerformance,
   type Alpha2ProviderPerformance,
 } from "@/features/agenticRuntime/alpha2EvalContract";
-import { getAlpha2MongoLearningStore } from "@/features/agenticRuntime/alpha2MongoLearningStore";
 import { parseAlpha2ContinuationCursor } from "@/features/agenticRuntime/alpha2ContinuousDispatchContract";
 import {
   ALPHA2_RUN_STATUSES,
@@ -230,6 +228,10 @@ export async function buildAlpha2MissionControlSnapshot(input: {
   };
 
   try {
+    const [{ mongo, mongoose }, { getAlpha2MongoLearningStore }] = await Promise.all([
+      import("@core/db/mongoose"),
+      import("@/features/agenticRuntime/alpha2MongoLearningStore"),
+    ]);
     await mongo();
     const collection = mongoose.connection.collection("alpha2_runs");
     const [totalRuns, statusRows, recentRows] = await Promise.all([

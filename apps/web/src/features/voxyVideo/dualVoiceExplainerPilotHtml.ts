@@ -2,6 +2,7 @@ import { buildVoxyMotionV41Plan } from "./motionV41";
 import {
   renderVoxyMotionV4FrameHtml,
   type VoxyMotionV4EmbeddedAssets,
+  type VoxyMotionV4ViewportGeometry,
 } from "./motionV4Html";
 import { buildVoxyAudioMouthFrame } from "./voicedExplainerV1Html";
 import {
@@ -129,16 +130,18 @@ function renderActiveEvidence(plan: VoxyExplainerPilotPlan, state: VoxyDualVoice
 }
 
 function renderSynthesis(plan: VoxyExplainerPilotPlan): string {
-  return `<section class="synthesis-stage" data-synthesis-uses="democracy-trust democracy-participation" data-derived-evidence-id="democracy-open-question">
-    <div class="fixture-label">DEMO · ILLUSTRATION</div>
+  const [first, second, derived] = evidenceForPlan(plan);
+  if (!first || !second || !derived) return "";
+  return `<section class="synthesis-stage" data-synthesis-uses="${escapeHtml(`${first.id} ${second.id}`)}" data-derived-evidence-id="${escapeHtml(derived.id)}">
+    <div class="fixture-label">${escapeHtml(derived.provenance)}</div>
     <small class="evidence-kind">ZUSAMMENFÜHRUNG</small>
     <h1>Erst die Beziehung ergibt ein Bild.</h1>
     <div class="synthesis-flow">
-      <div class="synthesis-source">${renderEvidenceCore(plan, "democracy-trust")}</div>
+      <div class="synthesis-source">${renderEvidenceCore(plan, first.id)}</div>
       <div class="relationship-line"><i></i><span>zusammen betrachten</span><i></i></div>
-      <div class="synthesis-source">${renderEvidenceCore(plan, "democracy-participation")}</div>
+      <div class="synthesis-source">${renderEvidenceCore(plan, second.id)}</div>
     </div>
-    <div class="derived-question">${renderEvidenceCore(plan, "democracy-open-question")}</div>
+    <div class="derived-question">${renderEvidenceCore(plan, derived.id)}</div>
   </section>`;
 }
 
@@ -178,6 +181,7 @@ export function renderVoxyDualVoicePilotFrameHtml(input: {
   assets: VoxyMotionV4EmbeddedAssets;
   frameIndex: number;
   amplitude: number;
+  viewportGeometry?: VoxyMotionV4ViewportGeometry;
 }): string {
   const atSeconds = input.frameIndex / input.plan.output.fps;
   const speaker = speakerAt(input.plan, atSeconds);
@@ -201,6 +205,7 @@ export function renderVoxyDualVoicePilotFrameHtml(input: {
     mouthProfile: "v4.1",
     mouthOverride: mouth,
     waveformAmplitude: input.amplitude,
+    viewportGeometry: input.viewportGeometry,
     editorialOverride: { kicker: "", title: "", brand: "", caption: "" },
   });
 

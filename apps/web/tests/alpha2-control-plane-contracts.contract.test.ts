@@ -53,7 +53,7 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
     expect(run.supportingRoles).toEqual(["research_source"]);
   });
 
-  it("allows bounded resume transitions but keeps terminal runs terminal", () => {
+  it("allows bounded resume transitions without consuming a retry attempt but keeps terminal runs terminal", () => {
     const queued = createAlpha2RunRecord({
       runId: "run-transition",
       idempotencyKey: "transition-key",
@@ -78,7 +78,7 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       now: "2026-08-23T21:04:00.000Z",
     });
 
-    expect(resumed.attempt).toBe(2);
+    expect(resumed.attempt).toBe(1);
     expect(completed.finishedAt).toBe("2026-08-23T21:04:00.000Z");
     expect(isAlpha2RunTransitionAllowed("completed", "running")).toBe(false);
     expect(() => transitionAlpha2Run(completed, "running")).toThrow(
