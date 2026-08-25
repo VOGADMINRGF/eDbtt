@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { access, copyFile, lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   VOXY_DUAL_VOICE_PILOT_AUDIO_SEGMENTS,
@@ -30,8 +31,8 @@ import { VOXY_POCKET_MARK_COMPOSITION_SOURCE } from "../src/features/voxyVideo/p
 import { VOXY_STATIC_CANON_NATIVE_ASSETS } from "../src/features/voxyVideo/staticCanonRecovery";
 import type { VoxyMotionV4EmbeddedAssets } from "../src/features/voxyVideo/motionV4Html";
 
-type Probe = { streams: Array<Record<string, string>>; format: Record<string, string> };
-type PilotAudioSegment = Readonly<{
+export type Probe = { streams: Array<Record<string, string>>; format: Record<string, string> };
+export type PilotAudioSegment = Readonly<{
   id: string;
   speakerRole: "voxy" | "editorial";
   voiceId: string;
@@ -40,12 +41,12 @@ type PilotAudioSegment = Readonly<{
   pauseAfterMs: number;
 }>;
 
-function argument(name: string): string | null {
+export function argument(name: string): string | null {
   const prefix = `--${name}=`;
   return process.argv.find((value) => value.startsWith(prefix))?.slice(prefix.length) ?? null;
 }
 
-function execute(binary: string, args: string[], options: { cwd?: string; input?: string; env?: NodeJS.ProcessEnv } = {}) {
+export function execute(binary: string, args: string[], options: { cwd?: string; input?: string; env?: NodeJS.ProcessEnv } = {}) {
   const result = spawnSync(binary, args, {
     cwd: options.cwd,
     input: options.input,
@@ -59,11 +60,11 @@ function execute(binary: string, args: string[], options: { cwd?: string; input?
   return { stdout: result.stdout.trim(), stderr: result.stderr.trim() };
 }
 
-function run(binary: string, args: string[], options: { cwd?: string; input?: string; env?: NodeJS.ProcessEnv } = {}): string {
+export function run(binary: string, args: string[], options: { cwd?: string; input?: string; env?: NodeJS.ProcessEnv } = {}): string {
   return execute(binary, args, options).stdout;
 }
 
-async function sha256(file: string): Promise<string> {
+export async function sha256(file: string): Promise<string> {
   return createHash("sha256").update(await readFile(file)).digest("hex");
 }
 
@@ -71,11 +72,11 @@ function sha256Buffer(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
 
-function ffprobe(file: string): Probe {
+export function ffprobe(file: string): Probe {
   return JSON.parse(run("ffprobe", ["-v", "error", "-show_streams", "-show_format", "-of", "json", file])) as Probe;
 }
 
-function privacySafeProbe(probe: Probe): Probe {
+export function privacySafeProbe(probe: Probe): Probe {
   return {
     ...probe,
     format: {
@@ -85,11 +86,11 @@ function privacySafeProbe(probe: Probe): Probe {
   };
 }
 
-function durationMs(file: string): number {
+export function durationMs(file: string): number {
   return Math.round(Number(ffprobe(file).format.duration) * 1_000);
 }
 
-type AudioMetrics = Readonly<{
+export type AudioMetrics = Readonly<{
   integratedLufs: number;
   loudnessRangeLu: number;
   truePeakDbfs: number;
@@ -105,7 +106,7 @@ function lastMetric(stderr: string, pattern: RegExp, label: string): number {
   return value!;
 }
 
-function audioMetrics(file: string): AudioMetrics {
+export function audioMetrics(file: string): AudioMetrics {
   const probe = ffprobe(file);
   const stream = probe.streams.find((entry) => entry.codec_type === "audio");
   if (!stream) throw new Error("audio_stream_missing_for_metrics");
@@ -128,11 +129,11 @@ function roundedGain(value: number, precisionDb: number): number {
   return Number((Math.round(value / precisionDb) * precisionDb).toFixed(3));
 }
 
-function dataUrl(buffer: Buffer, mime: string): string {
+export function dataUrl(buffer: Buffer, mime: string): string {
   return `data:${mime};base64,${buffer.toString("base64")}`;
 }
 
-async function setHtml(page: Page, html: string): Promise<void> {
+export async function setHtml(page: Page, html: string): Promise<void> {
   await page.setContent(html, { waitUntil: "load" });
   await page.evaluate(async () => {
     await document.fonts.ready;
@@ -141,7 +142,7 @@ async function setHtml(page: Page, html: string): Promise<void> {
   });
 }
 
-async function assertOutsideRepository(repositoryRoot: string, target: string, label: string): Promise<void> {
+export async function assertOutsideRepository(repositoryRoot: string, target: string, label: string): Promise<void> {
   const resolved = await realpath(target);
   const relative = path.relative(repositoryRoot, resolved);
   if (!relative.startsWith("..") || path.isAbsolute(relative) === false && relative === "") {
@@ -149,7 +150,7 @@ async function assertOutsideRepository(repositoryRoot: string, target: string, l
   }
 }
 
-async function verifyAcceptedVoxyReference(input: {
+export async function verifyAcceptedVoxyReference(input: {
   repositoryRoot: string;
   reference: string;
   selectionManifest: string;
@@ -180,7 +181,7 @@ async function verifyAcceptedVoxyReference(input: {
   };
 }
 
-async function verifyCanonicalHumanEvidence(input: {
+export async function verifyCanonicalHumanEvidence(input: {
   repositoryRoot: string;
   voxyD1: string;
   editorialW1?: string;
@@ -191,7 +192,7 @@ async function verifyCanonicalHumanEvidence(input: {
   if (input.editorialW1 && await sha256(input.editorialW1) !== EDITORIAL_VOICE.provenance.privateHumanReviewEvidenceSha256) throw new Error("canonical_editorial_w1_evidence_sha_mismatch");
 }
 
-async function renderTransparentMasterAudio(input: {
+export async function renderTransparentMasterAudio(input: {
   segmentId: string;
   inputFile: string;
   outputFile: string;
@@ -297,7 +298,7 @@ async function renderTransparentMasterAudio(input: {
   };
 }
 
-async function synthesizeVoxySegments(input: {
+export async function synthesizeVoxySegments(input: {
   python: string;
   modelDir: string;
   reference: string;
@@ -482,7 +483,7 @@ async function synthesizeEditorialSegment(input: {
   return assembled;
 }
 
-async function concatenateMaster(input: {
+export async function concatenateMaster(input: {
   finishedById: ReadonlyMap<string, string>;
   output: string;
   temporaryRoot: string;
@@ -514,7 +515,7 @@ function wavPcmData(buffer: Buffer): Buffer {
   return buffer.subarray(dataChunk + 8, dataChunk + 8 + byteLength);
 }
 
-async function verifyMasterAudioAssembly(input: {
+export async function verifyMasterAudioAssembly(input: {
   finishedById: ReadonlyMap<string, string>;
   masterAudio: string;
   segments: readonly PilotAudioSegment[];
@@ -557,7 +558,7 @@ async function verifyMasterAudioAssembly(input: {
   } as const;
 }
 
-function audioLevelsFromWav(buffer: Buffer, fps: number): number[] {
+export function audioLevelsFromWav(buffer: Buffer, fps: number): number[] {
   if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") throw new Error("master_wav_invalid");
   const fmt = buffer.indexOf(Buffer.from("fmt "));
   const data = buffer.indexOf(Buffer.from("data"));
@@ -987,7 +988,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack : String(error));
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack : String(error));
+    process.exitCode = 1;
+  });
+}

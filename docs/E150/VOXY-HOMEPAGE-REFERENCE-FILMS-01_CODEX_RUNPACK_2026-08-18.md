@@ -2,7 +2,7 @@
 
 Stand: 2026-08-18
 
-Status: `codex_ready`
+Status: `review`
 
 Priorität: `P0`
 
@@ -346,3 +346,19 @@ Verbleibende menschliche Gates:
 3. visuelle, akustische und dramaturgische Abnahme von Film A;
 4. visuelle, akustische und dramaturgische Abnahme von Film B;
 5. separate Entscheidung über eine spätere Homepage-Integration.
+
+## 14. Implementierungsnachweis vom 18. August 2026
+
+Der autorisierte Implementierungsslice wurde auf dem revisionsgebundenen
+Renderer-Head `10530072fd516b2057cf6c6d772ab8f2430cce0c` technisch abgeschlossen.
+Beide getrennten privaten 16:9-Filme, ihre Sidecars, Source-/Evidence-/Motion-
+und Audio-Preservation-Manifeste wurden erzeugt. D1-only, W1-Parking,
+Evergreen-/Election-Window-Vertrag, Current-Offer-Fail-Closed, politische
+Neutralität, adaptive Motion, FFprobe, PCM-Assembly und Privacy sind grün.
+
+Kanonische Evidence:
+`docs/E150/VOXY-HOMEPAGE-REFERENCE-FILMS-01_2026-08-18.md`.
+
+Der Task steht deshalb auf `review`. `humanHomepageFilmAcceptance` und die
+visuelle Abnahme der beiden neuen Homepage-Filme bleiben `pending`;
+`productionEligible = false` und `autoPublish = false` bleiben unverändert.
