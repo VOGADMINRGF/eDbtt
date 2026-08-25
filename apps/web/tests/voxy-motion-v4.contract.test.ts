@@ -19,6 +19,7 @@ import {
 const HEAD = "0123456789abcdef0123456789abcdef01234567";
 const ASSETS = {
   canonStageDataUrl: "data:image/png;base64,canon",
+  canonicalCleanStudioBackgroundDataUrl: "data:image/svg+xml;base64,background",
   studioLockupDataUrl: "data:image/svg+xml;base64,lockup",
   lapelPinDataUrl: "data:image/svg+xml;base64,lapel",
   edebattePocketMarkDataUrl: "data:image/svg+xml;base64,pocket",
@@ -172,6 +173,37 @@ describe("Voxy local layer master and Motion v4 contract", () => {
       expect(html).not.toContain("@keyframes");
       expect(html).not.toContain("camera-zoom");
     }
+  });
+
+  it("keeps the historical voiced-explainer visual path frozen unless canonical alpha mode is explicit", () => {
+    const plan = buildVoxyMotionV4Plan(HEAD);
+    const { canonicalCleanStudioBackgroundDataUrl: _background, ...legacyAssets } =
+      ASSETS;
+    const legacyHtml = renderVoxyMotionV4FrameHtml({
+      plan,
+      assets: legacyAssets,
+      frameIndex: 49,
+      format: "16:9",
+    });
+    expect(legacyHtml).toContain('data-head-layer="head-base"');
+    expect(legacyHtml).toContain('<div class="motion-plate neck-plate">');
+    expect(legacyHtml).toContain(
+      'data-character-lock="accepted_static_master_additive_motion_plates"',
+    );
+    expect(legacyHtml).not.toContain('data-head-alpha-schema=');
+
+    const canonicalHtml = renderVoxyMotionV4FrameHtml({
+      plan,
+      assets: ASSETS,
+      frameIndex: 49,
+      format: "16:9",
+    });
+    expect(canonicalHtml).toContain(
+      'data-head-alpha-schema="voxy-canonical-head-alpha-v1"',
+    );
+    expect(canonicalHtml).not.toContain(
+      '<div class="motion-plate neck-plate">',
+    );
   });
 
   it("keeps the renderer exact-head, local, and explicit about limitations", () => {
