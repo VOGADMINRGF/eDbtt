@@ -109,7 +109,7 @@ export async function dispatchAlpha2Execution(
       throw new Error("alpha2_execution_job_identity_collision");
     }
     const state = await existing.getState();
-    if (input.reason === "recovery" && state === "failed") {
+    if (input.reason === "recovery" && (state === "failed" || state === "completed")) {
       await existing.remove();
     } else {
       return { jobId: String(existing.id ?? jobId) };

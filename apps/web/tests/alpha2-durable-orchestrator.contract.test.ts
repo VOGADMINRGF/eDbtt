@@ -510,50 +510,97 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(executions).toBe(0);
   });
 
-  it("replaces an identical retained failed BullMQ recovery job", async () => {
-    let removed = false;
-    const added: Array<{ name: string; options: { jobId: string; delay: number } }> = [];
-    const queue = {
-      async getJob() {
-        if (removed) return undefined;
-        return {
-          id: "alpha2_run-recovery_recovery_v1_start",
-          data: {
-            runId: "run-recovery",
-            taskId: "ALPHA2-TEST-01",
-            dispatchKey: "recovery_v1_start",
-            reason: "recovery" as const,
-            requestedAt: "2026-08-23T20:00:00.000Z",
-          },
-          async getState() {
-            return "failed";
-          },
-          async remove() {
-            removed = true;
-          },
-        };
-      },
-      async add(
-        name: string,
-        _data: Alpha2ExecutionJob,
-        options: { jobId: string; delay: number },
-      ) {
-        added.push({ name, options });
-        return { id: options.jobId };
-      },
-    };
+  it.each(["failed", "completed"] as const)(
+    "replaces an identical retained %s BullMQ recovery job",
+    async (retainedState) => {
+      let removed = false;
+      const added: Array<{ name: string; options: { jobId: string; delay: number } }> = [];
+      const queue = {
+        async getJob() {
+          if (removed) return undefined;
+          return {
+            id: "alpha2_run-recovery_recovery_v1_start",
+            data: {
+              runId: "run-recovery",
+              taskId: "ALPHA2-TEST-01",
+              dispatchKey: "recovery_v1_start",
+              reason: "recovery" as const,
+              requestedAt: "2026-08-23T20:00:00.000Z",
+            },
+            async getState() {
+              return retainedState;
+            },
+            async remove() {
+              removed = true;
+            },
+          };
+        },
+        async add(
+          name: string,
+          _data: Alpha2ExecutionJob,
+          options: { jobId: string; delay: number },
+        ) {
+          added.push({ name, options });
+          return { id: options.jobId };
+        },
+      };
 
-    const dispatched = await dispatchAlpha2Execution(queue, {
-      runId: "run-recovery",
+      const dispatched = await dispatchAlpha2Execution(queue, {
+        runId: "run-recovery",
+        taskId: "ALPHA2-TEST-01",
+        dispatchKey: "recovery_v1_start",
+        reason: "recovery",
+        requestedAt: "2026-08-23T20:00:00.000Z",
+      });
+
+      expect(removed).toBe(true);
+      expect(added).toHaveLength(1);
+      expect(added[0]?.options.jobId).toBe(dispatched.jobId);
+    },
+  );
+
+  it("aborts and persists failure when the durable wall-clock budget expires", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const limited = createAlpha2RunRecord({
+      runId: "run-wall-clock",
+      idempotencyKey: "idem-run-wall-clock",
       taskId: "ALPHA2-TEST-01",
-      dispatchKey: "recovery_v1_start",
-      reason: "recovery",
-      requestedAt: "2026-08-23T20:00:00.000Z",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 3, maxWallClockMs: 10 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(limited);
+    let aborted = false;
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-wall-clock",
+      workerId: "worker-budget",
+      ledger,
+      dispatcher,
+      executor: {
+        execute({ signal }) {
+          return new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () => {
+              aborted = true;
+              reject(new Error("aborted"));
+            });
+          });
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
     });
 
-    expect(removed).toBe(true);
-    expect(added).toHaveLength(1);
-    expect(added[0]?.options.jobId).toBe(dispatched.jobId);
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(aborted).toBe(true);
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("alpha2_wall_clock_budget_exhausted");
+    expect(result.run.resumeAt).toBeUndefined();
+    expect(dispatcher.jobs).toEqual([]);
   });
 
   it("hashes the full BullMQ dispatch identity without truncation collisions", async () => {

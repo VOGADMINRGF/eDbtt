@@ -81,13 +81,21 @@ function indexedFields(run: Alpha2RunRecord) {
   };
 }
 
-function dueStateFilter(now: Date) {
+function dueStateFilter() {
   return {
     $or: [
       { status: "queued" },
       { status: "running" },
-      { status: "waiting", resumeAt: { $lte: now } },
-      { status: "failed", resumeAt: { $lte: now } },
+      {
+        status: "waiting",
+        resumeAt: { $ne: null },
+        $expr: { $lte: ["$resumeAt", "$$NOW"] },
+      },
+      {
+        status: "failed",
+        resumeAt: { $ne: null },
+        $expr: { $lte: ["$resumeAt", "$$NOW"] },
+      },
     ],
   };
 }
@@ -201,12 +209,11 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     leaseMs: number;
   }): Promise<Alpha2VersionedRun | null> {
     const Model = await Alpha2LedgerModel();
-    const now = new Date(input.now);
 
     const updated = await Model.findOneAndUpdate(
       {
         runId: input.runId,
-        $and: [dueStateFilter(now), availableLeaseFilter()],
+        $and: [dueStateFilter(), availableLeaseFilter()],
       },
       [
         {
@@ -250,11 +257,10 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
 
   async listRecoverable(input: { now: string; limit?: number }): Promise<Alpha2VersionedRun[]> {
     const Model = await Alpha2LedgerModel();
-    const now = new Date(input.now);
     const limit = Math.max(1, Math.min(input.limit ?? 50, 500));
 
     const docs = await Model.find({
-      $and: [dueStateFilter(now), availableLeaseFilter()],
+      $and: [dueStateFilter(), availableLeaseFilter()],
     })
       .sort({ updatedAt: 1 })
       .limit(limit);

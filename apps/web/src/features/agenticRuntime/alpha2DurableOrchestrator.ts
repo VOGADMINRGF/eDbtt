@@ -8,7 +8,6 @@ import {
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 import {
   isAlpha2HumanStoppedRun,
-  isAlpha2RunDue,
   isAlpha2TerminalRun,
   type Alpha2RunLedger,
   type Alpha2VersionedRun,
@@ -42,6 +41,7 @@ export interface Alpha2WorkerExecutor {
   execute(input: {
     run: Alpha2RunRecord;
     workerId: string;
+    signal: AbortSignal;
   }): Promise<Alpha2WorkerOutcome>;
 }
 
@@ -294,6 +294,64 @@ function startLeaseHeartbeat(input: {
   };
 }
 
+function executorFailure(run: Alpha2RunRecord, error: unknown): Alpha2WorkerOutcome {
+  const candidate = error as { code?: unknown; name?: unknown } | null;
+  return {
+    type: "failed",
+    checkpointId: `exception_${run.runId}_${run.attempt}`,
+    errorCode: String(candidate?.code ?? candidate?.name ?? "alpha2_worker_exception"),
+    retryable: true,
+    retryAfterMs: 30_000,
+  };
+}
+
+async function executeWithinWallClockBudget(input: {
+  run: Alpha2RunRecord;
+  workerId: string;
+  executor: Alpha2WorkerExecutor;
+  now: string;
+}): Promise<Alpha2WorkerOutcome> {
+  const maxWallClockMs = input.run.budget.maxWallClockMs;
+  const startedAt = input.run.startedAt ?? input.now;
+  const remainingMs = maxWallClockMs
+    ? Date.parse(startedAt) + maxWallClockMs - Date.parse(input.now)
+    : undefined;
+
+  if (remainingMs !== undefined && remainingMs <= 0) {
+    return {
+      type: "failed",
+      checkpointId: `wall_clock_${input.run.runId}_${input.run.attempt}`,
+      errorCode: "alpha2_wall_clock_budget_exhausted",
+      retryable: false,
+    };
+  }
+
+  const controller = new AbortController();
+  const execution = input.executor
+    .execute({ run: input.run, workerId: input.workerId, signal: controller.signal })
+    .catch((error: unknown) => executorFailure(input.run, error));
+  if (remainingMs === undefined) return execution;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<Alpha2WorkerOutcome>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort("alpha2_wall_clock_budget_exhausted");
+      resolve({
+        type: "failed",
+        checkpointId: `wall_clock_${input.run.runId}_${input.run.attempt}`,
+        errorCode: "alpha2_wall_clock_budget_exhausted",
+        retryable: false,
+      });
+    }, remainingMs);
+  });
+
+  try {
+    return await Promise.race([execution, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function nextDispatch(input: {
   run: Alpha2RunRecord;
   outcome: Alpha2WorkerOutcome;
@@ -339,10 +397,6 @@ export async function runAlpha2DurableStep(input: {
   if (isAlpha2HumanStoppedRun(observed.run)) {
     return { state: "human_stopped", run: observed.run };
   }
-  if (!isAlpha2RunDue(observed.run, startedAt)) {
-    return { state: "not_due", run: observed.run };
-  }
-
   const leaseMs = Math.max(10_000, input.leaseMs ?? 120_000);
   const executionAttempt =
     observed.run.status === "waiting" || observed.run.attempt >= observed.run.budget.maxAttempts
@@ -378,18 +432,12 @@ export async function runAlpha2DurableStep(input: {
       leaseOwner,
       leaseMs,
     });
-    let outcome: Alpha2WorkerOutcome;
-    try {
-      outcome = await input.executor.execute({ run: start.current.run, workerId: input.workerId });
-    } catch (error: any) {
-      outcome = {
-        type: "failed",
-        checkpointId: `exception_${start.current.run.runId}_${start.current.run.attempt}`,
-        errorCode: String(error?.code ?? error?.name ?? "alpha2_worker_exception"),
-        retryable: true,
-        retryAfterMs: 30_000,
-      };
-    }
+    const outcome = await executeWithinWallClockBudget({
+      run: start.current.run,
+      workerId: input.workerId,
+      executor: input.executor,
+      now: startedAt,
+    });
 
     const outcomeAt = input.now ?? new Date().toISOString();
     await heartbeat.stopAndVerify(outcomeAt);
@@ -434,7 +482,6 @@ export async function recoverAlpha2DueRuns(input: {
   const results: Array<{ runId: string; jobId?: string; error?: string }> = [];
 
   for (const entry of recoverable) {
-    if (!isAlpha2RunDue(entry.run, now)) continue;
     const lastCheckpoint = entry.run.checkpoints.at(-1)?.checkpointId ?? "start";
     try {
       const queued = await input.dispatcher.dispatch({
