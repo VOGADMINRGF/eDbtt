@@ -1,0 +1,57 @@
+import { describe, expect, it } from "vitest";
+import {
+  createAlpha2RunRecord,
+  transitionAlpha2Run,
+} from "@/features/agenticRuntime/alpha2RunLifecycleContract";
+
+const NOW = "2026-08-26T05:30:00.000Z";
+
+function createQueuedRun() {
+  return createAlpha2RunRecord({
+    runId: "run-gate-immutability",
+    idempotencyKey: "run-gate-immutability",
+    taskId: "ALPHA2-RUN-CONTRACT-01",
+    kind: "engineering_slice",
+    primaryRole: "governance_compliance",
+    riskClass: "orange",
+    route: { mode: "automatic", capabilityClass: "governance" },
+    now: NOW,
+  });
+}
+
+describe("Alpha-Foxtrott 2 human-gate immutability", () => {
+  it("requires an auditable decision when leaving a pending human gate", () => {
+    const gated = transitionAlpha2Run(createQueuedRun(), "human_gate", {
+      humanGate: { state: "pending", reason: "Human decision required" },
+    });
+    expect(() =>
+      transitionAlpha2Run(gated, "failed", {
+        humanGate: { state: "not_required" },
+        errorCode: "attempted_gate_clear",
+      }),
+    ).toThrow("alpha2_human_gate_exit_requires_decision");
+  });
+
+  it("prevents rejected decisions from being overwritten on retry", () => {
+    const gated = transitionAlpha2Run(createQueuedRun(), "human_gate", {
+      humanGate: { state: "pending", reason: "Human decision required" },
+    });
+    const rejectedFailure = transitionAlpha2Run(gated, "failed", {
+      humanGate: { state: "rejected", decisionRef: "decision:rejected" },
+      errorCode: "human_gate_rejected",
+    });
+    const retryQueued = transitionAlpha2Run(rejectedFailure, "queued");
+
+    expect(() =>
+      transitionAlpha2Run(retryQueued, "running", {
+        humanGate: { state: "not_required" },
+      }),
+    ).toThrow("alpha2_human_gate_decision_is_immutable");
+
+    expect(() =>
+      transitionAlpha2Run(retryQueued, "running", {
+        humanGate: { state: "approved", decisionRef: "decision:fabricated-override" },
+      }),
+    ).toThrow("alpha2_human_gate_decision_is_immutable");
+  });
+});
