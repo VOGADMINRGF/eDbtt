@@ -345,14 +345,17 @@ async function executeWithinWallClockBudget(input: {
     retryable: false,
   };
   const maxTimerDelayMs = 2_147_483_647;
-  const deadlineMs = Date.now() + remainingMs;
+  const deadlineMs = globalThis.performance.now() + remainingMs;
   let timedOut = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<Alpha2WorkerOutcome>((resolve) => {
     const schedule = () => {
-      const delayMs = Math.min(maxTimerDelayMs, Math.max(0, deadlineMs - Date.now()));
+      const delayMs = Math.min(
+        maxTimerDelayMs,
+        Math.max(0, deadlineMs - globalThis.performance.now()),
+      );
       timer = setTimeout(() => {
-        if (Date.now() < deadlineMs) {
+        if (globalThis.performance.now() < deadlineMs) {
           schedule();
           return;
         }
@@ -366,7 +369,11 @@ async function executeWithinWallClockBudget(input: {
 
   try {
     const result = await Promise.race([execution, timeout]);
-    return timedOut ? timeoutOutcome : result;
+    if (timedOut || globalThis.performance.now() >= deadlineMs) {
+      controller.abort("alpha2_wall_clock_budget_exhausted");
+      return timeoutOutcome;
+    }
+    return result;
   } finally {
     if (timer) clearTimeout(timer);
   }

@@ -706,6 +706,46 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.run.checkpoints.at(-1)?.checkpointId).toContain("wall_clock_");
   });
 
+  it("rejects executor completion after an event-loop-blocked wall-clock deadline", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const limited = createAlpha2RunRecord({
+      runId: "run-blocked-deadline",
+      idempotencyKey: "idem-run-blocked-deadline",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 3, maxWallClockMs: 10 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(limited);
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-blocked-deadline",
+      workerId: "worker-budget",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          const blockedUntil = globalThis.performance.now() + 25;
+          while (globalThis.performance.now() < blockedUntil) {
+            // Model synchronous executor work that prevents the timeout callback from running.
+          }
+          return { type: "completed", checkpointId: "cp-too-late" };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("alpha2_wall_clock_budget_exhausted");
+    expect(result.run.checkpoints.at(-1)?.checkpointId).toContain("wall_clock_");
+  });
+
   it("chunks wall-clock budgets above Node's maximum timer delay", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
