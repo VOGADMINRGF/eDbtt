@@ -170,6 +170,9 @@ export const Alpha2RunRecordSchema = z
     if (run.parentRunId !== null && run.parentRunId === run.runId) {
       ctx.addIssue({ code: "custom", message: "alpha2_run_cannot_parent_itself" });
     }
+    if (run.parentRunId !== null && run.rootRunId === run.runId) {
+      ctx.addIssue({ code: "custom", message: "alpha2_child_run_cannot_reference_itself_as_root" });
+    }
     if (new Set(run.childRunIds).size !== run.childRunIds.length) {
       ctx.addIssue({ code: "custom", message: "alpha2_duplicate_child_run_id" });
     }
@@ -292,14 +295,14 @@ export function transitionAlpha2Run(
 
   const nextHumanGate = input.humanGate ?? run.humanGate;
 
-  if (run.status === "human_gate" && !DECIDED_HUMAN_GATE_STATES.has(nextHumanGate.state)) {
-    throw new Error("alpha2_human_gate_exit_requires_decision");
-  }
-
   if (run.status === "human_gate" && ["running", "review"].includes(to)) {
     if (nextHumanGate.state !== "approved") {
       throw new Error("alpha2_human_gate_exit_requires_approval");
     }
+  }
+
+  if (run.status === "human_gate" && !DECIDED_HUMAN_GATE_STATES.has(nextHumanGate.state)) {
+    throw new Error("alpha2_human_gate_exit_requires_decision");
   }
 
   if (to === "running" && !["not_required", "approved"].includes(nextHumanGate.state)) {
