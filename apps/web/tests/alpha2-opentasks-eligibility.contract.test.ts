@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   evaluateAlpha2TaskEligibility,
+  extractAlpha2OperativeOpenTasksHead,
   findAlpha2OpenTask,
   listAlpha2EligibleTasks,
   parseAlpha2CanonicalOpenTasks,
@@ -8,6 +9,8 @@ import {
 
 const OPEN_TASKS_FIXTURE = `
 # E150 Open Tasks
+
+## Kanonischer Operativteil
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
 | --- | --- | --- | --- | --- | --- |
@@ -18,30 +21,35 @@ const OPEN_TASKS_FIXTURE = `
 | MANUAL-SLICE-01 | manual_gate | P0 | provider | prod | human gate |
 | DONE-SLICE-01 | done | P1 | none | done | evidence |
 
-## Historisches Archiv
+## Historischer Katalog und Evidenz
 
 | ID | Status | Priorität | Abhängigkeiten | Scope | Akzeptanzkriterien |
 | --- | --- | --- | --- | --- | --- |
 | ALPHA2-RUN-CONTRACT-01 | done | P9 | old | archived | stale |
+| ARCHIVED-CODEX-READY | codex_ready | P9 | old | archived | must never execute |
 `;
 
 describe("Alpha-Foxtrott 2 OpenTasks eligibility adapter", () => {
-  it("uses the first canonical row and ignores later historical duplicates", () => {
+  it("parses only the canonical operative head and never admits archived tasks", () => {
+    const operativeHead = extractAlpha2OperativeOpenTasksHead(OPEN_TASKS_FIXTURE);
     const tasks = parseAlpha2CanonicalOpenTasks(OPEN_TASKS_FIXTURE);
     const runContract = findAlpha2OpenTask(OPEN_TASKS_FIXTURE, "ALPHA2-RUN-CONTRACT-01");
 
+    expect(operativeHead).toContain("ALPHA2-RUN-CONTRACT-01");
+    expect(operativeHead).not.toContain("ARCHIVED-CODEX-READY");
     expect(tasks).toHaveLength(6);
-    expect(runContract).toMatchObject({
-      status: "codex_ready",
-      priority: "P0",
-      scope: "contract",
-    });
+    expect(tasks.some((task) => task.id === "ARCHIVED-CODEX-READY")).toBe(false);
+    expect(runContract).toMatchObject({ status: "codex_ready", priority: "P0", scope: "contract" });
+  });
+
+  it("fails closed when the operative section boundary is missing", () => {
+    expect(() => parseAlpha2CanonicalOpenTasks("| ACCIDENTAL | codex_ready | P0 | | | |"))
+      .toThrow("alpha2_opentasks_operativteil_missing");
   });
 
   it("allows a new slice only for codex_ready without existing ownership", () => {
     const task = findAlpha2OpenTask(OPEN_TASKS_FIXTURE, "ALPHA2-RUN-CONTRACT-01");
     expect(task).not.toBeNull();
-
     expect(evaluateAlpha2TaskEligibility({ task: task! })).toMatchObject({
       newSliceEligible: true,
       continuationEligible: false,
@@ -53,7 +61,6 @@ describe("Alpha-Foxtrott 2 OpenTasks eligibility adapter", () => {
   it("forces existing branch/PR reuse instead of duplicate work", () => {
     const task = findAlpha2OpenTask(OPEN_TASKS_FIXTURE, "ALPHA2-RUN-CONTRACT-01");
     expect(task).not.toBeNull();
-
     const eligibility = evaluateAlpha2TaskEligibility({
       task: task!,
       ownership: {
@@ -64,7 +71,6 @@ describe("Alpha-Foxtrott 2 OpenTasks eligibility adapter", () => {
         unresolvedReviewThreads: 0,
       },
     });
-
     expect(eligibility).toMatchObject({
       newSliceEligible: false,
       continuationEligible: true,
@@ -88,7 +94,6 @@ describe("Alpha-Foxtrott 2 OpenTasks eligibility adapter", () => {
   it("continues in-progress work only through the existing owner and exact head", () => {
     const task = findAlpha2OpenTask(OPEN_TASKS_FIXTURE, "EXISTING-SLICE-01");
     expect(task).not.toBeNull();
-
     const exact = evaluateAlpha2TaskEligibility({
       task: task!,
       ownership: { branch: "pr/existing", prNumber: 99, exactHead: true, ciState: "success" },
@@ -97,7 +102,6 @@ describe("Alpha-Foxtrott 2 OpenTasks eligibility adapter", () => {
       task: task!,
       ownership: { branch: "pr/existing", prNumber: 99, exactHead: false, ciState: "success" },
     });
-
     expect(exact.continuationEligible).toBe(true);
     expect(stale.continuationEligible).toBe(false);
     expect(stale.reasonCodes).toContain("owner_not_on_exact_head");
@@ -115,7 +119,6 @@ describe("Alpha-Foxtrott 2 OpenTasks eligibility adapter", () => {
         },
       },
     });
-
     expect(eligible.map((task) => task.taskId)).toEqual([
       "ALPHA2-RUN-CONTRACT-01",
       "EXISTING-SLICE-01",
