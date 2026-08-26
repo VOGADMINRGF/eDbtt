@@ -3,6 +3,11 @@ import {
   AGENT_ROLE_IDS,
   type AgentRoleId,
 } from "@/features/agenticRuntime/agentRegistryBootstrapContract";
+import {
+  AGENT_SAFE_TRACE_ARTIFACT_TYPES,
+  type AgentSafeTraceArtifactRef,
+  type AgentSafeTraceStep,
+} from "@/features/agenticRuntime/agentRunArtifactSafeTraceContract";
 
 export const ALPHA2_RUN_STATUSES = [
   "queued",
@@ -42,6 +47,8 @@ export type Alpha2RunKind = (typeof ALPHA2_RUN_KINDS)[number];
 export type Alpha2RiskClass = (typeof ALPHA2_RISK_CLASSES)[number];
 export type Alpha2GateState = (typeof ALPHA2_GATE_STATES)[number];
 export type Alpha2RouteMode = (typeof ALPHA2_ROUTE_MODES)[number];
+export type Alpha2SafeTraceArtifactRef = AgentSafeTraceArtifactRef;
+export type Alpha2SafeTraceStepRef = Pick<AgentSafeTraceStep, "stepId" | "roleId">;
 
 const Alpha2RunStatusSchema = z.enum(ALPHA2_RUN_STATUSES);
 const Alpha2RunKindSchema = z.enum(ALPHA2_RUN_KINDS);
@@ -49,6 +56,27 @@ const Alpha2RiskClassSchema = z.enum(ALPHA2_RISK_CLASSES);
 const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
 const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
+const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
+  "approved",
+  "rejected",
+  "expired",
+]);
+
+export const Alpha2SafeTraceArtifactRefSchema = z
+  .object({
+    id: z.string().min(1),
+    type: z.enum(AGENT_SAFE_TRACE_ARTIFACT_TYPES),
+    label: z.string().min(1),
+    reviewState: z.enum(["present", "planned", "review_required"]),
+  })
+  .strict();
+
+export const Alpha2SafeTraceStepRefSchema = z
+  .object({
+    stepId: z.string().min(1),
+    roleId: AgentRoleIdSchema,
+  })
+  .strict();
 
 export const Alpha2BudgetSchema = z
   .object({
@@ -101,7 +129,8 @@ export const Alpha2CheckpointSchema = z
     status: Alpha2RunStatusSchema,
     cursor: z.string().min(1).optional(),
     evidenceRefs: z.array(z.string().min(1)).default([]),
-    artifactRefs: z.array(z.string().min(1)).default([]),
+    safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).default([]),
+    artifactRefs: z.array(Alpha2SafeTraceArtifactRefSchema).default([]),
   })
   .strict();
 
@@ -130,7 +159,8 @@ export const Alpha2RunRecordSchema = z
     attempt: z.number().int().min(0),
     checkpoints: z.array(Alpha2CheckpointSchema).default([]),
     evidenceRefs: z.array(z.string().min(1)).default([]),
-    artifactRefs: z.array(z.string().min(1)).default([]),
+    safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).default([]),
+    artifactRefs: z.array(Alpha2SafeTraceArtifactRefSchema).default([]),
     lastErrorCode: z.string().min(1).optional(),
   })
   .strict()
@@ -140,6 +170,9 @@ export const Alpha2RunRecordSchema = z
     }
     if (run.parentRunId !== null && run.parentRunId === run.runId) {
       ctx.addIssue({ code: "custom", message: "alpha2_run_cannot_parent_itself" });
+    }
+    if (run.parentRunId !== null && run.rootRunId === run.runId) {
+      ctx.addIssue({ code: "custom", message: "alpha2_child_run_cannot_reference_itself_as_root" });
     }
     if (new Set(run.childRunIds).size !== run.childRunIds.length) {
       ctx.addIssue({ code: "custom", message: "alpha2_duplicate_child_run_id" });
@@ -208,7 +241,12 @@ export function createAlpha2RunRecord(input: {
 }): Alpha2RunRecord {
   const now = input.now ?? new Date().toISOString();
   const parentRunId = input.parentRunId ?? null;
-  const rootRunId = input.rootRunId ?? (parentRunId === null ? input.runId : parentRunId);
+
+  if (parentRunId !== null && !input.rootRunId) {
+    throw new Error("alpha2_child_run_requires_root_run_id");
+  }
+
+  const rootRunId = input.rootRunId ?? input.runId;
 
   return Alpha2RunRecordSchema.parse({
     schemaVersion: "alpha2.run.v1",
@@ -238,6 +276,7 @@ export function createAlpha2RunRecord(input: {
     attempt: 0,
     checkpoints: [],
     evidenceRefs: [],
+    safeTraceStepRefs: [],
     artifactRefs: [],
   });
 }
@@ -254,9 +293,28 @@ export function transitionAlpha2Run(
 ): Alpha2RunRecord {
   assertAlpha2RunTransition(run.status, to);
   const now = input.now ?? new Date().toISOString();
-  const nextHumanGate = input.humanGate ?? run.humanGate;
-  const preservesResumeAt = to === "waiting" || to === "failed";
 
+  if (DECIDED_HUMAN_GATE_STATES.has(run.humanGate.state) && input.humanGate) {
+    throw new Error("alpha2_human_gate_decision_is_immutable");
+  }
+
+  const nextHumanGate = input.humanGate ?? run.humanGate;
+
+  if (run.status === "human_gate" && ["running", "review"].includes(to)) {
+    if (nextHumanGate.state !== "approved") {
+      throw new Error("alpha2_human_gate_exit_requires_approval");
+    }
+  }
+
+  if (run.status === "human_gate" && !DECIDED_HUMAN_GATE_STATES.has(nextHumanGate.state)) {
+    throw new Error("alpha2_human_gate_exit_requires_decision");
+  }
+
+  if (to === "running" && !["not_required", "approved"].includes(nextHumanGate.state)) {
+    throw new Error("alpha2_execution_blocked_by_human_gate_decision");
+  }
+
+  const preservesResumeAt = to === "waiting" || to === "failed";
   const next = {
     ...run,
     status: to,
