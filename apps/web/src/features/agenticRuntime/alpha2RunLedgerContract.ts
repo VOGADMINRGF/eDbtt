@@ -35,6 +35,7 @@ export interface Alpha2RunLedger {
     expectedVersion: number;
     lease?: Alpha2LeaseFence;
     resumeAfterMs?: number;
+    initializeWallClock?: { maxWallClockMs?: number };
   }): Promise<Alpha2VersionedRun>;
   tryAcquireLease(input: {
     runId: string;

@@ -160,12 +160,14 @@ async function save(
   run: Alpha2RunRecord,
   lease: { owner: string; now: string },
   resumeAfterMs?: number,
+  initializeWallClock?: { maxWallClockMs?: number },
 ) {
   return ledger.compareAndSwap({
     run,
     expectedVersion: current.version,
     lease,
     resumeAfterMs,
+    initializeWallClock,
   });
 }
 
@@ -240,6 +242,21 @@ async function persistExecutionBlock(input: {
     });
   }
 
+  if (["approved", "rejected", "expired"].includes(current.run.humanGate.state)) {
+    const checkpointed = appendAlpha2Checkpoint(current.run, {
+      checkpointId: `runtime_block_v${current.version}`,
+      createdAt: input.now,
+      status: "review",
+      evidenceRefs: input.reasonCodes,
+      safeTraceStepRefs: [],
+      artifactRefs: [],
+    });
+    const reviewed = transitionAlpha2Run(checkpointed, "review", { now: input.now });
+    return save(input.ledger, current, reviewed, {
+      owner: input.leaseOwner,
+      now: input.now,
+    });
+  }
   const stopped = transitionAlpha2Run(current.run, "human_gate", {
     now: input.now,
     humanGate: {
@@ -295,11 +312,15 @@ async function moveToRunning(input: {
   }
 
   if (run.status === "queued" || run.status === "waiting") {
+    const initializeWallClock =
+      run.status === "queued" && !run.startedAt
+        ? { maxWallClockMs: run.budget.maxWallClockMs }
+        : undefined;
     run = transitionAlpha2Run(current.run, "running", { now: input.now });
     current = await save(input.ledger, current, run, {
       owner: input.leaseOwner,
       now: input.now,
-    });
+    }, undefined, initializeWallClock);
   }
 
   if (current.run.status !== "running") {
@@ -462,9 +483,16 @@ async function executeWithinWallClockBudget(input: {
   now: string;
 }): Promise<Alpha2WorkerOutcome> {
   const maxWallClockMs = input.run.budget.maxWallClockMs;
-  const startedAt = input.run.startedAt ?? input.now;
-  const remainingMs = maxWallClockMs
-    ? Date.parse(startedAt) + maxWallClockMs - Date.parse(input.now)
+  if (maxWallClockMs !== undefined && !input.run.wallClockDeadlineAt) {
+    return {
+      type: "failed",
+      checkpointId: `wall_clock_${input.run.runId}_${input.run.attempt}`,
+      errorCode: "alpha2_wall_clock_deadline_missing",
+      retryable: false,
+    };
+  }
+  const remainingMs = input.run.wallClockDeadlineAt
+    ? Date.parse(input.run.wallClockDeadlineAt) - Date.parse(input.now)
     : undefined;
 
   if (remainingMs !== undefined && remainingMs <= 0) {
@@ -619,6 +647,9 @@ export async function runAlpha2DurableStep(input: {
       leaseOwner,
     });
     if (start.exhausted) return { state: "attempts_exhausted", run: start.current.run };
+    const authoritativeLeaseNow = leased.lease
+      ? new Date(Date.parse(leased.lease.expiresAt) - leaseMs).toISOString()
+      : startedAt;
 
     const heartbeat = startLeaseHeartbeat({
       ledger: input.ledger,
@@ -631,7 +662,7 @@ export async function runAlpha2DurableStep(input: {
         run: start.current.run,
         workerId: input.workerId,
         executor: input.executor,
-        now: startedAt,
+        now: authoritativeLeaseNow,
       });
       const outcomeAt = input.now ?? new Date().toISOString();
       await heartbeat.stopAndVerify(outcomeAt);

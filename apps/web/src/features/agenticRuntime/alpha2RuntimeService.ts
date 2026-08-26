@@ -1,6 +1,7 @@
 import type { Job, Worker } from "bullmq";
 import {
   getAlpha2ExecutionDispatcher,
+  closeAlpha2ExecutionRuntime,
   startAlpha2ExecutionWorker,
   type Alpha2ExecutionJob,
 } from "@/features/agenticRuntime/alpha2BullmqExecutionQueue";
@@ -126,6 +127,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
     async close() {
       recovery.stop();
       await worker.close();
+      await closeAlpha2ExecutionRuntime();
     },
   };
 }

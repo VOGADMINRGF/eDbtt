@@ -63,6 +63,7 @@ class FakeLedger implements Alpha2RunLedger {
     expectedVersion: number;
     lease?: { owner: string; now: string };
     resumeAfterMs?: number;
+    initializeWallClock?: { maxWallClockMs?: number };
   }) {
     const current = this.records.get(input.run.runId);
     if (!current || current.version !== input.expectedVersion) {
@@ -71,20 +72,33 @@ class FakeLedger implements Alpha2RunLedger {
     if (
       input.lease &&
       (current.lease?.owner !== input.lease.owner ||
-        Date.parse(current.lease.expiresAt) <= Date.parse(input.lease.now))
+        Date.parse(current.lease.expiresAt) <=
+          Date.parse(this.serverNow ?? input.lease.now))
     ) {
       throw new Error("alpha2_ledger_lease_lost");
     }
-    const run =
-      input.resumeAfterMs === undefined
-        ? input.run
-        : Alpha2RunRecordSchema.parse({
-            ...input.run,
+    const authoritativeNow = this.serverNow ?? input.lease?.now ?? input.run.updatedAt;
+    const run = Alpha2RunRecordSchema.parse({
+      ...input.run,
+      ...(input.resumeAfterMs === undefined
+        ? {}
+        : {
             resumeAt: new Date(
-              Date.parse(this.serverNow ?? input.lease?.now ?? input.run.updatedAt) +
-                Math.max(0, Math.floor(input.resumeAfterMs)),
+              Date.parse(authoritativeNow) + Math.max(0, Math.floor(input.resumeAfterMs)),
             ).toISOString(),
-          });
+          }),
+      ...(input.initializeWallClock
+        ? {
+            startedAt: authoritativeNow,
+            wallClockDeadlineAt:
+              input.initializeWallClock.maxWallClockMs === undefined
+                ? undefined
+                : new Date(
+                    Date.parse(authoritativeNow) + input.initializeWallClock.maxWallClockMs,
+                  ).toISOString(),
+          }
+        : {}),
+    });
     const next = {
       run,
       version: current.version + 1,
@@ -115,11 +129,12 @@ class FakeLedger implements Alpha2RunLedger {
     ) {
       return null;
     }
+    const leaseNow = this.serverNow ?? input.now;
     const next = {
       ...current,
       lease: {
         owner: input.owner,
-        expiresAt: new Date(Date.parse(input.now) + input.leaseMs).toISOString(),
+        expiresAt: new Date(Date.parse(leaseNow) + input.leaseMs).toISOString(),
       },
     };
     this.leaseOwners.push(input.owner);
@@ -134,10 +149,11 @@ class FakeLedger implements Alpha2RunLedger {
     leaseMs: number;
   }) {
     const current = this.records.get(input.runId);
+    const leaseNow = this.serverNow ?? input.now;
     if (
       !current ||
       current.lease?.owner !== input.owner ||
-      Date.parse(current.lease.expiresAt) <= Date.parse(input.now)
+      Date.parse(current.lease.expiresAt) <= Date.parse(leaseNow)
     ) {
       return null;
     }
@@ -145,7 +161,7 @@ class FakeLedger implements Alpha2RunLedger {
       ...current,
       lease: {
         owner: input.owner,
-        expiresAt: new Date(Date.parse(input.now) + input.leaseMs).toISOString(),
+        expiresAt: new Date(Date.parse(leaseNow) + input.leaseMs).toISOString(),
       },
     } satisfies Alpha2VersionedRun;
     this.records.set(input.runId, next);
@@ -336,6 +352,67 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     if (result.state !== "execution_blocked") throw new Error("unexpected state");
     expect(result.reasonCodes).toContain("risk_class:orange");
     expect(result.run.status).toBe("human_gate");
+  });
+
+  it("preserves an earlier gate approval while recording a new runtime block", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(
+      createAlpha2RunRecord({
+        runId: "run-approved-then-blocked",
+        idempotencyKey: "idem-run-approved-then-blocked",
+        taskId: "ALPHA2-TEST-01",
+        kind: "engineering_slice",
+        primaryRole: "governance_compliance",
+        riskClass: "green",
+        route: { mode: "automatic", capabilityClass: "test" },
+        humanGate: {
+          state: "approved",
+          decisionRef: "human:approval-1",
+          decidedAt: "2026-08-23T19:55:00.000Z",
+        },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    );
+
+    const result = await runAlpha2DurableStepInternal({
+      runId: "run-approved-then-blocked",
+      workerId: "worker-gated",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          throw new Error("must not execute");
+        },
+      },
+      authorization: {
+        openTasksText: AUTHORIZED_OPENTASKS.replace("in_progress", "blocked"),
+        ownership: {
+          branch: "feat/alpha2-test",
+          prNumber: 637,
+          exactHead: true,
+          ciState: "success",
+          unresolvedReviewThreads: 0,
+        },
+        action: {
+          actionKind: "read_only",
+          riskClass: "green",
+          confidence: "high",
+          reversible: true,
+          evidenceRefs: ["test:new-runtime-block"],
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("execution_blocked");
+    if (result.state !== "execution_blocked") throw new Error("unexpected state");
+    expect(result.run.status).toBe("review");
+    expect(result.run.humanGate).toMatchObject({
+      state: "approved",
+      decisionRef: "human:approval-1",
+    });
+    expect(result.run.checkpoints.at(-1)?.evidenceRefs).toContain("task_blocked");
   });
 
   it("fails closed on unmetered durable model-call and cost budgets", async () => {
@@ -896,6 +973,46 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.run.lastErrorCode).toBe("alpha2_wall_clock_budget_exhausted");
     expect(result.run.resumeAt).toBeUndefined();
     expect(dispatcher.jobs).toEqual([]);
+  });
+
+  it("evaluates a persisted wall-clock deadline against authoritative lease time", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.serverNow = "2026-08-23T20:00:00.500Z";
+    ledger.seed(
+      Alpha2RunRecordSchema.parse({
+        ...createAlpha2RunRecord({
+          runId: "run-authoritative-wall-clock",
+          idempotencyKey: "idem-run-authoritative-wall-clock",
+          taskId: "ALPHA2-TEST-01",
+          kind: "engineering_slice",
+          primaryRole: "governance_compliance",
+          riskClass: "green",
+          route: { mode: "automatic", capabilityClass: "test" },
+          budget: { maxAttempts: 3, maxWallClockMs: 1_000 },
+          now: "2026-08-23T20:00:00.000Z",
+        }),
+        startedAt: "2026-08-23T20:00:00.000Z",
+        wallClockDeadlineAt: "2026-08-23T20:00:01.000Z",
+      }),
+    );
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-authoritative-wall-clock",
+      workerId: "worker-clock-skew",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-within-server-deadline" };
+        },
+      },
+      now: "2026-08-23T21:00:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.status).toBe("completed");
   });
 
   it("keeps timeout failure authoritative when an abort handler resolves normally", async () => {

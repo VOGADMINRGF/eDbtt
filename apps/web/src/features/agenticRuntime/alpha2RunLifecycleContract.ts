@@ -154,6 +154,7 @@ export const Alpha2RunRecordSchema = z
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
     startedAt: z.string().datetime().optional(),
+    wallClockDeadlineAt: z.string().datetime().optional(),
     finishedAt: z.string().datetime().optional(),
     resumeAt: z.string().datetime().optional(),
     attempt: z.number().int().min(0),
@@ -204,7 +205,7 @@ export type Alpha2Checkpoint = z.infer<typeof Alpha2CheckpointSchema>;
 export type Alpha2RunRecord = z.infer<typeof Alpha2RunRecordSchema>;
 
 const ALLOWED_TRANSITIONS: Record<Alpha2RunStatus, readonly Alpha2RunStatus[]> = {
-  queued: ["running", "human_gate", "cancelled"],
+  queued: ["running", "review", "human_gate", "cancelled"],
   running: ["waiting", "review", "human_gate", "failed", "completed", "cancelled"],
   waiting: ["running", "review", "human_gate", "failed", "cancelled"],
   review: ["running", "human_gate", "failed", "completed", "cancelled"],

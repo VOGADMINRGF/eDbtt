@@ -177,6 +177,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     expectedVersion: number;
     lease?: { owner: string; now: string };
     resumeAfterMs?: number;
+    initializeWallClock?: { maxWallClockMs?: number };
   }): Promise<Alpha2VersionedRun> {
     const run = Alpha2RunRecordSchema.parse(input.run);
     const Model = await Alpha2LedgerModel();
@@ -184,8 +185,36 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
       input.resumeAfterMs === undefined
         ? undefined
         : Math.max(0, Math.floor(input.resumeAfterMs));
+    const serverIso = (date: unknown) => ({
+      $dateToString: {
+        date,
+        format: "%Y-%m-%dT%H:%M:%S.%LZ",
+        timezone: "UTC",
+      },
+    });
+    const serverDateAfter = (delayMs: number) => ({
+      $dateAdd: {
+        startDate: "$$NOW",
+        unit: "millisecond",
+        amount: Math.max(0, Math.floor(delayMs)),
+      },
+    });
+    const payloadOverrides: Record<string, unknown> = {};
+    if (resumeAfterMs !== undefined) {
+      payloadOverrides.resumeAt = serverIso(serverDateAfter(resumeAfterMs));
+    }
+    if (input.initializeWallClock) {
+      payloadOverrides.startedAt = serverIso("$$NOW");
+      if (input.initializeWallClock.maxWallClockMs !== undefined) {
+        payloadOverrides.wallClockDeadlineAt = serverIso(
+          serverDateAfter(input.initializeWallClock.maxWallClockMs),
+        );
+      }
+    }
+    const requiresServerTime =
+      resumeAfterMs !== undefined || input.initializeWallClock !== undefined;
     const update =
-      resumeAfterMs === undefined
+      !requiresServerTime
         ? {
             $set: indexedFields(run),
             $inc: { version: 1 },
@@ -198,31 +227,14 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
                 taskId: { $literal: run.taskId },
                 status: { $literal: run.status },
                 riskClass: { $literal: run.riskClass },
-                resumeAt: {
-                  $dateAdd: {
-                    startDate: "$$NOW",
-                    unit: "millisecond",
-                    amount: resumeAfterMs,
-                  },
-                },
+                resumeAt:
+                  resumeAfterMs === undefined
+                    ? { $literal: run.resumeAt ? new Date(run.resumeAt) : null }
+                    : serverDateAfter(resumeAfterMs),
                 payload: {
                   $mergeObjects: [
                     { $literal: run },
-                    {
-                      resumeAt: {
-                        $dateToString: {
-                          date: {
-                            $dateAdd: {
-                              startDate: "$$NOW",
-                              unit: "millisecond",
-                              amount: resumeAfterMs,
-                            },
-                          },
-                          format: "%Y-%m-%dT%H:%M:%S.%LZ",
-                          timezone: "UTC",
-                        },
-                      },
-                    },
+                    payloadOverrides,
                   ],
                 },
                 version: { $add: ["$version", 1] },
