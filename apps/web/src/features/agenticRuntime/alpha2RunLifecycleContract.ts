@@ -288,6 +288,10 @@ export function transitionAlpha2Run(
     }
   }
 
+  if (to === "running" && !["not_required", "approved"].includes(nextHumanGate.state)) {
+    throw new Error("alpha2_execution_blocked_by_human_gate_decision");
+  }
+
   const next = {
     ...run,
     status: to,
