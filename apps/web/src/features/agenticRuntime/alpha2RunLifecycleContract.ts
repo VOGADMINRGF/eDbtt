@@ -56,6 +56,11 @@ const Alpha2RiskClassSchema = z.enum(ALPHA2_RISK_CLASSES);
 const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
 const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
+const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
+  "approved",
+  "rejected",
+  "expired",
+]);
 
 export const Alpha2SafeTraceArtifactRefSchema = z
   .object({
@@ -280,7 +285,16 @@ export function transitionAlpha2Run(
 ): Alpha2RunRecord {
   assertAlpha2RunTransition(run.status, to);
   const now = input.now ?? new Date().toISOString();
+
+  if (DECIDED_HUMAN_GATE_STATES.has(run.humanGate.state) && input.humanGate) {
+    throw new Error("alpha2_human_gate_decision_is_immutable");
+  }
+
   const nextHumanGate = input.humanGate ?? run.humanGate;
+
+  if (run.status === "human_gate" && !DECIDED_HUMAN_GATE_STATES.has(nextHumanGate.state)) {
+    throw new Error("alpha2_human_gate_exit_requires_decision");
+  }
 
   if (run.status === "human_gate" && ["running", "review"].includes(to)) {
     if (nextHumanGate.state !== "approved") {
