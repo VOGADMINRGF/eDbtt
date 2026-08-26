@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Job, Queue, QueueEvents, Worker } from "bullmq";
 import IORedis from "ioredis";
 
@@ -70,14 +71,16 @@ export function getAlpha2ExecutionQueueEvents() {
   return queueEvents;
 }
 
-function safeJobId(value: string) {
-  return value.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 180);
+function executionJobId(input: Pick<Alpha2ExecutionDispatch, "runId" | "dispatchKey">) {
+  const identity = JSON.stringify([input.runId, input.dispatchKey]);
+  return `alpha2_${createHash("sha256").update(identity).digest("hex")}`;
 }
 
 type Alpha2DispatchQueue = {
   getJob(jobId: string): Promise<
     | {
         id?: string | number;
+        data: Alpha2ExecutionJob;
         getState(): Promise<string>;
         remove(): Promise<void>;
       }
@@ -94,10 +97,17 @@ export async function dispatchAlpha2Execution(
   executionQueue: Alpha2DispatchQueue,
   input: Alpha2ExecutionDispatch,
 ) {
-  const jobId = safeJobId(`alpha2_${input.runId}_${input.dispatchKey}`);
+  const jobId = executionJobId(input);
   const existing = await executionQueue.getJob(jobId);
 
   if (existing) {
+    if (
+      existing.data.runId !== input.runId ||
+      existing.data.dispatchKey !== input.dispatchKey ||
+      existing.data.taskId !== input.taskId
+    ) {
+      throw new Error("alpha2_execution_job_identity_collision");
+    }
     const state = await existing.getState();
     if (input.reason === "recovery" && state === "failed") {
       await existing.remove();

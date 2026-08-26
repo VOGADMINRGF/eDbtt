@@ -25,6 +25,7 @@ import {
 
 class FakeLedger implements Alpha2RunLedger {
   private records = new Map<string, Alpha2VersionedRun>();
+  leaseOwners: string[] = [];
 
   seed(run: Alpha2RunRecord) {
     this.records.set(run.runId, { run, version: 0, lease: null });
@@ -107,6 +108,7 @@ class FakeLedger implements Alpha2RunLedger {
         expiresAt: new Date(Date.parse(input.now) + input.leaseMs).toISOString(),
       },
     };
+    this.leaseOwners.push(input.owner);
     this.records.set(input.runId, next);
     return next;
   }
@@ -234,6 +236,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     if (second.state !== "executed") throw new Error("unexpected state");
     expect(second.run.status).toBe("completed");
     expect(second.run.attempt).toBe(1);
+    expect(ledger.leaseOwners[1]).toContain(":attempt-1:");
     expect(second.run.checkpoints.map((entry) => entry.checkpointId)).toEqual([
       "cp-wait",
       "cp-done",
@@ -515,6 +518,13 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
         if (removed) return undefined;
         return {
           id: "alpha2_run-recovery_recovery_v1_start",
+          data: {
+            runId: "run-recovery",
+            taskId: "ALPHA2-TEST-01",
+            dispatchKey: "recovery_v1_start",
+            reason: "recovery" as const,
+            requestedAt: "2026-08-23T20:00:00.000Z",
+          },
           async getState() {
             return "failed";
           },
@@ -544,5 +554,42 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(removed).toBe(true);
     expect(added).toHaveLength(1);
     expect(added[0]?.options.jobId).toBe(dispatched.jobId);
+  });
+
+  it("hashes the full BullMQ dispatch identity without truncation collisions", async () => {
+    const jobIds: string[] = [];
+    const queue = {
+      async getJob() {
+        return undefined;
+      },
+      async add(
+        _name: string,
+        _data: Alpha2ExecutionJob,
+        options: { jobId: string; delay: number },
+      ) {
+        jobIds.push(options.jobId);
+        return { id: options.jobId };
+      },
+    };
+    const sharedPrefix = "run-" + "a".repeat(220);
+
+    await dispatchAlpha2Execution(queue, {
+      runId: `${sharedPrefix}-one`,
+      taskId: "ALPHA2-TEST-01",
+      dispatchKey: "recovery_v1_start",
+      reason: "recovery",
+      requestedAt: "2026-08-23T20:00:00.000Z",
+    });
+    await dispatchAlpha2Execution(queue, {
+      runId: `${sharedPrefix}-two`,
+      taskId: "ALPHA2-TEST-01",
+      dispatchKey: "recovery_v1_start",
+      reason: "recovery",
+      requestedAt: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(jobIds).toHaveLength(2);
+    expect(jobIds[0]).not.toBe(jobIds[1]);
+    expect(jobIds.every((jobId) => /^alpha2_[a-f0-9]{64}$/.test(jobId))).toBe(true);
   });
 });

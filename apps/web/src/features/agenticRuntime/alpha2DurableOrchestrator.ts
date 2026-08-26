@@ -229,14 +229,14 @@ function createLeaseOwner(input: {
   workerId: string;
   runId: string;
   observedVersion: number;
-  observedAttempt: number;
+  executionAttempt: number;
   executionId?: string;
 }) {
   const executionId = input.executionId ?? randomUUID();
   return [
     input.workerId,
     input.runId,
-    `attempt-${input.observedAttempt + 1}`,
+    `attempt-${input.executionAttempt}`,
     `version-${input.observedVersion}`,
     executionId,
   ].join(":");
@@ -344,11 +344,15 @@ export async function runAlpha2DurableStep(input: {
   }
 
   const leaseMs = Math.max(10_000, input.leaseMs ?? 120_000);
+  const executionAttempt =
+    observed.run.status === "waiting" || observed.run.attempt >= observed.run.budget.maxAttempts
+      ? observed.run.attempt
+      : observed.run.attempt + 1;
   const leaseOwner = createLeaseOwner({
     workerId: input.workerId,
     runId: input.runId,
     observedVersion: observed.version,
-    observedAttempt: observed.run.attempt,
+    executionAttempt,
     executionId: input.executionId,
   });
   const leased = await input.ledger.tryAcquireLease({

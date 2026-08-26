@@ -92,13 +92,30 @@ function dueStateFilter(now: Date) {
   };
 }
 
-function availableLeaseFilter(now: Date) {
+function availableLeaseFilter() {
   return {
     $or: [
       { leaseOwner: null },
       { leaseExpiresAt: null },
-      { leaseExpiresAt: { $lte: now } },
+      { $expr: { $lte: ["$leaseExpiresAt", "$$NOW"] } },
     ],
+  };
+}
+
+function activeLeaseFilter(owner: string) {
+  return {
+    leaseOwner: owner,
+    $expr: { $gt: ["$leaseExpiresAt", "$$NOW"] },
+  };
+}
+
+function serverLeaseExpiry(leaseMs: number) {
+  return {
+    $dateAdd: {
+      startDate: "$$NOW",
+      unit: "millisecond",
+      amount: Math.max(1, Math.floor(leaseMs)),
+    },
   };
 }
 
@@ -159,10 +176,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
         runId: run.runId,
         version: input.expectedVersion,
         ...(input.lease
-          ? {
-              leaseOwner: input.lease.owner,
-              leaseExpiresAt: { $gt: new Date(input.lease.now) },
-            }
+          ? activeLeaseFilter(input.lease.owner)
           : {}),
       },
       {
@@ -188,19 +202,20 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
   }): Promise<Alpha2VersionedRun | null> {
     const Model = await Alpha2LedgerModel();
     const now = new Date(input.now);
-    const expiresAt = new Date(now.getTime() + input.leaseMs);
 
     const updated = await Model.findOneAndUpdate(
       {
         runId: input.runId,
-        $and: [dueStateFilter(now), availableLeaseFilter(now)],
+        $and: [dueStateFilter(now), availableLeaseFilter()],
       },
-      {
-        $set: {
-          leaseOwner: input.owner,
-          leaseExpiresAt: expiresAt,
+      [
+        {
+          $set: {
+            leaseOwner: input.owner,
+            leaseExpiresAt: serverLeaseExpiry(input.leaseMs),
+          },
         },
-      },
+      ],
       { new: true },
     );
 
@@ -214,15 +229,12 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     leaseMs: number;
   }): Promise<Alpha2VersionedRun | null> {
     const Model = await Alpha2LedgerModel();
-    const now = new Date(input.now);
-    const expiresAt = new Date(now.getTime() + input.leaseMs);
     const updated = await Model.findOneAndUpdate(
       {
         runId: input.runId,
-        leaseOwner: input.owner,
-        leaseExpiresAt: { $gt: now },
+        ...activeLeaseFilter(input.owner),
       },
-      { $set: { leaseExpiresAt: expiresAt } },
+      [{ $set: { leaseExpiresAt: serverLeaseExpiry(input.leaseMs) } }],
       { new: true },
     );
     return updated ? toVersionedRun(updated) : null;
@@ -242,7 +254,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     const limit = Math.max(1, Math.min(input.limit ?? 50, 500));
 
     const docs = await Model.find({
-      $and: [dueStateFilter(now), availableLeaseFilter(now)],
+      $and: [dueStateFilter(now), availableLeaseFilter()],
     })
       .sort({ updatedAt: 1 })
       .limit(limit);
