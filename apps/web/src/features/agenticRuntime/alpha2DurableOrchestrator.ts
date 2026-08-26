@@ -338,21 +338,35 @@ async function executeWithinWallClockBudget(input: {
     .catch((error: unknown) => executorFailure(input.run, error));
   if (remainingMs === undefined) return execution;
 
+  const timeoutOutcome: Alpha2WorkerOutcome = {
+    type: "failed",
+    checkpointId: `wall_clock_${input.run.runId}_${input.run.attempt}`,
+    errorCode: "alpha2_wall_clock_budget_exhausted",
+    retryable: false,
+  };
+  const maxTimerDelayMs = 2_147_483_647;
+  const deadlineMs = Date.now() + remainingMs;
+  let timedOut = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<Alpha2WorkerOutcome>((resolve) => {
-    timer = setTimeout(() => {
-      controller.abort("alpha2_wall_clock_budget_exhausted");
-      resolve({
-        type: "failed",
-        checkpointId: `wall_clock_${input.run.runId}_${input.run.attempt}`,
-        errorCode: "alpha2_wall_clock_budget_exhausted",
-        retryable: false,
-      });
-    }, remainingMs);
+    const schedule = () => {
+      const delayMs = Math.min(maxTimerDelayMs, Math.max(0, deadlineMs - Date.now()));
+      timer = setTimeout(() => {
+        if (Date.now() < deadlineMs) {
+          schedule();
+          return;
+        }
+        timedOut = true;
+        resolve(timeoutOutcome);
+        controller.abort("alpha2_wall_clock_budget_exhausted");
+      }, delayMs);
+    };
+    schedule();
   });
 
   try {
-    return await Promise.race([execution, timeout]);
+    const result = await Promise.race([execution, timeout]);
+    return timedOut ? timeoutOutcome : result;
   } finally {
     if (timer) clearTimeout(timer);
   }

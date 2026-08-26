@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   recoverAlpha2DueRuns,
   runAlpha2DurableStep,
@@ -664,6 +664,86 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.run.lastErrorCode).toBe("alpha2_wall_clock_budget_exhausted");
     expect(result.run.resumeAt).toBeUndefined();
     expect(dispatcher.jobs).toEqual([]);
+  });
+
+  it("keeps timeout failure authoritative when an abort handler resolves normally", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const limited = createAlpha2RunRecord({
+      runId: "run-abort-resolution",
+      idempotencyKey: "idem-run-abort-resolution",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 3, maxWallClockMs: 10 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(limited);
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-abort-resolution",
+      workerId: "worker-budget",
+      ledger,
+      dispatcher,
+      executor: {
+        execute({ signal }) {
+          return new Promise((resolve) => {
+            signal.addEventListener("abort", () => {
+              resolve({ type: "completed", checkpointId: "cp-abort-cleanup" });
+            });
+          });
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("alpha2_wall_clock_budget_exhausted");
+    expect(result.run.checkpoints.at(-1)?.checkpointId).toContain("wall_clock_");
+  });
+
+  it("chunks wall-clock budgets above Node's maximum timer delay", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    const limited = createAlpha2RunRecord({
+      runId: "run-long-budget",
+      idempotencyKey: "idem-run-long-budget",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 3, maxWallClockMs: 2_147_483_648 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(limited);
+
+    try {
+      const result = await runAlpha2DurableStep({
+        runId: "run-long-budget",
+        workerId: "worker-budget",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            return { type: "completed", checkpointId: "cp-within-long-budget" };
+          },
+        },
+        now: "2026-08-23T20:00:00.000Z",
+      });
+
+      expect(result.state).toBe("executed");
+      const scheduledDelays = timeoutSpy.mock.calls.map((call) => Number(call[1]));
+      expect(scheduledDelays.some((delay) => delay > 2_000_000_000)).toBe(true);
+      expect(scheduledDelays.every((delay) => delay <= 2_147_483_647)).toBe(true);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 
   it("hashes the full BullMQ dispatch identity without truncation collisions", async () => {
