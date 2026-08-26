@@ -37,6 +37,7 @@ const Alpha2ActionKindSchema = z.enum(ALPHA2_ACTION_KINDS);
 const Alpha2ActionGateDecisionSchema = z.enum(ALPHA2_ACTION_GATE_DECISIONS);
 const Alpha2ConfidenceLevelSchema = z.enum(ALPHA2_CONFIDENCE_LEVELS);
 const Alpha2RiskClassSchema = z.enum(ALPHA2_RISK_CLASSES);
+const Alpha2EvidenceRefsSchema = z.array(z.string().min(1)).min(1);
 
 export const Alpha2ActionGateInputSchema = z
   .object({
@@ -45,6 +46,7 @@ export const Alpha2ActionGateInputSchema = z
     confidence: Alpha2ConfidenceLevelSchema,
     reversible: z.boolean(),
     explicitPolicyRef: z.string().min(1).optional(),
+    evidenceRefs: Alpha2EvidenceRefsSchema,
   })
   .strict();
 
@@ -55,6 +57,7 @@ export const Alpha2ActionGateResultSchema = z
     reasonCodes: z.array(z.string().min(1)).min(1),
     requiresPolicyRef: z.boolean(),
     policyRef: z.string().min(1).optional(),
+    evidenceRefs: Alpha2EvidenceRefsSchema,
   })
   .strict()
   .superRefine((result, ctx) => {
@@ -93,6 +96,7 @@ const ALWAYS_REVIEW_ACTIONS = new Set<Alpha2ActionKind>([
 function result(input: {
   decision: Alpha2ActionGateDecision;
   reasonCodes: string[];
+  evidenceRefs: string[];
   requiresPolicyRef?: boolean;
   policyRef?: string;
 }): Alpha2ActionGateResult {
@@ -102,6 +106,7 @@ function result(input: {
     reasonCodes: input.reasonCodes,
     requiresPolicyRef: input.requiresPolicyRef ?? false,
     policyRef: input.policyRef,
+    evidenceRefs: input.evidenceRefs,
   });
 }
 
@@ -112,6 +117,7 @@ export function resolveAlpha2ActionGate(rawInput: Alpha2ActionGateInput): Alpha2
     return result({
       decision: "human_only",
       reasonCodes: [`human_sovereignty:${input.actionKind}`],
+      evidenceRefs: input.evidenceRefs,
     });
   }
 
@@ -119,6 +125,7 @@ export function resolveAlpha2ActionGate(rawInput: Alpha2ActionGateInput): Alpha2
     return result({
       decision: "review_required",
       reasonCodes: [`review_boundary:${input.actionKind}`],
+      evidenceRefs: input.evidenceRefs,
     });
   }
 
@@ -126,6 +133,7 @@ export function resolveAlpha2ActionGate(rawInput: Alpha2ActionGateInput): Alpha2
     return result({
       decision: "human_only",
       reasonCodes: [`risk_class:${input.riskClass}`],
+      evidenceRefs: input.evidenceRefs,
     });
   }
 
@@ -133,6 +141,7 @@ export function resolveAlpha2ActionGate(rawInput: Alpha2ActionGateInput): Alpha2
     return result({
       decision: "automatic",
       reasonCodes: ["read_only_no_external_effect"],
+      evidenceRefs: input.evidenceRefs,
     });
   }
 
@@ -148,6 +157,7 @@ export function resolveAlpha2ActionGate(rawInput: Alpha2ActionGateInput): Alpha2
         reasonCodes: ["green_reversible_high_confidence_with_policy"],
         requiresPolicyRef: true,
         policyRef: input.explicitPolicyRef,
+        evidenceRefs: input.evidenceRefs,
       });
     }
 
@@ -156,12 +166,14 @@ export function resolveAlpha2ActionGate(rawInput: Alpha2ActionGateInput): Alpha2
       reasonCodes: [
         input.explicitPolicyRef ? "reversible_write_not_auto_eligible" : "missing_explicit_policy",
       ],
+      evidenceRefs: input.evidenceRefs,
     });
   }
 
   return result({
     decision: "review_required",
     reasonCodes: ["fail_closed_unclassified_action"],
+    evidenceRefs: input.evidenceRefs,
   });
 }
 
@@ -175,6 +187,7 @@ export function isAlpha2AutomaticActionAllowed(input: {
   confidence: Alpha2ConfidenceLevel;
   reversible: boolean;
   explicitPolicyRef?: string;
+  evidenceRefs: string[];
 }) {
   return resolveAlpha2ActionGate(input).autoExecutionAllowed;
 }
