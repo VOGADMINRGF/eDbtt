@@ -7,11 +7,13 @@ import {
   transitionAlpha2Run,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 import {
+  Alpha2ActionGateInputSchema,
   isAlpha2AutomaticActionAllowed,
   resolveAlpha2ActionGate,
 } from "@/features/agenticRuntime/alpha2RiskGateContract";
 
 const NOW = "2026-08-23T21:00:00.000Z";
+const EVIDENCE = ["task:ALPHA2-RUN-CONTRACT-01"];
 
 describe("Alpha-Foxtrott 2 control-plane contracts", () => {
   it("creates a provider-agnostic queued root run with bounded budget", () => {
@@ -45,10 +47,7 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       status: "queued",
       attempt: 0,
       humanGate: { state: "not_required" },
-      route: {
-        mode: "automatic",
-        capabilityClass: "engineering_contract",
-      },
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
     });
     expect(run.supportingRoles).toEqual(["research_source"]);
   });
@@ -64,19 +63,10 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       route: { mode: "automatic", capabilityClass: "engineering_contract" },
       now: NOW,
     });
-
-    const running = transitionAlpha2Run(queued, "running", {
-      now: "2026-08-23T21:01:00.000Z",
-    });
-    const waiting = transitionAlpha2Run(running, "waiting", {
-      now: "2026-08-23T21:02:00.000Z",
-    });
-    const resumed = transitionAlpha2Run(waiting, "running", {
-      now: "2026-08-23T21:03:00.000Z",
-    });
-    const completed = transitionAlpha2Run(resumed, "completed", {
-      now: "2026-08-23T21:04:00.000Z",
-    });
+    const running = transitionAlpha2Run(queued, "running", { now: "2026-08-23T21:01:00.000Z" });
+    const waiting = transitionAlpha2Run(running, "waiting", { now: "2026-08-23T21:02:00.000Z" });
+    const resumed = transitionAlpha2Run(waiting, "running", { now: "2026-08-23T21:03:00.000Z" });
+    const completed = transitionAlpha2Run(resumed, "completed", { now: "2026-08-23T21:04:00.000Z" });
 
     expect(resumed.attempt).toBe(1);
     expect(completed.finishedAt).toBe("2026-08-23T21:04:00.000Z");
@@ -86,7 +76,7 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
     );
   });
 
-  it("requires an explicit pending human gate before entering human_gate", () => {
+  it("requires explicit approval before leaving a pending human gate", () => {
     const queued = createAlpha2RunRecord({
       runId: "run-gated",
       idempotencyKey: "gated-key",
@@ -97,23 +87,57 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       route: { mode: "automatic", capabilityClass: "governance" },
       now: NOW,
     });
-
     expect(() => transitionAlpha2Run(queued, "human_gate")).toThrow(
       "alpha2_human_gate_status_requires_pending_gate",
     );
-
     const gated = transitionAlpha2Run(queued, "human_gate", {
       now: "2026-08-23T21:01:00.000Z",
-      humanGate: {
-        state: "pending",
-        reason: "Architecture decision requires human approval",
-      },
+      humanGate: { state: "pending", reason: "Architecture decision requires human approval" },
     });
-
-    expect(gated.humanGate.state).toBe("pending");
+    expect(() => transitionAlpha2Run(gated, "running")).toThrow(
+      "alpha2_human_gate_exit_requires_approval",
+    );
+    expect(() =>
+      transitionAlpha2Run(gated, "running", {
+        humanGate: { state: "rejected", decisionRef: "decision:rejected" },
+      }),
+    ).toThrow("alpha2_human_gate_exit_requires_approval");
+    const approved = transitionAlpha2Run(gated, "running", {
+      now: "2026-08-23T21:02:00.000Z",
+      humanGate: { state: "approved", decisionRef: "decision:approved" },
+    });
+    expect(approved).toMatchObject({
+      status: "running",
+      humanGate: { state: "approved", decisionRef: "decision:approved" },
+    });
   });
 
-  it("keeps checkpoints idempotent and parent-child linkage explicit", () => {
+  it("prevents a rejected human gate from resuming through an indirect retry path", () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-rejected-retry",
+      idempotencyKey: "rejected-retry-key",
+      taskId: "ALPHA2-RISK-GATE-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "orange",
+      route: { mode: "automatic", capabilityClass: "governance" },
+      now: NOW,
+    });
+    const gated = transitionAlpha2Run(queued, "human_gate", {
+      humanGate: { state: "pending", reason: "Human decision required" },
+    });
+    const rejectedFailure = transitionAlpha2Run(gated, "failed", {
+      humanGate: { state: "rejected", decisionRef: "decision:rejected" },
+      errorCode: "human_gate_rejected",
+    });
+    const retryQueued = transitionAlpha2Run(rejectedFailure, "queued");
+    expect(retryQueued.humanGate.state).toBe("rejected");
+    expect(() => transitionAlpha2Run(retryQueued, "running")).toThrow(
+      "alpha2_execution_blocked_by_human_gate_decision",
+    );
+  });
+
+  it("keeps checkpoints idempotent and preserves canonical safe-trace identities", () => {
     const parent = createAlpha2RunRecord({
       runId: "mission-1",
       idempotencyKey: "mission-1",
@@ -136,29 +160,70 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       route: { mode: "automatic", capabilityClass: "engineering_contract" },
       now: NOW,
     });
-
     const linked = linkAlpha2ChildRun(parent, child);
     const checkpointed = appendAlpha2Checkpoint(linked, {
       checkpointId: "cp-1",
       createdAt: "2026-08-23T21:05:00.000Z",
       cursor: "contract_written",
       evidenceRefs: ["commit:example"],
-      artifactRefs: ["apps/web/src/features/agenticRuntime/alpha2RunLifecycleContract.ts"],
+      safeTraceStepRefs: [{ stepId: "alpha2:contract-write", roleId: "governance_compliance" }],
+      artifactRefs: [
+        {
+          id: "alpha2:contract-write:output",
+          type: "review_handoff",
+          label: "Alpha2 contract review handoff",
+          reviewState: "review_required",
+        },
+      ],
     });
     const duplicate = appendAlpha2Checkpoint(checkpointed, {
       checkpointId: "cp-1",
       createdAt: "2026-08-23T21:06:00.000Z",
       cursor: "ignored_duplicate",
       evidenceRefs: [],
+      safeTraceStepRefs: [],
       artifactRefs: [],
     });
-
     expect(linked.childRunIds).toEqual(["slice-1"]);
     expect(checkpointed.checkpoints).toHaveLength(1);
+    expect(checkpointed.checkpoints[0]?.artifactRefs[0]).toMatchObject({
+      id: "alpha2:contract-write:output",
+      type: "review_handoff",
+      reviewState: "review_required",
+    });
     expect(duplicate.checkpoints).toHaveLength(1);
   });
 
-  it("never auto-executes human-sovereignty actions", () => {
+  it("requires the canonical root ID for every non-root child", () => {
+    expect(() =>
+      createAlpha2RunRecord({
+        runId: "grandchild-1",
+        parentRunId: "slice-1",
+        idempotencyKey: "mission-1:slice-1:grandchild-1",
+        taskId: "ALPHA2-RUN-CONTRACT-01",
+        kind: "diagnostic",
+        primaryRole: "governance_compliance",
+        riskClass: "green",
+        route: { mode: "automatic", capabilityClass: "diagnostic" },
+        now: NOW,
+      }),
+    ).toThrow("alpha2_child_run_requires_root_run_id");
+    const grandchild = createAlpha2RunRecord({
+      runId: "grandchild-1",
+      parentRunId: "slice-1",
+      rootRunId: "mission-1",
+      idempotencyKey: "mission-1:slice-1:grandchild-1",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "diagnostic",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "diagnostic" },
+      now: NOW,
+    });
+    expect(grandchild.rootRunId).toBe("mission-1");
+  });
+
+  it("never auto-executes human-sovereignty actions and retains evidence", () => {
     const actionKinds = [
       "notify_external",
       "merge_code",
@@ -169,7 +234,6 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       "destructive_infrastructure",
       "security_or_secret",
     ] as const;
-
     for (const actionKind of actionKinds) {
       expect(
         resolveAlpha2ActionGate({
@@ -178,11 +242,9 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
           confidence: "high",
           reversible: true,
           explicitPolicyRef: "policy:test",
+          evidenceRefs: EVIDENCE,
         }),
-      ).toMatchObject({
-        decision: "human_only",
-        autoExecutionAllowed: false,
-      });
+      ).toMatchObject({ decision: "human_only", autoExecutionAllowed: false, evidenceRefs: EVIDENCE });
     }
   });
 
@@ -195,15 +257,23 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
           confidence: "high",
           reversible: true,
           explicitPolicyRef: "policy:test",
+          evidenceRefs: EVIDENCE,
         }),
-      ).toMatchObject({
-        decision: "review_required",
-        autoExecutionAllowed: false,
-      });
+      ).toMatchObject({ decision: "review_required", autoExecutionAllowed: false, evidenceRefs: EVIDENCE });
     }
   });
 
-  it("permits only low-risk reversible writes with explicit policy to auto-run", () => {
+  it("requires evidence for every gate decision", () => {
+    const result = Alpha2ActionGateInputSchema.safeParse({
+      actionKind: "read_only",
+      riskClass: "green",
+      confidence: "high",
+      reversible: true,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("permits only low-risk reversible writes with explicit policy and evidence to auto-run", () => {
     expect(
       isAlpha2AutomaticActionAllowed({
         actionKind: "write_reversible",
@@ -211,15 +281,16 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
         confidence: "high",
         reversible: true,
         explicitPolicyRef: "policy:alpha2-low-risk-write-v1",
+        evidenceRefs: EVIDENCE,
       }),
     ).toBe(true);
-
     expect(
       isAlpha2AutomaticActionAllowed({
         actionKind: "write_reversible",
         riskClass: "green",
         confidence: "high",
         reversible: true,
+        evidenceRefs: EVIDENCE,
       }),
     ).toBe(false);
   });
