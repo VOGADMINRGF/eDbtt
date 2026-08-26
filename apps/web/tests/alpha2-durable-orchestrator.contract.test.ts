@@ -138,6 +138,15 @@ class FakeLedger implements Alpha2RunLedger {
     return next;
   }
 
+  async isRunDue(input: { runId: string; now: string }) {
+    const current = this.records.get(input.runId);
+    if (!current || isAlpha2TerminalRun(current.run) || isAlpha2HumanStoppedRun(current.run)) {
+      return false;
+    }
+    if (current.run.status === "queued" || current.run.status === "running") return true;
+    return Boolean(current.run.resumeAt) && isAlpha2RunDue(current.run, input.now);
+  }
+
   async releaseLease(input: { runId: string; owner: string }) {
     const current = this.records.get(input.runId);
     if (!current || current.lease?.owner !== input.owner) return;
@@ -360,6 +369,60 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       now: "2026-08-30T20:00:00.000Z",
     });
     expect(recovered).toEqual([]);
+  });
+
+  it("persists a synchronous executor throw as a retryable failed outcome", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-sync-throw"));
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-sync-throw",
+      workerId: "worker-sync",
+      ledger,
+      dispatcher,
+      executor: {
+        execute() {
+          throw Object.assign(new Error("sync failure"), { code: "sync_executor_failure" });
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("sync_executor_failure");
+    expect(result.run.resumeAt).toBe("2026-08-23T20:00:30.000Z");
+  });
+
+  it("distinguishes a server-not-due run from lease contention", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const running = transitionAlpha2Run(run("run-not-due"), "running", {
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const waiting = transitionAlpha2Run(running, "waiting", {
+      now: "2026-08-23T20:00:00.000Z",
+      resumeAt: "2026-08-23T21:00:00.000Z",
+    });
+    ledger.seed(waiting);
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-not-due",
+      workerId: "worker-early",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-too-early" };
+        },
+      },
+      now: "2026-08-23T20:30:00.000Z",
+    });
+
+    expect(result.state).toBe("not_due");
+    expect(dispatcher.jobs).toEqual([]);
   });
 
   it("does not let concurrent deliveries from the same process share a lease", async () => {

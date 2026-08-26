@@ -247,6 +247,11 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     return updated ? toVersionedRun(updated) : null;
   }
 
+  async isRunDue(input: { runId: string; now: string }): Promise<boolean> {
+    const Model = await Alpha2LedgerModel();
+    return Boolean(await Model.exists({ runId: input.runId, ...dueStateFilter() }));
+  }
+
   async releaseLease(input: { runId: string; owner: string }): Promise<void> {
     const Model = await Alpha2LedgerModel();
     await Model.updateOne(

@@ -47,6 +47,7 @@ export interface Alpha2RunLedger {
     now: string;
     leaseMs: number;
   }): Promise<Alpha2VersionedRun | null>;
+  isRunDue(input: { runId: string; now: string }): Promise<boolean>;
   releaseLease(input: { runId: string; owner: string }): Promise<void>;
   listRecoverable(input: Alpha2RecoverableRunQuery): Promise<Alpha2VersionedRun[]>;
 }

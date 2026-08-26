@@ -327,8 +327,14 @@ async function executeWithinWallClockBudget(input: {
   }
 
   const controller = new AbortController();
-  const execution = input.executor
-    .execute({ run: input.run, workerId: input.workerId, signal: controller.signal })
+  const execution = Promise.resolve()
+    .then(() =>
+      input.executor.execute({
+        run: input.run,
+        workerId: input.workerId,
+        signal: controller.signal,
+      }),
+    )
     .catch((error: unknown) => executorFailure(input.run, error));
   if (remainingMs === undefined) return execution;
 
@@ -415,7 +421,12 @@ export async function runAlpha2DurableStep(input: {
     now: startedAt,
     leaseMs,
   });
-  if (!leased) return { state: "lease_not_acquired", runId: input.runId };
+  if (!leased) {
+    const isDue = await input.ledger.isRunDue({ runId: input.runId, now: startedAt });
+    return isDue
+      ? { state: "lease_not_acquired", runId: input.runId }
+      : { state: "not_due", run: observed.run };
+  }
 
   try {
     const start = await moveToRunning({
@@ -432,39 +443,42 @@ export async function runAlpha2DurableStep(input: {
       leaseOwner,
       leaseMs,
     });
-    const outcome = await executeWithinWallClockBudget({
-      run: start.current.run,
-      workerId: input.workerId,
-      executor: input.executor,
-      now: startedAt,
-    });
-
-    const outcomeAt = input.now ?? new Date().toISOString();
-    await heartbeat.stopAndVerify(outcomeAt);
-    const persisted = await persistOutcome({
-      ledger: input.ledger,
-      current: start.current,
-      outcome,
-      now: outcomeAt,
-      leaseOwner,
-    });
-
-    const dispatch = nextDispatch({ run: persisted.run, outcome, now: outcomeAt });
-    if (!dispatch) return { state: "executed", run: persisted.run };
-
     try {
-      const queued = await input.dispatcher.dispatch({
-        runId: persisted.run.runId,
-        taskId: persisted.run.taskId,
-        dispatchKey: dispatch.dispatchKey,
-        reason: dispatch.reason,
-        requestedAt: outcomeAt,
-        delayMs: dispatch.delayMs,
+      const outcome = await executeWithinWallClockBudget({
+        run: start.current.run,
+        workerId: input.workerId,
+        executor: input.executor,
+        now: startedAt,
       });
-      return { state: "executed", run: persisted.run, dispatchedJobId: queued.jobId };
-    } catch {
-      // MongoDB remains authoritative. A later recovery scan recreates the queue job.
-      return { state: "executed", run: persisted.run };
+      const outcomeAt = input.now ?? new Date().toISOString();
+      await heartbeat.stopAndVerify(outcomeAt);
+      const persisted = await persistOutcome({
+        ledger: input.ledger,
+        current: start.current,
+        outcome,
+        now: outcomeAt,
+        leaseOwner,
+      });
+
+      const dispatch = nextDispatch({ run: persisted.run, outcome, now: outcomeAt });
+      if (!dispatch) return { state: "executed", run: persisted.run };
+
+      try {
+        const queued = await input.dispatcher.dispatch({
+          runId: persisted.run.runId,
+          taskId: persisted.run.taskId,
+          dispatchKey: dispatch.dispatchKey,
+          reason: dispatch.reason,
+          requestedAt: outcomeAt,
+          delayMs: dispatch.delayMs,
+        });
+        return { state: "executed", run: persisted.run, dispatchedJobId: queued.jobId };
+      } catch {
+        // MongoDB remains authoritative. A later recovery scan recreates the queue job.
+        return { state: "executed", run: persisted.run };
+      }
+    } finally {
+      heartbeat.stop();
     }
   } finally {
     await input.ledger.releaseLease({ runId: input.runId, owner: leaseOwner });
