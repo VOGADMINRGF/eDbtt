@@ -132,6 +132,32 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
     });
   });
 
+  it("prevents a rejected human gate from resuming through an indirect retry path", () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-rejected-retry",
+      idempotencyKey: "rejected-retry-key",
+      taskId: "ALPHA2-RISK-GATE-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "orange",
+      route: { mode: "automatic", capabilityClass: "governance" },
+      now: NOW,
+    });
+    const gated = transitionAlpha2Run(queued, "human_gate", {
+      humanGate: { state: "pending", reason: "Human decision required" },
+    });
+    const rejectedFailure = transitionAlpha2Run(gated, "failed", {
+      humanGate: { state: "rejected", decisionRef: "decision:rejected" },
+      errorCode: "human_gate_rejected",
+    });
+    const retryQueued = transitionAlpha2Run(rejectedFailure, "queued");
+
+    expect(retryQueued.humanGate.state).toBe("rejected");
+    expect(() => transitionAlpha2Run(retryQueued, "running")).toThrow(
+      "alpha2_execution_blocked_by_human_gate_decision",
+    );
+  });
+
   it("keeps checkpoints idempotent and preserves canonical safe-trace identities", () => {
     const parent = createAlpha2RunRecord({
       runId: "mission-1",
