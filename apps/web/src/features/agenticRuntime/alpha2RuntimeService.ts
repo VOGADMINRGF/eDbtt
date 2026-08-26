@@ -24,7 +24,10 @@ import {
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 
 export interface Alpha2ExecutionAuthorizationResolver {
-  resolve(run: Alpha2RunRecord): Alpha2ExecutionAuthorization;
+  resolve(
+    run: Alpha2RunRecord,
+    input: { currentHeadSha: string; observedAt: string },
+  ): Alpha2ExecutionAuthorization;
 }
 
 export async function persistAndDispatchAlpha2Run(input: {
@@ -57,25 +60,25 @@ export async function handleAlpha2ExecutionJob(input: {
   executorResolver: Alpha2ExecutorResolver;
   authorizationResolver: Alpha2ExecutionAuthorizationResolver;
   workerId: string;
+  currentHeadSha: string;
   executorResolutionTimeoutMs?: number;
 }) {
   const ledger = getAlpha2MongoRunLedger();
   const dispatcher = getAlpha2ExecutionDispatcher();
-  const stored = await ledger.getByRunId(input.job.data.runId);
-  if (!stored) return { state: "missing" as const, runId: input.job.data.runId };
-  const authorization = input.authorizationResolver.resolve(stored.run);
   const executor = createAlpha2ResolvingExecutor({
     resolver: input.executorResolver,
     resolutionTimeoutMs: input.executorResolutionTimeoutMs,
   });
 
   return runAlpha2DurableStep({
-    runId: stored.run.runId,
+    runId: input.job.data.runId,
     workerId: input.workerId,
     ledger,
     dispatcher,
     executor,
-    authorization,
+    currentHeadSha: input.currentHeadSha,
+    authorizationResolver: (run, context) =>
+      input.authorizationResolver.resolve(run, context),
     executionId: `${String(input.job.id ?? "job")}:${input.job.attemptsMade}:${String(input.job.processedOn ?? "pending")}`,
   });
 }
@@ -89,6 +92,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
   recoveryBatchSize?: number;
   onRecoveryError?: (error: unknown) => void;
   executorResolutionTimeoutMs?: number;
+  currentHeadSha: string;
 }) {
   const ledger = getAlpha2MongoRunLedger();
   const dispatcher = getAlpha2ExecutionDispatcher();
@@ -102,6 +106,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
         executorResolver: input.executorResolver,
         authorizationResolver: input.authorizationResolver,
         workerId,
+        currentHeadSha: input.currentHeadSha,
         executorResolutionTimeoutMs: input.executorResolutionTimeoutMs,
       }),
   });
@@ -125,7 +130,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
       });
     },
     async close() {
-      recovery.stop();
+      await recovery.stop();
       await worker.close();
       await closeAlpha2ExecutionRuntime();
     },

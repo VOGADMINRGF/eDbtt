@@ -3,6 +3,7 @@ import {
   Alpha2RunRecordSchema,
   appendAlpha2Checkpoint,
   transitionAlpha2Run,
+  transitionAlpha2RunToNewHumanGate,
   type Alpha2RunRecord,
   type Alpha2RunStatus,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
@@ -96,6 +97,8 @@ export function createAlpha2ResolvingExecutor(input: {
 }
 
 export type Alpha2ExecutionAuthorization = {
+  observedHeadSha: string;
+  observedAt: string;
   openTasksText: string;
   ownership: Alpha2TaskOwnershipEvidence;
   action: Alpha2ActionGateInput;
@@ -161,6 +164,7 @@ async function save(
   lease: { owner: string; now: string },
   resumeAfterMs?: number,
   initializeWallClock?: { maxWallClockMs?: number },
+  stampCheckpointId?: string,
 ) {
   return ledger.compareAndSwap({
     run,
@@ -168,16 +172,38 @@ async function save(
     lease,
     resumeAfterMs,
     initializeWallClock,
+    stampCheckpointId,
   });
 }
 
 function executionBlockReasons(
   run: Alpha2RunRecord,
   authorization: Alpha2ExecutionAuthorization | undefined,
+  input: { currentHeadSha: string; authoritativeNow: string; maxAgeMs: number },
 ) {
   const reasonCodes: string[] = [];
 
   if (!authorization) return ["missing_runtime_execution_authorization"];
+
+  if (!/^[0-9a-f]{40}$/i.test(input.currentHeadSha)) {
+    reasonCodes.push("runtime_head_sha_missing");
+  }
+  if (
+    !/^[0-9a-f]{40}$/i.test(authorization.observedHeadSha) ||
+    authorization.observedHeadSha !== input.currentHeadSha
+  ) {
+    reasonCodes.push("authorization_head_sha_mismatch");
+  }
+  const observedAtMs = Date.parse(authorization.observedAt);
+  const authoritativeNowMs = Date.parse(input.authoritativeNow);
+  if (
+    !Number.isFinite(observedAtMs) ||
+    !Number.isFinite(authoritativeNowMs) ||
+    authoritativeNowMs - observedAtMs > input.maxAgeMs ||
+    observedAtMs - authoritativeNowMs > input.maxAgeMs
+  ) {
+    reasonCodes.push("authorization_evidence_stale");
+  }
 
   try {
     const task = findAlpha2OpenTask(authorization.openTasksText, run.taskId);
@@ -242,32 +268,28 @@ async function persistExecutionBlock(input: {
     });
   }
 
-  if (["approved", "rejected", "expired"].includes(current.run.humanGate.state)) {
-    const checkpointed = appendAlpha2Checkpoint(current.run, {
-      checkpointId: `runtime_block_v${current.version}`,
-      createdAt: input.now,
-      status: "review",
-      evidenceRefs: input.reasonCodes,
-      safeTraceStepRefs: [],
-      artifactRefs: [],
-    });
-    const reviewed = transitionAlpha2Run(checkpointed, "review", { now: input.now });
-    return save(input.ledger, current, reviewed, {
-      owner: input.leaseOwner,
-      now: input.now,
-    });
-  }
-  const stopped = transitionAlpha2Run(current.run, "human_gate", {
-    now: input.now,
-    humanGate: {
-      state: "pending",
-      reason: input.reasonCodes.join(","),
-    },
+  const checkpointId = `runtime_block_v${current.version}`;
+  const checkpointed = appendAlpha2Checkpoint(current.run, {
+    checkpointId,
+    createdAt: input.now,
+    status: "human_gate",
+    evidenceRefs: input.reasonCodes,
+    safeTraceStepRefs: [],
+    artifactRefs: [],
   });
-  return save(input.ledger, current, stopped, {
-    owner: input.leaseOwner,
+  const stopped = transitionAlpha2RunToNewHumanGate(checkpointed, {
     now: input.now,
+    reason: input.reasonCodes.join(","),
   });
+  return save(
+    input.ledger,
+    current,
+    stopped,
+    { owner: input.leaseOwner, now: input.now },
+    undefined,
+    undefined,
+    checkpointId,
+  );
 }
 
 async function moveToRunning(input: {
@@ -393,6 +415,8 @@ async function persistOutcome(input: {
     run,
     { owner: input.leaseOwner, now: input.now },
     resumeAfterMs,
+    undefined,
+    input.outcome.checkpointId,
   );
 }
 
@@ -549,6 +573,10 @@ async function executeWithinWallClockBudget(input: {
     const result = await Promise.race([execution, timeout]);
     if (timedOut || globalThis.performance.now() >= deadlineMs) {
       controller.abort("alpha2_wall_clock_budget_exhausted");
+      // Ownership must not be released while an abort-ignoring executor can still
+      // perform side effects. A non-cooperative executor therefore keeps this
+      // delivery (and its heartbeat) fenced until it actually settles.
+      await execution;
       return timeoutOutcome;
     }
     return result;
@@ -593,7 +621,13 @@ export async function runAlpha2DurableStep(input: {
   leaseMs?: number;
   now?: string;
   executionId?: string;
+  currentHeadSha: string;
   authorization?: Alpha2ExecutionAuthorization;
+  authorizationResolver?: (
+    run: Alpha2RunRecord,
+    input: { currentHeadSha: string; observedAt: string },
+  ) => Alpha2ExecutionAuthorization;
+  authorizationMaxAgeMs?: number;
 }): Promise<Alpha2DurableStepResult> {
   const startedAt = input.now ?? new Date().toISOString();
   const observed = await input.ledger.getByRunId(input.runId);
@@ -626,9 +660,25 @@ export async function runAlpha2DurableStep(input: {
       ? { state: "lease_not_acquired", runId: input.runId }
       : { state: "not_due", run: observed.run };
   }
+  const authoritativeLeaseNow = leased.lease
+    ? new Date(Date.parse(leased.lease.expiresAt) - leaseMs).toISOString()
+    : startedAt;
 
   try {
-    const reasonCodes = executionBlockReasons(leased.run, input.authorization);
+    let authorization = input.authorization;
+    try {
+      authorization = input.authorizationResolver?.(leased.run, {
+        currentHeadSha: input.currentHeadSha,
+        observedAt: authoritativeLeaseNow,
+      }) ?? authorization;
+    } catch {
+      authorization = undefined;
+    }
+    const reasonCodes = executionBlockReasons(leased.run, authorization, {
+      currentHeadSha: input.currentHeadSha,
+      authoritativeNow: authoritativeLeaseNow,
+      maxAgeMs: Math.max(1_000, input.authorizationMaxAgeMs ?? 60_000),
+    });
     if (reasonCodes.length > 0) {
       const stopped = await persistExecutionBlock({
         ledger: input.ledger,
@@ -647,10 +697,6 @@ export async function runAlpha2DurableStep(input: {
       leaseOwner,
     });
     if (start.exhausted) return { state: "attempts_exhausted", run: start.current.run };
-    const authoritativeLeaseNow = leased.lease
-      ? new Date(Date.parse(leased.lease.expiresAt) - leaseMs).toISOString()
-      : startedAt;
-
     const heartbeat = startLeaseHeartbeat({
       ledger: input.ledger,
       runId: input.runId,
@@ -683,7 +729,7 @@ export async function runAlpha2DurableStep(input: {
           taskId: persisted.run.taskId,
           dispatchKey: dispatch.dispatchKey,
           reason: dispatch.reason,
-          requestedAt: outcomeAt,
+          requestedAt: persisted.run.updatedAt,
           delayMs: dispatch.delayMs,
         });
         return { state: "executed", run: persisted.run, dispatchedJobId: queued.jobId };
@@ -737,22 +783,25 @@ export function startAlpha2RecoveryScheduler(input: {
 }) {
   const intervalMs = Math.max(10_000, input.intervalMs ?? 60_000);
   let active = true;
-  let running = false;
+  let inFlight: Promise<void> | null = null;
 
-  const tick = async () => {
-    if (!active || running) return;
-    running = true;
-    try {
-      await recoverAlpha2DueRuns({
-        ledger: input.ledger,
-        dispatcher: input.dispatcher,
-        limit: input.batchSize ?? 50,
-      });
-    } catch (error) {
-      input.onError?.(error);
-    } finally {
-      running = false;
-    }
+  const tick = () => {
+    if (!active) return Promise.resolve();
+    if (inFlight) return inFlight;
+    inFlight = (async () => {
+      try {
+        await recoverAlpha2DueRuns({
+          ledger: input.ledger,
+          dispatcher: input.dispatcher,
+          limit: input.batchSize ?? 50,
+        });
+      } catch (error) {
+        input.onError?.(error);
+      }
+    })().finally(() => {
+      inFlight = null;
+    });
+    return inFlight;
   };
 
   const timer = setInterval(() => void tick(), intervalMs);
@@ -760,9 +809,10 @@ export function startAlpha2RecoveryScheduler(input: {
   void tick();
 
   return {
-    stop() {
+    async stop() {
       active = false;
       clearInterval(timer);
+      await inFlight;
     },
     tick,
   };

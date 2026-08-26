@@ -149,6 +149,7 @@ export const Alpha2RunRecordSchema = z
     supportingRoles: z.array(AgentRoleIdSchema).default([]),
     riskClass: Alpha2RiskClassSchema,
     humanGate: Alpha2HumanGateSchema,
+    humanGateHistory: z.array(Alpha2HumanGateSchema).default([]),
     budget: Alpha2BudgetSchema,
     route: Alpha2ModelRouteSchema,
     createdAt: z.string().datetime(),
@@ -183,6 +184,9 @@ export const Alpha2RunRecordSchema = z
     }
     if (run.status === "human_gate" && run.humanGate.state !== "pending") {
       ctx.addIssue({ code: "custom", message: "alpha2_human_gate_status_requires_pending_gate" });
+    }
+    if (run.humanGateHistory.some((gate) => !DECIDED_HUMAN_GATE_STATES.has(gate.state))) {
+      ctx.addIssue({ code: "custom", message: "alpha2_human_gate_history_requires_decisions" });
     }
     if (run.humanGate.state === "pending" && run.status !== "human_gate") {
       ctx.addIssue({ code: "custom", message: "alpha2_pending_gate_requires_human_gate_status" });
@@ -265,6 +269,7 @@ export function createAlpha2RunRecord(input: {
     ),
     riskClass: input.riskClass,
     humanGate: input.humanGate ?? { state: "not_required" },
+    humanGateHistory: [],
     budget: {
       maxAttempts: input.budget?.maxAttempts ?? 3,
       maxModelCalls: input.budget?.maxModelCalls,
@@ -279,6 +284,29 @@ export function createAlpha2RunRecord(input: {
     evidenceRefs: [],
     safeTraceStepRefs: [],
     artifactRefs: [],
+  });
+}
+
+export function transitionAlpha2RunToNewHumanGate(
+  run: Alpha2RunRecord,
+  input: { reason: string; now?: string },
+): Alpha2RunRecord {
+  assertAlpha2RunTransition(run.status, "human_gate");
+  const now = input.now ?? new Date().toISOString();
+  const preservesDecision = DECIDED_HUMAN_GATE_STATES.has(run.humanGate.state);
+
+  return Alpha2RunRecordSchema.parse({
+    ...run,
+    status: "human_gate",
+    updatedAt: now,
+    resumeAt: undefined,
+    humanGate: {
+      state: "pending",
+      reason: input.reason,
+    },
+    humanGateHistory: preservesDecision
+      ? [...run.humanGateHistory, run.humanGate]
+      : run.humanGateHistory,
   });
 }
 

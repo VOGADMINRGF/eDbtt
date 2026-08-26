@@ -178,6 +178,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     lease?: { owner: string; now: string };
     resumeAfterMs?: number;
     initializeWallClock?: { maxWallClockMs?: number };
+    stampCheckpointId?: string;
   }): Promise<Alpha2VersionedRun> {
     const run = Alpha2RunRecordSchema.parse(input.run);
     const Model = await Alpha2LedgerModel();
@@ -199,7 +200,37 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
         amount: Math.max(0, Math.floor(delayMs)),
       },
     });
-    const payloadOverrides: Record<string, unknown> = {};
+    const payloadOverrides: Record<string, unknown> = {
+      updatedAt: serverIso("$$NOW"),
+    };
+    if (run.finishedAt) {
+      payloadOverrides.finishedAt = serverIso("$$NOW");
+    }
+    if (input.stampCheckpointId) {
+      payloadOverrides.checkpoints = {
+        $map: {
+          input: { $literal: run.checkpoints },
+          as: "checkpoint",
+          in: {
+            $cond: [
+              {
+                $eq: [
+                  "$$checkpoint.checkpointId",
+                  { $literal: input.stampCheckpointId },
+                ],
+              },
+              {
+                $mergeObjects: [
+                  "$$checkpoint",
+                  { createdAt: serverIso("$$NOW") },
+                ],
+              },
+              "$$checkpoint",
+            ],
+          },
+        },
+      };
+    }
     if (resumeAfterMs !== undefined) {
       payloadOverrides.resumeAt = serverIso(serverDateAfter(resumeAfterMs));
     }
@@ -211,36 +242,26 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
         );
       }
     }
-    const requiresServerTime =
-      resumeAfterMs !== undefined || input.initializeWallClock !== undefined;
-    const update =
-      !requiresServerTime
-        ? {
-            $set: indexedFields(run),
-            $inc: { version: 1 },
-          }
-        : [
-            {
-              $set: {
-                rootRunId: { $literal: run.rootRunId },
-                parentRunId: { $literal: run.parentRunId },
-                taskId: { $literal: run.taskId },
-                status: { $literal: run.status },
-                riskClass: { $literal: run.riskClass },
-                resumeAt:
-                  resumeAfterMs === undefined
-                    ? { $literal: run.resumeAt ? new Date(run.resumeAt) : null }
-                    : serverDateAfter(resumeAfterMs),
-                payload: {
-                  $mergeObjects: [
-                    { $literal: run },
-                    payloadOverrides,
-                  ],
-                },
-                version: { $add: ["$version", 1] },
-              },
-            },
-          ];
+    const update = [
+      {
+        $set: {
+          rootRunId: { $literal: run.rootRunId },
+          parentRunId: { $literal: run.parentRunId },
+          taskId: { $literal: run.taskId },
+          status: { $literal: run.status },
+          riskClass: { $literal: run.riskClass },
+          resumeAt:
+            resumeAfterMs === undefined
+              ? { $literal: run.resumeAt ? new Date(run.resumeAt) : null }
+              : serverDateAfter(resumeAfterMs),
+          payload: {
+            $mergeObjects: [{ $literal: run }, payloadOverrides],
+          },
+          updatedAt: "$$NOW",
+          version: { $add: ["$version", 1] },
+        },
+      },
+    ];
     const updated = await Model.findOneAndUpdate(
       {
         runId: run.runId,
@@ -250,7 +271,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
           : {}),
       },
       update,
-      { new: true, runValidators: true },
+      { new: true, runValidators: true, timestamps: false },
     );
 
     if (!updated) {
