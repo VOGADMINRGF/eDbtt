@@ -70,6 +70,7 @@ export function extractAlpha2OperativeOpenTasksHead(text: string) {
  */
 export function parseAlpha2CanonicalOpenTasks(text: string): Alpha2OpenTaskRecord[] {
   const records = new Map<string, Alpha2OpenTaskRecord>();
+  const seenTaskIds = new Set<string>();
   const operativeHead = extractAlpha2OperativeOpenTasksHead(text);
 
   for (const rawLine of operativeHead.split(/\r?\n/)) {
@@ -86,10 +87,12 @@ export function parseAlpha2CanonicalOpenTasks(text: string): Alpha2OpenTaskRecor
     const status = cleanCell(cells[1]);
 
     if (!id || id === "ID" || id.startsWith("---")) continue;
-    if (!STATUS_SET.has(status)) continue;
-    if (records.has(id)) {
+    if (seenTaskIds.has(id)) {
       throw new Error(`alpha2_duplicate_task_id_in_operative_head:${id}`);
     }
+    seenTaskIds.add(id);
+
+    if (!STATUS_SET.has(status)) continue;
 
     records.set(id, {
       id,
