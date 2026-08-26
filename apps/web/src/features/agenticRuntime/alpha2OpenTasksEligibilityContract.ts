@@ -38,22 +38,42 @@ export type Alpha2TaskEligibility = {
 };
 
 const STATUS_SET = new Set<string>(ALPHA2_OPEN_TASK_STATUSES);
+const OPERATIVE_HEAD_MARKER = "## Kanonischer Operativteil";
+const HISTORY_MARKERS = ["## Historischer Katalog und Evidenz", "## Historisches Archiv"] as const;
 
 function cleanCell(value: string | undefined) {
   return (value ?? "").trim();
 }
 
+export function extractAlpha2OperativeOpenTasksHead(text: string) {
+  const headStart = text.indexOf(OPERATIVE_HEAD_MARKER);
+  if (headStart === -1) {
+    throw new Error("alpha2_opentasks_operativteil_missing");
+  }
+
+  const historyStarts = HISTORY_MARKERS.map((marker) => text.indexOf(marker, headStart + 1)).filter(
+    (index) => index !== -1,
+  );
+  const historyStart = historyStarts.length > 0 ? Math.min(...historyStarts) : -1;
+
+  if (historyStart === -1 || historyStart <= headStart) {
+    throw new Error("alpha2_opentasks_history_boundary_missing");
+  }
+
+  return text.slice(headStart, historyStart);
+}
+
 /**
- * Parse canonical OpenTasks rows without creating another backlog truth.
- *
- * The operative head is intentionally read top-to-bottom and the first
- * occurrence of an ID wins. This prevents archived/historical duplicates
- * later in OpenTasks.md from silently overriding the current operative head.
+ * Parse only the canonical operative OpenTasks head without creating another backlog truth.
+ * Historical/archive sections are never eligible input, even when they contain recognized
+ * statuses such as codex_ready.
  */
 export function parseAlpha2CanonicalOpenTasks(text: string): Alpha2OpenTaskRecord[] {
   const records = new Map<string, Alpha2OpenTaskRecord>();
+  const seenTaskIds = new Set<string>();
+  const operativeHead = extractAlpha2OperativeOpenTasksHead(text);
 
-  for (const rawLine of text.split(/\r?\n/)) {
+  for (const rawLine of operativeHead.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line.startsWith("|")) continue;
 
@@ -67,8 +87,12 @@ export function parseAlpha2CanonicalOpenTasks(text: string): Alpha2OpenTaskRecor
     const status = cleanCell(cells[1]);
 
     if (!id || id === "ID" || id.startsWith("---")) continue;
+    if (seenTaskIds.has(id)) {
+      throw new Error(`alpha2_duplicate_task_id_in_operative_head:${id}`);
+    }
+    seenTaskIds.add(id);
+
     if (!STATUS_SET.has(status)) continue;
-    if (records.has(id)) continue;
 
     records.set(id, {
       id,
