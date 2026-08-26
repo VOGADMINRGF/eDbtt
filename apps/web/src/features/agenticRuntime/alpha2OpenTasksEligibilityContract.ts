@@ -87,7 +87,9 @@ export function parseAlpha2CanonicalOpenTasks(text: string): Alpha2OpenTaskRecor
 
     if (!id || id === "ID" || id.startsWith("---")) continue;
     if (!STATUS_SET.has(status)) continue;
-    if (records.has(id)) continue;
+    if (records.has(id)) {
+      throw new Error(`alpha2_duplicate_task_id_in_operative_head:${id}`);
+    }
 
     records.set(id, {
       id,
