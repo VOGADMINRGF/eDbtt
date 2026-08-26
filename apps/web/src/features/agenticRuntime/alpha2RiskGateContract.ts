@@ -121,18 +121,18 @@ export function resolveAlpha2ActionGate(rawInput: Alpha2ActionGateInput): Alpha2
     });
   }
 
-  if (ALWAYS_REVIEW_ACTIONS.has(input.actionKind)) {
-    return result({
-      decision: "review_required",
-      reasonCodes: [`review_boundary:${input.actionKind}`],
-      evidenceRefs: input.evidenceRefs,
-    });
-  }
-
   if (input.riskClass === "red" || input.riskClass === "orange") {
     return result({
       decision: "human_only",
       reasonCodes: [`risk_class:${input.riskClass}`],
+      evidenceRefs: input.evidenceRefs,
+    });
+  }
+
+  if (ALWAYS_REVIEW_ACTIONS.has(input.actionKind)) {
+    return result({
+      decision: "review_required",
+      reasonCodes: [`review_boundary:${input.actionKind}`],
       evidenceRefs: input.evidenceRefs,
     });
   }
