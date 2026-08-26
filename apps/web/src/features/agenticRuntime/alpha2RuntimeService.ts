@@ -66,6 +66,7 @@ export async function handleAlpha2ExecutionJob(input: {
     ledger,
     dispatcher,
     executor,
+    executionId: `${String(input.job.id ?? "job")}:${input.job.attemptsMade}:${String(input.job.processedOn ?? "pending")}`,
   });
 }
 

@@ -92,10 +92,9 @@ function dueStateFilter(now: Date) {
   };
 }
 
-function availableLeaseFilter(now: Date, owner?: string) {
+function availableLeaseFilter(now: Date) {
   return {
     $or: [
-      ...(owner ? [{ leaseOwner: owner }] : []),
       { leaseOwner: null },
       { leaseExpiresAt: null },
       { leaseExpiresAt: { $lte: now } },
@@ -151,11 +150,21 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
   async compareAndSwap(input: {
     run: Alpha2RunRecord;
     expectedVersion: number;
+    lease?: { owner: string; now: string };
   }): Promise<Alpha2VersionedRun> {
     const run = Alpha2RunRecordSchema.parse(input.run);
     const Model = await Alpha2LedgerModel();
     const updated = await Model.findOneAndUpdate(
-      { runId: run.runId, version: input.expectedVersion },
+      {
+        runId: run.runId,
+        version: input.expectedVersion,
+        ...(input.lease
+          ? {
+              leaseOwner: input.lease.owner,
+              leaseExpiresAt: { $gt: new Date(input.lease.now) },
+            }
+          : {}),
+      },
       {
         $set: indexedFields(run),
         $inc: { version: 1 },
@@ -163,7 +172,11 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
       { new: true, runValidators: true },
     );
 
-    if (!updated) throw new Error("alpha2_ledger_version_conflict");
+    if (!updated) {
+      throw new Error(
+        input.lease ? "alpha2_ledger_lease_lost" : "alpha2_ledger_version_conflict",
+      );
+    }
     return toVersionedRun(updated);
   }
 
@@ -180,7 +193,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     const updated = await Model.findOneAndUpdate(
       {
         runId: input.runId,
-        $and: [dueStateFilter(now), availableLeaseFilter(now, input.owner)],
+        $and: [dueStateFilter(now), availableLeaseFilter(now)],
       },
       {
         $set: {
@@ -191,6 +204,27 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
       { new: true },
     );
 
+    return updated ? toVersionedRun(updated) : null;
+  }
+
+  async renewLease(input: {
+    runId: string;
+    owner: string;
+    now: string;
+    leaseMs: number;
+  }): Promise<Alpha2VersionedRun | null> {
+    const Model = await Alpha2LedgerModel();
+    const now = new Date(input.now);
+    const expiresAt = new Date(now.getTime() + input.leaseMs);
+    const updated = await Model.findOneAndUpdate(
+      {
+        runId: input.runId,
+        leaseOwner: input.owner,
+        leaseExpiresAt: { $gt: now },
+      },
+      { $set: { leaseExpiresAt: expiresAt } },
+      { new: true },
+    );
     return updated ? toVersionedRun(updated) : null;
   }
 

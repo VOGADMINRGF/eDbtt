@@ -5,6 +5,11 @@ export type Alpha2RunLease = {
   expiresAt: string;
 };
 
+export type Alpha2LeaseFence = {
+  owner: string;
+  now: string;
+};
+
 export type Alpha2VersionedRun = {
   run: Alpha2RunRecord;
   version: number;
@@ -28,8 +33,15 @@ export interface Alpha2RunLedger {
   compareAndSwap(input: {
     run: Alpha2RunRecord;
     expectedVersion: number;
+    lease?: Alpha2LeaseFence;
   }): Promise<Alpha2VersionedRun>;
   tryAcquireLease(input: {
+    runId: string;
+    owner: string;
+    now: string;
+    leaseMs: number;
+  }): Promise<Alpha2VersionedRun | null>;
+  renewLease(input: {
     runId: string;
     owner: string;
     now: string;

@@ -7,7 +7,9 @@ import {
 import type {
   Alpha2ExecutionDispatch,
   Alpha2ExecutionDispatcher,
+  Alpha2ExecutionJob,
 } from "@/features/agenticRuntime/alpha2BullmqExecutionQueue";
+import { dispatchAlpha2Execution } from "@/features/agenticRuntime/alpha2BullmqExecutionQueue";
 import {
   isAlpha2HumanStoppedRun,
   isAlpha2RunDue,
@@ -17,6 +19,7 @@ import {
 } from "@/features/agenticRuntime/alpha2RunLedgerContract";
 import {
   createAlpha2RunRecord,
+  transitionAlpha2Run,
   type Alpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 
@@ -25,6 +28,12 @@ class FakeLedger implements Alpha2RunLedger {
 
   seed(run: Alpha2RunRecord) {
     this.records.set(run.runId, { run, version: 0, lease: null });
+  }
+
+  stealLease(runId: string, owner: string, expiresAt: string) {
+    const current = this.records.get(runId);
+    if (!current) throw new Error("missing test run");
+    this.records.set(runId, { ...current, lease: { owner, expiresAt } });
   }
 
   async createOrGet(run: Alpha2RunRecord) {
@@ -45,10 +54,21 @@ class FakeLedger implements Alpha2RunLedger {
     );
   }
 
-  async compareAndSwap(input: { run: Alpha2RunRecord; expectedVersion: number }) {
+  async compareAndSwap(input: {
+    run: Alpha2RunRecord;
+    expectedVersion: number;
+    lease?: { owner: string; now: string };
+  }) {
     const current = this.records.get(input.run.runId);
     if (!current || current.version !== input.expectedVersion) {
       throw new Error("alpha2_ledger_version_conflict");
+    }
+    if (
+      input.lease &&
+      (current.lease?.owner !== input.lease.owner ||
+        Date.parse(current.lease.expiresAt) <= Date.parse(input.lease.now))
+    ) {
+      throw new Error("alpha2_ledger_lease_lost");
     }
     const next = {
       run: input.run,
@@ -76,9 +96,7 @@ class FakeLedger implements Alpha2RunLedger {
         isAlpha2RunDue(current.run, input.now));
     if (!autoDue) return null;
     if (
-      current.lease &&
-      current.lease.owner !== input.owner &&
-      Date.parse(current.lease.expiresAt) > Date.parse(input.now)
+      current.lease && Date.parse(current.lease.expiresAt) > Date.parse(input.now)
     ) {
       return null;
     }
@@ -89,6 +107,31 @@ class FakeLedger implements Alpha2RunLedger {
         expiresAt: new Date(Date.parse(input.now) + input.leaseMs).toISOString(),
       },
     };
+    this.records.set(input.runId, next);
+    return next;
+  }
+
+  async renewLease(input: {
+    runId: string;
+    owner: string;
+    now: string;
+    leaseMs: number;
+  }) {
+    const current = this.records.get(input.runId);
+    if (
+      !current ||
+      current.lease?.owner !== input.owner ||
+      Date.parse(current.lease.expiresAt) <= Date.parse(input.now)
+    ) {
+      return null;
+    }
+    const next = {
+      ...current,
+      lease: {
+        owner: input.owner,
+        expiresAt: new Date(Date.parse(input.now) + input.leaseMs).toISOString(),
+      },
+    } satisfies Alpha2VersionedRun;
     this.records.set(input.runId, next);
     return next;
   }
@@ -314,5 +357,192 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       now: "2026-08-30T20:00:00.000Z",
     });
     expect(recovered).toEqual([]);
+  });
+
+  it("does not let concurrent deliveries from the same process share a lease", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-concurrent"));
+    let unblock!: () => void;
+    let markStarted!: () => void;
+    const blocked = new Promise<void>((resolve) => {
+      unblock = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+
+    const first = runAlpha2DurableStep({
+      runId: "run-concurrent",
+      workerId: "worker-process-a",
+      executionId: "delivery-1",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          markStarted();
+          await blocked;
+          return { type: "completed", checkpointId: "cp-first" };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    await started;
+
+    const second = await runAlpha2DurableStep({
+      runId: "run-concurrent",
+      workerId: "worker-process-a",
+      executionId: "delivery-2",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-second" };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(second).toEqual({ state: "lease_not_acquired", runId: "run-concurrent" });
+    unblock();
+    expect((await first).state).toBe("executed");
+  });
+
+  it("refuses to persist an outcome after the attempt lease was lost", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-fenced"));
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: "run-fenced",
+        workerId: "worker-a",
+        executionId: "delivery-a",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            ledger.stealLease(
+              "run-fenced",
+              "worker-b:run-fenced:attempt-1:version-1:delivery-b",
+              "2026-08-23T21:00:00.000Z",
+            );
+            return { type: "completed", checkpointId: "cp-stale" };
+          },
+        },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    ).rejects.toThrow("alpha2_ledger_lease_lost");
+
+    const stored = await ledger.getByRunId("run-fenced");
+    expect(stored?.run.status).toBe("running");
+    expect(stored?.run.checkpoints).toEqual([]);
+  });
+
+  it("charges an abandoned running step against the retry budget", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const abandoned = transitionAlpha2Run(run("run-abandoned"), "running", {
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(abandoned);
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-abandoned",
+      workerId: "worker-recovery",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-recovered" };
+        },
+      },
+      now: "2026-08-23T20:02:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.attempt).toBe(2);
+    expect(result.run.status).toBe("completed");
+  });
+
+  it("fails closed when an abandoned running step exhausted its attempt budget", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const limited = createAlpha2RunRecord({
+      runId: "run-exhausted",
+      idempotencyKey: "idem-run-exhausted",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(
+      transitionAlpha2Run(limited, "running", { now: "2026-08-23T20:00:00.000Z" }),
+    );
+    let executions = 0;
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-exhausted",
+      workerId: "worker-recovery",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executions += 1;
+          return { type: "completed", checkpointId: "cp-impossible" };
+        },
+      },
+      now: "2026-08-23T20:02:00.000Z",
+    });
+
+    expect(result.state).toBe("attempts_exhausted");
+    if (result.state !== "attempts_exhausted") throw new Error("unexpected state");
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("alpha2_attempt_budget_exhausted");
+    expect(result.run.attempt).toBe(1);
+    expect(executions).toBe(0);
+  });
+
+  it("replaces an identical retained failed BullMQ recovery job", async () => {
+    let removed = false;
+    const added: Array<{ name: string; options: { jobId: string; delay: number } }> = [];
+    const queue = {
+      async getJob() {
+        if (removed) return undefined;
+        return {
+          id: "alpha2_run-recovery_recovery_v1_start",
+          async getState() {
+            return "failed";
+          },
+          async remove() {
+            removed = true;
+          },
+        };
+      },
+      async add(
+        name: string,
+        _data: Alpha2ExecutionJob,
+        options: { jobId: string; delay: number },
+      ) {
+        added.push({ name, options });
+        return { id: options.jobId };
+      },
+    };
+
+    const dispatched = await dispatchAlpha2Execution(queue, {
+      runId: "run-recovery",
+      taskId: "ALPHA2-TEST-01",
+      dispatchKey: "recovery_v1_start",
+      reason: "recovery",
+      requestedAt: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(removed).toBe(true);
+    expect(added).toHaveLength(1);
+    expect(added[0]?.options.jobId).toBe(dispatched.jobId);
   });
 });

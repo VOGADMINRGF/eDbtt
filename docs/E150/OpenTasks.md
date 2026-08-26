@@ -5,7 +5,7 @@
 - Dieser Abschnitt ist die aktuelle operative Queue.
 - Bei Widersprüchen zwischen diesem Kopf und tieferen Abschnitten gewinnt dieser Kopf.
 - Die historischen Abschnitte darunter bleiben vollständig als Evidenz und Archiv erhalten.
-- Stand: `2026-08-25`
+- Stand: `2026-08-26`
 - Letzter gezielter Kopf-Sync: Issue `#447` / `GOVERNANCE-SSOT-SYNC-05` über Single-Writer-PR `#626` auf Basis `main@22f1b11b869f220e2412d6b5900ec121201525b7`; historische Evidenz bleibt unverändert.
 - Alpha2-Intake-Sync: Issue `#632` / Draft-PR `#631` übernimmt Alpha-Foxtrott 2.0 als Erweiterung der bestehenden V3-Agentic-Architektur in diese operative SSOT; die gestapelten Draft-PRs `#635`, `#637`, `#638`, `#639`, `#640`, `#647` und `#649` sind vorhandene Implementierungsevidenz, aber keine rückwirkende Ausführungs-, Merge-, Provider- oder Produktionsfreigabe.
 - PR `#415` (`docs/opentasks-head-sync-2026-07-23`) wurde am 2026-07-23 gemergt; der damalige Governance-SSOT-Sync ist abgeschlossen.
@@ -29,6 +29,7 @@ Historische Archivabschnitte darunter können ältere Statuswerte enthalten.
 - Alpha-Foxtrott 2.0 erweitert die bestehende `.codex/agents/registry.json`, den `lean-continuous-slice-runner`, den V3-Safe-Trace-Vertrag, den taskbezogenen Preflight und die vorhandene OpenTasks-/Metadata-Konvergenz. Es entsteht keine zweite Registry, Runner-, Trace-, Queue- oder OpenTasks-Wahrheit.
 - Issue `#632` bleibt das operative Intake-Gate. Nach Merge von Draft-PR `#631` ist ausschließlich `ALPHA2-RUN-CONTRACT-01` der erste `codex_ready` Alpha2-Slice; vor weiterer Implementierungsarbeit muss `node scripts/codex-task-preflight.mjs ALPHA2-RUN-CONTRACT-01` auf einem sauberen aktuellen `main` exakt `status = codex_ready`, `executable = true` und `branchCreationAllowed = true` liefern. Anschließend ist der bestehende Branch/PR `#635` wiederzuverwenden; kein neuer Branch oder PR.
 - Die vorhandenen Draft-PRs oberhalb von `#635` bleiben seriell und fail-closed. Ihr Code ist zu erhalten, aber ihre Existenz ersetzt weder Abhängigkeiten noch Preflight, unabhängigen Review, Exact-Head-CI, Vercel Preview oder menschliche Gates.
+- Governance-Befund 2026-08-26 auf `main@18630349ae4f694e524b43b3f0aa7f7e96e32031`: PR `#631` und PR `#635` sind gemergt, die operative Taskzeile führt `ALPHA2-RUN-CONTRACT-01` jedoch weiterhin als `codex_ready` statt als nachweislich abgeschlossen. Damit bleibt `ALPHA2-PERSISTENT-RUN-LEDGER-01` unverändert `blocked`; das technische Hardening im bestehenden Draft-PR `#637` ist vorbereitende Review-Evidenz und keine Ausführungs-, Status-, Merge-, Provider- oder Produktionsfreigabe.
 
 - PR `#429` wurde gemergt und liefert die Marketing-Growth-OS-, White-Label-, Campaign-, Asset- und Control-Plane-Foundation ohne Runtime-Autonomie.
 - PR `#437` wurde gemergt und schließt die Marketing-Control-Plane-Entscheidungen: `/admin/marketing`, bestehender Admin-/2FA-Gate, read-only erster Slice, aggregierte BI und getrenntes CRM-light.

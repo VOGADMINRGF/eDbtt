@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   Alpha2RunRecordSchema,
   appendAlpha2Checkpoint,
@@ -21,7 +22,8 @@ export type Alpha2WorkerOutcomeBase = {
   checkpointId: string;
   cursor?: string;
   evidenceRefs?: string[];
-  artifactRefs?: string[];
+  safeTraceStepRefs?: Alpha2RunRecord["safeTraceStepRefs"];
+  artifactRefs?: Alpha2RunRecord["artifactRefs"];
 };
 
 export type Alpha2WorkerOutcome =
@@ -60,6 +62,14 @@ function unique(values: readonly string[] = []) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function uniqueArtifacts(values: Alpha2RunRecord["artifactRefs"] = []) {
+  return Array.from(new Map(values.map((artifact) => [artifact.id, artifact])).values());
+}
+
+function uniqueSafeTraceSteps(values: Alpha2RunRecord["safeTraceStepRefs"] = []) {
+  return Array.from(new Map(values.map((step) => [step.stepId, step])).values());
+}
+
 function at(now: string, delayMs: number) {
   const safeDelay = Math.max(0, Math.floor(delayMs));
   return new Date(Date.parse(now) + safeDelay).toISOString();
@@ -69,7 +79,11 @@ function withOutcomeRefs(run: Alpha2RunRecord, outcome: Alpha2WorkerOutcome) {
   return Alpha2RunRecordSchema.parse({
     ...run,
     evidenceRefs: unique([...run.evidenceRefs, ...(outcome.evidenceRefs ?? [])]),
-    artifactRefs: unique([...run.artifactRefs, ...(outcome.artifactRefs ?? [])]),
+    safeTraceStepRefs: uniqueSafeTraceSteps([
+      ...run.safeTraceStepRefs,
+      ...(outcome.safeTraceStepRefs ?? []),
+    ]),
+    artifactRefs: uniqueArtifacts([...run.artifactRefs, ...(outcome.artifactRefs ?? [])]),
   });
 }
 
@@ -92,14 +106,16 @@ async function save(
   ledger: Alpha2RunLedger,
   current: Alpha2VersionedRun,
   run: Alpha2RunRecord,
+  lease: { owner: string; now: string },
 ) {
-  return ledger.compareAndSwap({ run, expectedVersion: current.version });
+  return ledger.compareAndSwap({ run, expectedVersion: current.version, lease });
 }
 
 async function moveToRunning(input: {
   ledger: Alpha2RunLedger;
   leased: Alpha2VersionedRun;
   now: string;
+  leaseOwner: string;
 }) {
   let current = input.leased;
   let run = current.run;
@@ -107,12 +123,41 @@ async function moveToRunning(input: {
   if (run.status === "failed") {
     if (run.attempt >= run.budget.maxAttempts) return { exhausted: true as const, current };
     run = transitionAlpha2Run(run, "queued", { now: input.now });
-    current = await save(input.ledger, current, run);
+    current = await save(input.ledger, current, run, {
+      owner: input.leaseOwner,
+      now: input.now,
+    });
+  }
+
+  if (run.status === "running") {
+    run = transitionAlpha2Run(run, "failed", {
+      now: input.now,
+      errorCode:
+        run.attempt >= run.budget.maxAttempts
+          ? "alpha2_attempt_budget_exhausted"
+          : "alpha2_abandoned_running_step",
+      resumeAt: run.attempt < run.budget.maxAttempts ? input.now : undefined,
+    });
+    current = await save(input.ledger, current, run, {
+      owner: input.leaseOwner,
+      now: input.now,
+    });
+    if (run.attempt >= run.budget.maxAttempts) {
+      return { exhausted: true as const, current };
+    }
+    run = transitionAlpha2Run(run, "queued", { now: input.now });
+    current = await save(input.ledger, current, run, {
+      owner: input.leaseOwner,
+      now: input.now,
+    });
   }
 
   if (run.status === "queued" || run.status === "waiting") {
     run = transitionAlpha2Run(current.run, "running", { now: input.now });
-    current = await save(input.ledger, current, run);
+    current = await save(input.ledger, current, run, {
+      owner: input.leaseOwner,
+      now: input.now,
+    });
   }
 
   if (current.run.status !== "running") {
@@ -127,6 +172,7 @@ async function persistOutcome(input: {
   current: Alpha2VersionedRun;
   outcome: Alpha2WorkerOutcome;
   now: string;
+  leaseOwner: string;
 }) {
   let run = withOutcomeRefs(input.current.run, input.outcome);
   run = appendAlpha2Checkpoint(run, {
@@ -135,6 +181,7 @@ async function persistOutcome(input: {
     status: checkpointStatus(input.outcome),
     cursor: input.outcome.cursor,
     evidenceRefs: input.outcome.evidenceRefs ?? [],
+    safeTraceStepRefs: input.outcome.safeTraceStepRefs ?? [],
     artifactRefs: input.outcome.artifactRefs ?? [],
   });
 
@@ -172,7 +219,79 @@ async function persistOutcome(input: {
     }
   }
 
-  return save(input.ledger, input.current, run);
+  return save(input.ledger, input.current, run, {
+    owner: input.leaseOwner,
+    now: input.now,
+  });
+}
+
+function createLeaseOwner(input: {
+  workerId: string;
+  runId: string;
+  observedVersion: number;
+  observedAttempt: number;
+  executionId?: string;
+}) {
+  const executionId = input.executionId ?? randomUUID();
+  return [
+    input.workerId,
+    input.runId,
+    `attempt-${input.observedAttempt + 1}`,
+    `version-${input.observedVersion}`,
+    executionId,
+  ].join(":");
+}
+
+function startLeaseHeartbeat(input: {
+  ledger: Alpha2RunLedger;
+  runId: string;
+  leaseOwner: string;
+  leaseMs: number;
+}) {
+  let lost = false;
+  let pending: Promise<void> | null = null;
+  const renew = () => {
+    if (pending) return pending;
+    pending = input.ledger
+      .renewLease({
+        runId: input.runId,
+        owner: input.leaseOwner,
+        now: new Date().toISOString(),
+        leaseMs: input.leaseMs,
+      })
+      .then((renewed) => {
+        if (!renewed) lost = true;
+      })
+      .catch(() => {
+        lost = true;
+      })
+      .finally(() => {
+        pending = null;
+      });
+    return pending;
+  };
+  const timer = setInterval(() => void renew(), Math.max(1_000, Math.floor(input.leaseMs / 3)));
+  timer.unref?.();
+
+  return {
+    async stopAndVerify(now: string) {
+      clearInterval(timer);
+      await pending;
+      if (!lost) {
+        const renewed = await input.ledger.renewLease({
+          runId: input.runId,
+          owner: input.leaseOwner,
+          now,
+          leaseMs: input.leaseMs,
+        });
+        if (!renewed) lost = true;
+      }
+      if (lost) throw new Error("alpha2_ledger_lease_lost");
+    },
+    stop() {
+      clearInterval(timer);
+    },
+  };
 }
 
 function nextDispatch(input: {
@@ -211,6 +330,7 @@ export async function runAlpha2DurableStep(input: {
   executor: Alpha2WorkerExecutor;
   leaseMs?: number;
   now?: string;
+  executionId?: string;
 }): Promise<Alpha2DurableStepResult> {
   const startedAt = input.now ?? new Date().toISOString();
   const observed = await input.ledger.getByRunId(input.runId);
@@ -223,18 +343,37 @@ export async function runAlpha2DurableStep(input: {
     return { state: "not_due", run: observed.run };
   }
 
+  const leaseMs = Math.max(10_000, input.leaseMs ?? 120_000);
+  const leaseOwner = createLeaseOwner({
+    workerId: input.workerId,
+    runId: input.runId,
+    observedVersion: observed.version,
+    observedAttempt: observed.run.attempt,
+    executionId: input.executionId,
+  });
   const leased = await input.ledger.tryAcquireLease({
     runId: input.runId,
-    owner: input.workerId,
+    owner: leaseOwner,
     now: startedAt,
-    leaseMs: Math.max(10_000, input.leaseMs ?? 120_000),
+    leaseMs,
   });
   if (!leased) return { state: "lease_not_acquired", runId: input.runId };
 
   try {
-    const start = await moveToRunning({ ledger: input.ledger, leased, now: startedAt });
+    const start = await moveToRunning({
+      ledger: input.ledger,
+      leased,
+      now: startedAt,
+      leaseOwner,
+    });
     if (start.exhausted) return { state: "attempts_exhausted", run: start.current.run };
 
+    const heartbeat = startLeaseHeartbeat({
+      ledger: input.ledger,
+      runId: input.runId,
+      leaseOwner,
+      leaseMs,
+    });
     let outcome: Alpha2WorkerOutcome;
     try {
       outcome = await input.executor.execute({ run: start.current.run, workerId: input.workerId });
@@ -249,11 +388,13 @@ export async function runAlpha2DurableStep(input: {
     }
 
     const outcomeAt = input.now ?? new Date().toISOString();
+    await heartbeat.stopAndVerify(outcomeAt);
     const persisted = await persistOutcome({
       ledger: input.ledger,
       current: start.current,
       outcome,
       now: outcomeAt,
+      leaseOwner,
     });
 
     const dispatch = nextDispatch({ run: persisted.run, outcome, now: outcomeAt });
@@ -274,7 +415,7 @@ export async function runAlpha2DurableStep(input: {
       return { state: "executed", run: persisted.run };
     }
   } finally {
-    await input.ledger.releaseLease({ runId: input.runId, owner: input.workerId });
+    await input.ledger.releaseLease({ runId: input.runId, owner: leaseOwner });
   }
 }
 

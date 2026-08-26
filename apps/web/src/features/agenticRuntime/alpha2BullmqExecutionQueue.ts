@@ -74,24 +74,58 @@ function safeJobId(value: string) {
   return value.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 180);
 }
 
+type Alpha2DispatchQueue = {
+  getJob(jobId: string): Promise<
+    | {
+        id?: string | number;
+        getState(): Promise<string>;
+        remove(): Promise<void>;
+      }
+    | undefined
+  >;
+  add(
+    name: string,
+    data: Alpha2ExecutionJob,
+    options: { jobId: string; delay: number },
+  ): Promise<{ id?: string | number }>;
+};
+
+export async function dispatchAlpha2Execution(
+  executionQueue: Alpha2DispatchQueue,
+  input: Alpha2ExecutionDispatch,
+) {
+  const jobId = safeJobId(`alpha2_${input.runId}_${input.dispatchKey}`);
+  const existing = await executionQueue.getJob(jobId);
+
+  if (existing) {
+    const state = await existing.getState();
+    if (input.reason === "recovery" && state === "failed") {
+      await existing.remove();
+    } else {
+      return { jobId: String(existing.id ?? jobId) };
+    }
+  }
+
+  const job = await executionQueue.add(
+    "execute-run",
+    {
+      runId: input.runId,
+      taskId: input.taskId,
+      dispatchKey: input.dispatchKey,
+      reason: input.reason,
+      requestedAt: input.requestedAt,
+    },
+    {
+      jobId,
+      delay: Math.max(0, input.delayMs ?? 0),
+    },
+  );
+  return { jobId: String(job.id ?? jobId) };
+}
+
 export class Alpha2BullmqExecutionDispatcher implements Alpha2ExecutionDispatcher {
   async dispatch(input: Alpha2ExecutionDispatch) {
-    const jobId = safeJobId(`alpha2_${input.runId}_${input.dispatchKey}`);
-    const job = await getAlpha2ExecutionQueue().add(
-      "execute-run",
-      {
-        runId: input.runId,
-        taskId: input.taskId,
-        dispatchKey: input.dispatchKey,
-        reason: input.reason,
-        requestedAt: input.requestedAt,
-      },
-      {
-        jobId,
-        delay: Math.max(0, input.delayMs ?? 0),
-      },
-    );
-    return { jobId: String(job.id ?? jobId) };
+    return dispatchAlpha2Execution(getAlpha2ExecutionQueue(), input);
   }
 }
 
