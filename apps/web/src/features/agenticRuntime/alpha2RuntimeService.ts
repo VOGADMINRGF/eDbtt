@@ -8,7 +8,9 @@ import {
   recoverAlpha2DueRuns,
   runAlpha2DurableStep,
   startAlpha2RecoveryScheduler,
-  type Alpha2WorkerExecutor,
+  createAlpha2ResolvingExecutor,
+  type Alpha2ExecutionAuthorization,
+  type Alpha2ExecutorResolver,
 } from "@/features/agenticRuntime/alpha2DurableOrchestrator";
 import { getAlpha2MongoRunLedger } from "@/features/agenticRuntime/alpha2MongoRunLedger";
 import {
@@ -20,8 +22,8 @@ import {
   type Alpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 
-export interface Alpha2ExecutorResolver {
-  resolve(run: Alpha2RunRecord): Promise<Alpha2WorkerExecutor> | Alpha2WorkerExecutor;
+export interface Alpha2ExecutionAuthorizationResolver {
+  resolve(run: Alpha2RunRecord): Alpha2ExecutionAuthorization;
 }
 
 export async function persistAndDispatchAlpha2Run(input: {
@@ -52,13 +54,19 @@ export async function persistAndDispatchAlpha2Run(input: {
 export async function handleAlpha2ExecutionJob(input: {
   job: Job<Alpha2ExecutionJob>;
   executorResolver: Alpha2ExecutorResolver;
+  authorizationResolver: Alpha2ExecutionAuthorizationResolver;
   workerId: string;
+  executorResolutionTimeoutMs?: number;
 }) {
   const ledger = getAlpha2MongoRunLedger();
   const dispatcher = getAlpha2ExecutionDispatcher();
   const stored = await ledger.getByRunId(input.job.data.runId);
   if (!stored) return { state: "missing" as const, runId: input.job.data.runId };
-  const executor = await input.executorResolver.resolve(stored.run);
+  const authorization = input.authorizationResolver.resolve(stored.run);
+  const executor = createAlpha2ResolvingExecutor({
+    resolver: input.executorResolver,
+    resolutionTimeoutMs: input.executorResolutionTimeoutMs,
+  });
 
   return runAlpha2DurableStep({
     runId: stored.run.runId,
@@ -66,17 +74,20 @@ export async function handleAlpha2ExecutionJob(input: {
     ledger,
     dispatcher,
     executor,
+    authorization,
     executionId: `${String(input.job.id ?? "job")}:${input.job.attemptsMade}:${String(input.job.processedOn ?? "pending")}`,
   });
 }
 
 export function startAlpha2ControlPlaneRuntime(input: {
   executorResolver: Alpha2ExecutorResolver;
+  authorizationResolver: Alpha2ExecutionAuthorizationResolver;
   workerId?: string;
   concurrency?: number;
   recoveryIntervalMs?: number;
   recoveryBatchSize?: number;
   onRecoveryError?: (error: unknown) => void;
+  executorResolutionTimeoutMs?: number;
 }) {
   const ledger = getAlpha2MongoRunLedger();
   const dispatcher = getAlpha2ExecutionDispatcher();
@@ -88,7 +99,9 @@ export function startAlpha2ControlPlaneRuntime(input: {
       handleAlpha2ExecutionJob({
         job,
         executorResolver: input.executorResolver,
+        authorizationResolver: input.authorizationResolver,
         workerId,
+        executorResolutionTimeoutMs: input.executorResolutionTimeoutMs,
       }),
   });
 

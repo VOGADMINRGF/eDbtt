@@ -34,6 +34,7 @@ export interface Alpha2RunLedger {
     run: Alpha2RunRecord;
     expectedVersion: number;
     lease?: Alpha2LeaseFence;
+    resumeAfterMs?: number;
   }): Promise<Alpha2VersionedRun>;
   tryAcquireLease(input: {
     runId: string;

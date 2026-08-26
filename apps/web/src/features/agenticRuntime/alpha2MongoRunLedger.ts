@@ -176,9 +176,59 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     run: Alpha2RunRecord;
     expectedVersion: number;
     lease?: { owner: string; now: string };
+    resumeAfterMs?: number;
   }): Promise<Alpha2VersionedRun> {
     const run = Alpha2RunRecordSchema.parse(input.run);
     const Model = await Alpha2LedgerModel();
+    const resumeAfterMs =
+      input.resumeAfterMs === undefined
+        ? undefined
+        : Math.max(0, Math.floor(input.resumeAfterMs));
+    const update =
+      resumeAfterMs === undefined
+        ? {
+            $set: indexedFields(run),
+            $inc: { version: 1 },
+          }
+        : [
+            {
+              $set: {
+                rootRunId: { $literal: run.rootRunId },
+                parentRunId: { $literal: run.parentRunId },
+                taskId: { $literal: run.taskId },
+                status: { $literal: run.status },
+                riskClass: { $literal: run.riskClass },
+                resumeAt: {
+                  $dateAdd: {
+                    startDate: "$$NOW",
+                    unit: "millisecond",
+                    amount: resumeAfterMs,
+                  },
+                },
+                payload: {
+                  $mergeObjects: [
+                    { $literal: run },
+                    {
+                      resumeAt: {
+                        $dateToString: {
+                          date: {
+                            $dateAdd: {
+                              startDate: "$$NOW",
+                              unit: "millisecond",
+                              amount: resumeAfterMs,
+                            },
+                          },
+                          format: "%Y-%m-%dT%H:%M:%S.%LZ",
+                          timezone: "UTC",
+                        },
+                      },
+                    },
+                  ],
+                },
+                version: { $add: ["$version", 1] },
+              },
+            },
+          ];
     const updated = await Model.findOneAndUpdate(
       {
         runId: run.runId,
@@ -187,10 +237,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
           ? activeLeaseFilter(input.lease.owner)
           : {}),
       },
-      {
-        $set: indexedFields(run),
-        $inc: { version: 1 },
-      },
+      update,
       { new: true, runValidators: true },
     );
 

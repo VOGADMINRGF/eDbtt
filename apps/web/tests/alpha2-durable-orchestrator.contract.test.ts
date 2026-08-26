@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   recoverAlpha2DueRuns,
-  runAlpha2DurableStep,
+  createAlpha2ResolvingExecutor,
+  runAlpha2DurableStep as runAlpha2DurableStepInternal,
   type Alpha2WorkerExecutor,
 } from "@/features/agenticRuntime/alpha2DurableOrchestrator";
 import type {
@@ -18,6 +19,7 @@ import {
   type Alpha2VersionedRun,
 } from "@/features/agenticRuntime/alpha2RunLedgerContract";
 import {
+  Alpha2RunRecordSchema,
   createAlpha2RunRecord,
   transitionAlpha2Run,
   type Alpha2RunRecord,
@@ -26,6 +28,7 @@ import {
 class FakeLedger implements Alpha2RunLedger {
   private records = new Map<string, Alpha2VersionedRun>();
   leaseOwners: string[] = [];
+  serverNow: string | undefined;
 
   seed(run: Alpha2RunRecord) {
     this.records.set(run.runId, { run, version: 0, lease: null });
@@ -59,6 +62,7 @@ class FakeLedger implements Alpha2RunLedger {
     run: Alpha2RunRecord;
     expectedVersion: number;
     lease?: { owner: string; now: string };
+    resumeAfterMs?: number;
   }) {
     const current = this.records.get(input.run.runId);
     if (!current || current.version !== input.expectedVersion) {
@@ -71,8 +75,18 @@ class FakeLedger implements Alpha2RunLedger {
     ) {
       throw new Error("alpha2_ledger_lease_lost");
     }
+    const run =
+      input.resumeAfterMs === undefined
+        ? input.run
+        : Alpha2RunRecordSchema.parse({
+            ...input.run,
+            resumeAt: new Date(
+              Date.parse(this.serverNow ?? input.lease?.now ?? input.run.updatedAt) +
+                Math.max(0, Math.floor(input.resumeAfterMs)),
+            ).toISOString(),
+          });
     const next = {
-      run: input.run,
+      run,
       version: current.version + 1,
       lease: current.lease,
     } satisfies Alpha2VersionedRun;
@@ -168,6 +182,39 @@ class FakeLedger implements Alpha2RunLedger {
   }
 }
 
+const AUTHORIZED_OPENTASKS = `
+## Kanonischer Operativteil
+| ID | Status | Priorität | Abhängigkeiten | Scope / Ziel | Akzeptanzkriterien / Evidence |
+| --- | --- | --- | --- | --- | --- |
+| ALPHA2-TEST-01 | in_progress | P0 |  | Test | Test |
+## Historischer Katalog und Evidenz
+`;
+
+function runAlpha2DurableStep(
+  input: Parameters<typeof runAlpha2DurableStepInternal>[0],
+) {
+  return runAlpha2DurableStepInternal({
+    ...input,
+    authorization: input.authorization ?? {
+      openTasksText: AUTHORIZED_OPENTASKS,
+      ownership: {
+        branch: "feat/alpha2-test",
+        prNumber: 637,
+        exactHead: true,
+        ciState: "success",
+        unresolvedReviewThreads: 0,
+      },
+      action: {
+        actionKind: "read_only",
+        riskClass: "green",
+        confidence: "high",
+        reversible: true,
+        evidenceRefs: ["test:alpha2-runtime-authorization"],
+      },
+    },
+  });
+}
+
 class FakeDispatcher implements Alpha2ExecutionDispatcher {
   jobs: Alpha2ExecutionDispatch[] = [];
   fail = false;
@@ -194,6 +241,162 @@ function run(id = "run-1") {
 }
 
 describe("Alpha-Foxtrott 2 durable orchestrator", () => {
+  it("persists a human gate before executing a blocked OpenTasks task", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-blocked-task"));
+    let executed = false;
+
+    const result = await runAlpha2DurableStepInternal({
+      runId: "run-blocked-task",
+      workerId: "worker-gated",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executed = true;
+          return { type: "completed", checkpointId: "must-not-run" };
+        },
+      },
+      authorization: {
+        openTasksText: AUTHORIZED_OPENTASKS.replace("in_progress", "blocked"),
+        ownership: {
+          branch: "feat/alpha2-test",
+          prNumber: 637,
+          exactHead: true,
+          ciState: "success",
+          unresolvedReviewThreads: 0,
+        },
+        action: {
+          actionKind: "read_only",
+          riskClass: "green",
+          confidence: "high",
+          reversible: true,
+          evidenceRefs: ["test:blocked-task"],
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(executed).toBe(false);
+    expect(result.state).toBe("execution_blocked");
+    if (result.state !== "execution_blocked") throw new Error("unexpected state");
+    expect(result.reasonCodes).toContain("task_blocked");
+    expect(result.run.status).toBe("human_gate");
+    expect(result.run.humanGate.state).toBe("pending");
+  });
+
+  it("persists a human gate before executing an orange action", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(
+      createAlpha2RunRecord({
+        runId: "run-orange-action",
+        idempotencyKey: "idem-run-orange-action",
+        taskId: "ALPHA2-TEST-01",
+        kind: "engineering_slice",
+        primaryRole: "governance_compliance",
+        riskClass: "orange",
+        route: { mode: "automatic", capabilityClass: "test" },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    );
+
+    const result = await runAlpha2DurableStepInternal({
+      runId: "run-orange-action",
+      workerId: "worker-gated",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          throw new Error("must not execute");
+        },
+      },
+      authorization: {
+        openTasksText: AUTHORIZED_OPENTASKS,
+        ownership: {
+          branch: "feat/alpha2-test",
+          prNumber: 637,
+          exactHead: true,
+          ciState: "success",
+          unresolvedReviewThreads: 0,
+        },
+        action: {
+          actionKind: "read_only",
+          riskClass: "orange",
+          confidence: "high",
+          reversible: true,
+          evidenceRefs: ["test:orange-action"],
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("execution_blocked");
+    if (result.state !== "execution_blocked") throw new Error("unexpected state");
+    expect(result.reasonCodes).toContain("risk_class:orange");
+    expect(result.run.status).toBe("human_gate");
+  });
+
+  it("fails closed on unmetered durable model-call and cost budgets", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(
+      createAlpha2RunRecord({
+        runId: "run-unmetered-budget",
+        idempotencyKey: "idem-run-unmetered-budget",
+        taskId: "ALPHA2-TEST-01",
+        kind: "engineering_slice",
+        primaryRole: "governance_compliance",
+        riskClass: "green",
+        route: { mode: "automatic", capabilityClass: "test" },
+        budget: { maxAttempts: 3, maxModelCalls: 1, maxEstimatedCostEur: 0.1 },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    );
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-unmetered-budget",
+      workerId: "worker-budget",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          throw new Error("must not execute");
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("execution_blocked");
+    if (result.state !== "execution_blocked") throw new Error("unexpected state");
+    expect(result.reasonCodes).toEqual(
+      expect.arrayContaining([
+        "durable_model_call_metering_not_available",
+        "durable_cost_metering_not_available",
+      ]),
+    );
+  });
+
+  it("bounds executor resolution even when the resolver never settles", async () => {
+    const executor = createAlpha2ResolvingExecutor({
+      resolutionTimeoutMs: 10,
+      resolver: {
+        resolve() {
+          return new Promise<Alpha2WorkerExecutor>(() => undefined);
+        },
+      },
+    });
+
+    await expect(
+      executor.execute({
+        run: run("run-resolver-timeout"),
+        workerId: "worker-resolver",
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toThrow("alpha2_executor_resolution_timeout");
+  });
+
   it("persists a scheduled wait and resumes without counting the resume as another attempt", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
@@ -250,6 +453,35 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       "cp-wait",
       "cp-done",
     ]);
+  });
+
+  it("derives a persisted resume deadline from authoritative ledger time", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.serverNow = "2026-08-23T20:05:00.000Z";
+    ledger.seed(run("run-server-resume"));
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-server-resume",
+      workerId: "worker-clock-skew",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "waiting",
+            checkpointId: "cp-server-resume",
+            resumeAfterMs: 60_000,
+          };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.resumeAt).toBe("2026-08-23T20:06:00.000Z");
+    expect(dispatcher.jobs[0]?.delayMs).toBe(60_000);
   });
 
   it("stops at a human gate and never recovers it automatically", async () => {

@@ -16,6 +16,15 @@ import type {
   Alpha2ExecutionDispatcher,
   Alpha2ExecutionReason,
 } from "@/features/agenticRuntime/alpha2BullmqExecutionQueue";
+import {
+  evaluateAlpha2TaskEligibility,
+  findAlpha2OpenTask,
+  type Alpha2TaskOwnershipEvidence,
+} from "@/features/agenticRuntime/alpha2OpenTasksEligibilityContract";
+import {
+  resolveAlpha2ActionGate,
+  type Alpha2ActionGateInput,
+} from "@/features/agenticRuntime/alpha2RiskGateContract";
 
 export type Alpha2WorkerOutcomeBase = {
   checkpointId: string;
@@ -45,6 +54,53 @@ export interface Alpha2WorkerExecutor {
   }): Promise<Alpha2WorkerOutcome>;
 }
 
+export interface Alpha2ExecutorResolver {
+  resolve(
+    run: Alpha2RunRecord,
+    input: { signal: AbortSignal },
+  ): Promise<Alpha2WorkerExecutor> | Alpha2WorkerExecutor;
+}
+
+export function createAlpha2ResolvingExecutor(input: {
+  resolver: Alpha2ExecutorResolver;
+  resolutionTimeoutMs?: number;
+}): Alpha2WorkerExecutor {
+  const resolutionTimeoutMs = Math.max(1, input.resolutionTimeoutMs ?? 30_000);
+  return {
+    async execute(context) {
+      const resolutionController = new AbortController();
+      const abortResolution = () => resolutionController.abort(context.signal.reason);
+      context.signal.addEventListener("abort", abortResolution, { once: true });
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let executor: Alpha2WorkerExecutor;
+      try {
+        executor = await Promise.race([
+          Promise.resolve().then(() =>
+            input.resolver.resolve(context.run, { signal: resolutionController.signal }),
+          ),
+          new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(() => {
+              resolutionController.abort("alpha2_executor_resolution_timeout");
+              reject(new Error("alpha2_executor_resolution_timeout"));
+            }, resolutionTimeoutMs);
+          }),
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+        context.signal.removeEventListener("abort", abortResolution);
+      }
+      if (context.signal.aborted) throw new Error("alpha2_executor_resolution_aborted");
+      return executor.execute(context);
+    },
+  };
+}
+
+export type Alpha2ExecutionAuthorization = {
+  openTasksText: string;
+  ownership: Alpha2TaskOwnershipEvidence;
+  action: Alpha2ActionGateInput;
+};
+
 export type Alpha2DurableStepResult =
   | { state: "missing"; runId: string }
   | { state: "not_due"; run: Alpha2RunRecord }
@@ -52,6 +108,7 @@ export type Alpha2DurableStepResult =
   | { state: "terminal"; run: Alpha2RunRecord }
   | { state: "lease_not_acquired"; runId: string }
   | { state: "attempts_exhausted"; run: Alpha2RunRecord }
+  | { state: "execution_blocked"; run: Alpha2RunRecord; reasonCodes: string[] }
   | {
       state: "executed";
       run: Alpha2RunRecord;
@@ -68,11 +125,6 @@ function uniqueArtifacts(values: Alpha2RunRecord["artifactRefs"] = []) {
 
 function uniqueSafeTraceSteps(values: Alpha2RunRecord["safeTraceStepRefs"] = []) {
   return Array.from(new Map(values.map((step) => [step.stepId, step])).values());
-}
-
-function at(now: string, delayMs: number) {
-  const safeDelay = Math.max(0, Math.floor(delayMs));
-  return new Date(Date.parse(now) + safeDelay).toISOString();
 }
 
 function withOutcomeRefs(run: Alpha2RunRecord, outcome: Alpha2WorkerOutcome) {
@@ -107,8 +159,98 @@ async function save(
   current: Alpha2VersionedRun,
   run: Alpha2RunRecord,
   lease: { owner: string; now: string },
+  resumeAfterMs?: number,
 ) {
-  return ledger.compareAndSwap({ run, expectedVersion: current.version, lease });
+  return ledger.compareAndSwap({
+    run,
+    expectedVersion: current.version,
+    lease,
+    resumeAfterMs,
+  });
+}
+
+function executionBlockReasons(
+  run: Alpha2RunRecord,
+  authorization: Alpha2ExecutionAuthorization | undefined,
+) {
+  const reasonCodes: string[] = [];
+
+  if (!authorization) return ["missing_runtime_execution_authorization"];
+
+  try {
+    const task = findAlpha2OpenTask(authorization.openTasksText, run.taskId);
+    if (!task) {
+      reasonCodes.push("task_missing_from_canonical_opentasks");
+    } else {
+      const eligibility = evaluateAlpha2TaskEligibility({
+        task,
+        ownership: authorization.ownership,
+      });
+      if (!eligibility.continuationEligible) {
+        reasonCodes.push(...eligibility.reasonCodes);
+      }
+    }
+  } catch {
+    reasonCodes.push("canonical_opentasks_unreadable");
+  }
+
+  if (authorization.ownership.exactHead !== true) {
+    reasonCodes.push("owner_not_on_exact_head");
+  }
+  if (authorization.ownership.ciState !== "success") {
+    reasonCodes.push("exact_head_ci_not_successful");
+  }
+  if ((authorization.ownership.unresolvedReviewThreads ?? 1) > 0) {
+    reasonCodes.push("unresolved_review_threads");
+  }
+
+  try {
+    if (authorization.action.riskClass !== run.riskClass) {
+      reasonCodes.push("action_risk_class_mismatch");
+    }
+    const actionGate = resolveAlpha2ActionGate(authorization.action);
+    if (!actionGate.autoExecutionAllowed) reasonCodes.push(...actionGate.reasonCodes);
+  } catch {
+    reasonCodes.push("action_gate_evidence_invalid");
+  }
+
+  if (run.budget.maxModelCalls !== undefined) {
+    reasonCodes.push("durable_model_call_metering_not_available");
+  }
+  if (run.budget.maxEstimatedCostEur !== undefined) {
+    reasonCodes.push("durable_cost_metering_not_available");
+  }
+
+  return unique(reasonCodes);
+}
+
+async function persistExecutionBlock(input: {
+  ledger: Alpha2RunLedger;
+  leased: Alpha2VersionedRun;
+  now: string;
+  leaseOwner: string;
+  reasonCodes: string[];
+}) {
+  let current = input.leased;
+  if (current.run.status === "failed") {
+    const queued = transitionAlpha2Run(current.run, "queued", { now: input.now });
+    current = await save(input.ledger, current, queued, {
+      owner: input.leaseOwner,
+      now: input.now,
+    });
+  }
+
+  const stopped = transitionAlpha2Run(current.run, "human_gate", {
+    now: input.now,
+    humanGate: {
+      state: "pending",
+      reason: input.reasonCodes.join(","),
+    },
+  });
+  return save(input.ledger, current, stopped, {
+    owner: input.leaseOwner,
+    now: input.now,
+  });
 }
 
 async function moveToRunning(input: {
@@ -192,7 +334,6 @@ async function persistOutcome(input: {
     case "waiting":
       run = transitionAlpha2Run(run, "waiting", {
         now: input.now,
-        resumeAt: at(input.now, input.outcome.resumeAfterMs),
       });
       break;
     case "review":
@@ -208,21 +349,30 @@ async function persistOutcome(input: {
       });
       break;
     case "failed": {
-      const canRetry =
-        input.outcome.retryable && input.current.run.attempt < input.current.run.budget.maxAttempts;
       run = transitionAlpha2Run(run, "failed", {
         now: input.now,
         errorCode: input.outcome.errorCode,
-        resumeAt: canRetry ? at(input.now, input.outcome.retryAfterMs ?? 30_000) : undefined,
       });
       break;
     }
   }
 
-  return save(input.ledger, input.current, run, {
-    owner: input.leaseOwner,
-    now: input.now,
-  });
+  const resumeAfterMs =
+    input.outcome.type === "waiting"
+      ? input.outcome.resumeAfterMs
+      : input.outcome.type === "failed" &&
+          input.outcome.retryable &&
+          input.current.run.attempt < input.current.run.budget.maxAttempts
+        ? (input.outcome.retryAfterMs ?? 30_000)
+        : undefined;
+
+  return save(
+    input.ledger,
+    input.current,
+    run,
+    { owner: input.leaseOwner, now: input.now },
+    resumeAfterMs,
+  );
 }
 
 function createLeaseOwner(input: {
@@ -382,7 +532,6 @@ async function executeWithinWallClockBudget(input: {
 function nextDispatch(input: {
   run: Alpha2RunRecord;
   outcome: Alpha2WorkerOutcome;
-  now: string;
 }): { reason: Alpha2ExecutionReason; delayMs: number; dispatchKey: string } | null {
   if (input.outcome.type === "waiting") {
     return {
@@ -399,7 +548,7 @@ function nextDispatch(input: {
   ) {
     return {
       reason: "retry",
-      delayMs: Math.max(0, Date.parse(input.run.resumeAt!) - Date.parse(input.now)),
+      delayMs: Math.max(0, input.outcome.retryAfterMs ?? 30_000),
       dispatchKey: `retry_${input.outcome.checkpointId}`,
     };
   }
@@ -416,6 +565,7 @@ export async function runAlpha2DurableStep(input: {
   leaseMs?: number;
   now?: string;
   executionId?: string;
+  authorization?: Alpha2ExecutionAuthorization;
 }): Promise<Alpha2DurableStepResult> {
   const startedAt = input.now ?? new Date().toISOString();
   const observed = await input.ledger.getByRunId(input.runId);
@@ -450,6 +600,18 @@ export async function runAlpha2DurableStep(input: {
   }
 
   try {
+    const reasonCodes = executionBlockReasons(leased.run, input.authorization);
+    if (reasonCodes.length > 0) {
+      const stopped = await persistExecutionBlock({
+        ledger: input.ledger,
+        leased,
+        now: startedAt,
+        leaseOwner,
+        reasonCodes,
+      });
+      return { state: "execution_blocked", run: stopped.run, reasonCodes };
+    }
+
     const start = await moveToRunning({
       ledger: input.ledger,
       leased,
@@ -481,7 +643,7 @@ export async function runAlpha2DurableStep(input: {
         leaseOwner,
       });
 
-      const dispatch = nextDispatch({ run: persisted.run, outcome, now: outcomeAt });
+      const dispatch = nextDispatch({ run: persisted.run, outcome });
       if (!dispatch) return { state: "executed", run: persisted.run };
 
       try {
