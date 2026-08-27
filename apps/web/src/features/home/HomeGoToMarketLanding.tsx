@@ -11,23 +11,32 @@ type Props = { experience: StartExperienceModel };
 
 const copy = {
   de: {
-    eyebrow: "Eine Frage. Viele Perspektiven. Ein klareres Bild.",
-    title: "Frag. Abstimmen. Gemeinsam weiterkommen.",
-    intro: "Für dich, deinen Verein, deine Initiative oder Organisation: Starte eine Abstimmung, sammle Positionen und verstehe schneller, was Menschen wirklich wollen.",
+    eyebrow: "Damit nicht Lautstärke entscheidet.",
+    title: "Eine Frage. Viele Perspektiven. Ein gemeinsamer nächster Schritt.",
+    intro: "eDebatte beginnt mit einer einfachen Abstimmung – und geht dort weiter, wo klassische Umfragen aufhören: Menschen können Positionen wählen, eigene Antworten ergänzen und nachvollziehen, welche Gründe, Quellen und offenen Fragen dahinterstehen.",
     cta: "Kostenlos Abstimmung starten",
     free: `Kostenloser Start · bis ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} Teilnehmende`,
-    examplesTitle: "Wofür kannst du eDebatte nutzen?",
-    examples: [
-      ["Privat & im Freundeskreis", "Termin finden, Ideen vergleichen oder gemeinsam eine Entscheidung treffen."],
-      ["Vereine", "Mitglieder beteiligen, Prioritäten klären und Entscheidungen besser vorbereiten."],
-      ["Bürgerinitiativen & Gruppen", "Forderungen priorisieren und sichtbar machen, was Unterstützer wirklich wollen."],
-      ["Verbände & Organisationen", "Viele Perspektiven strukturiert zusammenführen und Entscheidungen nachvollziehbarer machen."],
+    differenceEyebrow: "Der Unterschied",
+    differenceTitle: "Die Abstimmung ist nur der Anfang.",
+    differenceIntro: "Ein Prozentwert sagt, was angeklickt wurde. eDebatte ist dafür gebaut, sichtbar zu machen, was dahinterliegt – und daraus den nächsten gemeinsamen Schritt vorzubereiten.",
+    difference: [
+      ["1 · Position", "Menschen geben schnell eine Position oder Priorität ab."],
+      ["2 · Ergänzen", "Wer keine passende Antwort findet, kann einen eigenen Vorschlag einbringen."],
+      ["3 · Verstehen", "Begründungen, Quellen, Widersprüche und offene Fragen können nachvollziehbar zusammenkommen."],
+      ["4 · Weitergehen", "Aus dem entstandenen Bild kann die nächste Frage, Priorität oder Entscheidung folgen."],
     ],
-    howTitle: "So einfach geht's",
+    examplesTitle: "Für dich – und überall dort, wo Menschen gemeinsam entscheiden.",
+    examples: [
+      ["Du & kleine Gruppen", "Ideen sammeln, Prioritäten sichtbar machen und Entscheidungen mit anderen besser klären."],
+      ["Vereine", "Mitglieder beteiligen, neue Vorschläge aufnehmen und Entscheidungen nachvollziehbarer vorbereiten."],
+      ["Bürgerinitiativen & Gruppen", "Forderungen priorisieren, Perspektiven sammeln und ein belastbares gemeinsames Bild entwickeln."],
+      ["Verbände & Organisationen", "Viele Stimmen strukturiert zusammenführen und sichtbar machen, wo Konsens und offene Punkte liegen."],
+    ],
+    howTitle: "So einfach beginnt es",
     how: [
-      ["1", "Frage stellen", "Formuliere eine konkrete Frage oder nutze eine Vorlage."],
+      ["1", "Frage stellen", "Formuliere eine konkrete Frage oder starte mit einer Vorlage."],
       ["2", "Antworten öffnen", "Gib Antworten vor – und lass auf Wunsch eigene Vorschläge zu. Das empfehlen wir."],
-      ["3", "Teilen & verstehen", "Schick den Link weiter und sieh, welche Positionen und Prioritäten entstehen."],
+      ["3", "Teilen & verstehen", "Schick den Link weiter und sieh, welche Positionen, Vorschläge und nächsten Fragen entstehen."],
     ],
     freeTitle: "Einfach kostenlos anfangen.",
     freeText: `Bis ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} Teilnehmende kannst du kostenlos starten. Mehr Teilnehmende, KI-Unterstützung und vertiefte Auswertungen können später dazukommen.`,
@@ -36,29 +45,38 @@ const copy = {
       "Nichts wird automatisch veröffentlicht.",
       "KI ist optional und klar gekennzeichnet.",
       "Eigene Antwortvorschläge können vor Veröffentlichung geprüft werden.",
-      "Fakten und Wahrheit werden nicht zur Abstimmung gestellt.",
+      "Über Positionen, Prioritäten und Lösungen wird abgestimmt – nicht über Fakten oder Wahrheit.",
     ],
-    finalTitle: "Welche Frage willst du heute klären?",
-    finalText: "In wenigen Schritten ist deine erste Abstimmung vorbereitet.",
+    finalTitle: "Welche Frage willst du heute gemeinsam klären?",
+    finalText: "Starte mit einer einfachen Abstimmung. Lass daraus mehr entstehen als nur ein Ergebnis.",
   },
   en: {
-    eyebrow: "One question. Many perspectives. A clearer picture.",
-    title: "Ask. Vote. Move forward together.",
-    intro: "For you, your club, initiative or organisation: start a ballot, collect positions and understand faster what people actually want.",
+    eyebrow: "So volume does not decide.",
+    title: "One question. Many perspectives. One shared next step.",
+    intro: "eDebatte starts with a simple ballot and continues where traditional surveys stop: people can choose positions, add their own answers and understand the reasons, sources and open questions behind them.",
     cta: "Start a ballot for free",
     free: `Free start · up to ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} participants`,
-    examplesTitle: "What can you use eDebatte for?",
-    examples: [
-      ["Friends & private groups", "Find a date, compare ideas or make a shared decision."],
-      ["Clubs", "Involve members, clarify priorities and prepare decisions better."],
-      ["Citizen initiatives & groups", "Prioritise demands and see what supporters really want."],
-      ["Associations & organisations", "Bring many perspectives together and make decisions easier to understand."],
+    differenceEyebrow: "The difference",
+    differenceTitle: "The ballot is only the beginning.",
+    differenceIntro: "A percentage tells you what was clicked. eDebatte is designed to show what sits behind those choices and help prepare the next shared step.",
+    difference: [
+      ["1 · Position", "People quickly submit a position or priority."],
+      ["2 · Add", "If no answer fits, people can contribute their own proposal."],
+      ["3 · Understand", "Reasons, sources, contradictions and open questions can come together transparently."],
+      ["4 · Continue", "The resulting picture can lead into the next question, priority or decision."],
     ],
-    howTitle: "How it works",
+    examplesTitle: "For you – and anywhere people decide together.",
+    examples: [
+      ["You & small groups", "Collect ideas, reveal priorities and clarify decisions together."],
+      ["Clubs", "Involve members, capture new proposals and prepare decisions more transparently."],
+      ["Citizen initiatives & groups", "Prioritise demands, collect perspectives and build a more reliable shared picture."],
+      ["Associations & organisations", "Bring many voices together and show where agreement and open questions remain."],
+    ],
+    howTitle: "How it begins",
     how: [
       ["1", "Ask a question", "Write a concrete question or start from a template."],
       ["2", "Open the answers", "Offer choices and optionally allow people to suggest their own. That's our recommendation."],
-      ["3", "Share & understand", "Send the link and see which positions and priorities emerge."],
+      ["3", "Share & understand", "Send the link and see which positions, proposals and next questions emerge."],
     ],
     freeTitle: "Start free. Keep it simple.",
     freeText: `You can start for free with up to ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} participants. More participants, AI support and deeper analysis can be added later.`,
@@ -67,10 +85,10 @@ const copy = {
       "Nothing is published automatically.",
       "AI is optional and clearly labelled.",
       "Suggested answers can be reviewed before they become visible.",
-      "Facts and truth are not put to a vote.",
+      "People vote on positions, priorities and possible solutions – not on facts or truth.",
     ],
-    finalTitle: "Which question do you want to clarify today?",
-    finalText: "Your first ballot is ready in just a few steps.",
+    finalTitle: "Which question do you want to clarify together today?",
+    finalText: "Start with a simple ballot. Let it become more than a result.",
   },
 } as const;
 
@@ -108,6 +126,24 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
         </div>
       </section>
 
+      <section className="border-b border-[color:var(--border)] bg-slate-950 py-14 text-white" aria-labelledby="difference-title">
+        <div className="mx-auto max-w-[78rem] px-5 sm:px-8 lg:px-10">
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">{t.differenceEyebrow}</p>
+            <h2 id="difference-title" className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{t.differenceTitle}</h2>
+            <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">{t.differenceIntro}</p>
+          </div>
+          <div className="mt-9 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {t.difference.map(([title, body], index) => (
+              <article key={title} className={`rounded-3xl border p-5 ${index === 1 || index === 2 ? "border-cyan-400/60 bg-cyan-400/10" : "border-white/15 bg-white/[0.05]"}`}>
+                <h3 className="text-lg font-bold">{title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-[78rem] px-5 py-14 sm:px-8 lg:px-10" aria-labelledby="examples-title">
         <div className="mx-auto max-w-3xl text-center">
           <h2 id="examples-title" className="text-3xl font-bold tracking-tight sm:text-4xl">{t.examplesTitle}</h2>
@@ -122,18 +158,18 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
         </div>
       </section>
 
-      <section className="border-y border-[color:var(--border)] bg-slate-950 py-14 text-white" aria-labelledby="how-title">
+      <section className="border-y border-[color:var(--border)] bg-[color:var(--surface-muted)] py-14" aria-labelledby="how-title">
         <div className="mx-auto max-w-[78rem] px-5 sm:px-8 lg:px-10">
           <h2 id="how-title" className="text-center text-3xl font-bold tracking-tight sm:text-4xl">{t.howTitle}</h2>
           <div className="mt-8 grid gap-5 md:grid-cols-3">
             {t.how.map(([number, title, body], index) => (
-              <article key={number} className={`rounded-3xl border p-6 ${index === 1 ? "border-cyan-400 bg-cyan-400/10" : "border-white/15 bg-white/[0.05]"}`}>
+              <article key={number} className={`rounded-3xl border p-6 ${index === 1 ? "border-cyan-400 bg-cyan-50 dark:bg-cyan-950/25" : "border-[color:var(--border)] bg-[color:var(--surface)]"}`}>
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-cyan-400 font-black text-slate-950">{number}</span>
-                  {index === 1 ? <span className="rounded-full bg-cyan-400 px-3 py-1 text-xs font-bold text-slate-950">{language === "de" ? "Empfohlen" : "Recommended"}</span> : null}
+                  {index === 1 ? <span className="rounded-full bg-cyan-500 px-3 py-1 text-xs font-bold text-slate-950">{language === "de" ? "Empfohlen" : "Recommended"}</span> : null}
                 </div>
                 <h3 className="mt-5 text-xl font-bold">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{body}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[color:var(--muted)]">{body}</p>
               </article>
             ))}
           </div>
