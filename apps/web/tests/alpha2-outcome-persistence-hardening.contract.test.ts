@@ -187,7 +187,7 @@ class NoopDispatcher implements Alpha2ExecutionDispatcher {
   }
 }
 
-function testRun(id: string) {
+function testRun(id: string, maxAttempts = 1) {
   return createAlpha2RunRecord({
     runId: id,
     idempotencyKey: `idem-${id}`,
@@ -196,7 +196,7 @@ function testRun(id: string) {
     primaryRole: "governance_compliance",
     riskClass: "green",
     route: { mode: "automatic", capabilityClass: "test" },
-    budget: { maxAttempts: 1 },
+    budget: { maxAttempts },
     now: NOW,
   });
 }
@@ -375,5 +375,96 @@ describe("Alpha2 outcome persistence hardening", () => {
     if (result.state !== "executed") throw new Error("unexpected state");
     expect(result.run.status).toBe("failed");
     expect(result.run.lastErrorCode).toBe("alpha2_executor_resolution_timeout");
+    expect(result.run.checkpoints.at(-1)?.errorCode).toBe("alpha2_executor_resolution_timeout");
+  });
+
+  it("sanitizes executor-returned failure codes before durable persistence", async () => {
+    const ledger = new PersistenceLedger();
+    const dispatcher = new NoopDispatcher();
+    ledger.seed(testRun("run-unsafe-returned-code"));
+    const unsafeCode = "provider secret token must not enter the durable ledger";
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-unsafe-returned-code",
+      workerId: "worker-unsafe-returned-code",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "failed",
+            checkpointId: "unsafe-returned-code",
+            errorCode: unsafeCode,
+            retryable: false,
+          };
+        },
+      },
+      currentHeadSha: HEAD,
+      authorization: authorization(),
+      now: NOW,
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("alpha2_run_failed");
+    expect(result.run.checkpoints.at(-1)?.errorCode).toBe("alpha2_run_failed");
+    expect(JSON.stringify(result.run)).not.toContain(unsafeCode);
+  });
+
+  it("retains a structured failure code in checkpoint history after a successful retry", async () => {
+    const ledger = new PersistenceLedger();
+    const dispatcher = new NoopDispatcher();
+    ledger.seed(testRun("run-retry-history", 2));
+
+    const first = await runAlpha2DurableStep({
+      runId: "run-retry-history",
+      workerId: "worker-retry-history-1",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "failed",
+            checkpointId: "provider-timeout",
+            errorCode: "alpha2_provider_timeout",
+            retryable: true,
+            retryAfterMs: 0,
+          };
+        },
+      },
+      currentHeadSha: HEAD,
+      authorization: authorization(),
+      now: NOW,
+    });
+
+    expect(first.state).toBe("executed");
+    if (first.state !== "executed") throw new Error("unexpected state");
+    expect(first.run.lastErrorCode).toBe("alpha2_provider_timeout");
+    expect(first.run.checkpoints.at(-1)?.errorCode).toBe("alpha2_provider_timeout");
+
+    const second = await runAlpha2DurableStep({
+      runId: "run-retry-history",
+      workerId: "worker-retry-history-2",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "retry-completed" };
+        },
+      },
+      currentHeadSha: HEAD,
+      authorization: authorization(),
+      now: NOW,
+    });
+
+    expect(second.state).toBe("executed");
+    if (second.state !== "executed") throw new Error("unexpected state");
+    expect(second.run.status).toBe("completed");
+    expect(second.run.lastErrorCode).toBeUndefined();
+    expect(
+      second.run.checkpoints.find((checkpoint) => checkpoint.checkpointId === "provider-timeout")
+        ?.errorCode,
+    ).toBe("alpha2_provider_timeout");
   });
 });
