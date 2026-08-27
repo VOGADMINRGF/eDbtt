@@ -227,6 +227,20 @@ const ALLOWED_TRANSITIONS: Record<Alpha2RunStatus, readonly Alpha2RunStatus[]> =
   cancelled: [],
 };
 
+function canonicalPendingResumeMode(input: {
+  status: Alpha2RunStatus;
+  attempt: number;
+  requested?: (typeof ALPHA2_GATE_RESUME_MODES)[number];
+}) {
+  if (input.status === "queued" && input.attempt === 0) {
+    if (input.requested && input.requested !== "start_new_attempt") {
+      throw new Error("alpha2_human_gate_resume_mode_mismatch");
+    }
+    return "start_new_attempt" as const;
+  }
+  return input.requested;
+}
+
 export function isAlpha2RunTransitionAllowed(from: Alpha2RunStatus, to: Alpha2RunStatus) {
   return ALLOWED_TRANSITIONS[from].includes(to);
 }
@@ -260,6 +274,17 @@ export function createAlpha2RunRecord(input: {
   }
 
   const rootRunId = input.rootRunId ?? input.runId;
+  const initialHumanGate =
+    input.humanGate?.state === "pending"
+      ? {
+          ...input.humanGate,
+          resumeMode: canonicalPendingResumeMode({
+            status: "queued",
+            attempt: 0,
+            requested: input.humanGate.resumeMode,
+          }),
+        }
+      : (input.humanGate ?? { state: "not_required" as const });
 
   return Alpha2RunRecordSchema.parse({
     schemaVersion: "alpha2.run.v1",
@@ -270,13 +295,13 @@ export function createAlpha2RunRecord(input: {
     idempotencyKey: input.idempotencyKey,
     taskId: input.taskId,
     kind: input.kind,
-    status: input.humanGate?.state === "pending" ? "human_gate" : "queued",
+    status: initialHumanGate.state === "pending" ? "human_gate" : "queued",
     primaryRole: input.primaryRole,
     supportingRoles: Array.from(new Set(input.supportingRoles ?? [])).filter(
       (role) => role !== input.primaryRole,
     ),
     riskClass: input.riskClass,
-    humanGate: input.humanGate ?? { state: "not_required" },
+    humanGate: initialHumanGate,
     humanGateHistory: [],
     budget: {
       maxAttempts: input.budget?.maxAttempts ?? 3,
@@ -307,6 +332,11 @@ export function transitionAlpha2RunToNewHumanGate(
   assertAlpha2RunTransition(run.status, "human_gate");
   const now = input.now ?? new Date().toISOString();
   const preservesDecision = DECIDED_HUMAN_GATE_STATES.has(run.humanGate.state);
+  const resumeMode = canonicalPendingResumeMode({
+    status: run.status,
+    attempt: run.attempt,
+    requested: input.resumeMode,
+  });
 
   return Alpha2RunRecordSchema.parse({
     ...run,
@@ -317,7 +347,7 @@ export function transitionAlpha2RunToNewHumanGate(
       state: "pending",
       reason: input.reason,
       gateRef: input.gateRef,
-      resumeMode: input.resumeMode,
+      resumeMode,
     },
     humanGateHistory: preservesDecision
       ? [...run.humanGateHistory, run.humanGate]
@@ -393,7 +423,18 @@ export function transitionAlpha2Run(
     throw new Error("alpha2_human_gate_decision_is_immutable");
   }
 
-  const candidateHumanGate = input.humanGate ?? run.humanGate;
+  const requestedHumanGate = input.humanGate ?? run.humanGate;
+  const candidateHumanGate =
+    to === "human_gate" && requestedHumanGate.state === "pending"
+      ? {
+          ...requestedHumanGate,
+          resumeMode: canonicalPendingResumeMode({
+            status: run.status,
+            attempt: run.attempt,
+            requested: requestedHumanGate.resumeMode,
+          }),
+        }
+      : requestedHumanGate;
   const expectedResumeMode =
     to === "running" &&
     ["review", "human_gate"].includes(run.status) &&
