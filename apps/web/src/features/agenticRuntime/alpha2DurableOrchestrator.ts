@@ -575,24 +575,58 @@ async function persistOutcome(input: {
   );
 }
 
+function sameJsonValue(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 function persistedOutcomeMatches(
   persisted: Alpha2VersionedRun,
   current: Alpha2VersionedRun,
   outcome: Alpha2WorkerOutcome,
 ) {
-  if (persisted.version <= current.version) return false;
+  if (persisted.version !== current.version + 1) return false;
   if (persisted.run.status !== checkpointStatus(outcome)) return false;
-  if (
-    !persisted.run.checkpoints.some(
-      (checkpoint) => checkpoint.checkpointId === outcome.checkpointId,
-    )
-  ) {
-    return false;
+  const checkpoint = persisted.run.checkpoints.find(
+    (entry) => entry.checkpointId === outcome.checkpointId,
+  );
+  if (!checkpoint || checkpoint.status !== checkpointStatus(outcome)) return false;
+  if (checkpoint.cursor !== outcome.cursor) return false;
+  if (!sameJsonValue(checkpoint.evidenceRefs, outcome.evidenceRefs ?? [])) return false;
+  if (!sameJsonValue(checkpoint.safeTraceStepRefs, outcome.safeTraceStepRefs ?? [])) return false;
+  if (!sameJsonValue(checkpoint.artifactRefs, outcome.artifactRefs ?? [])) return false;
+
+  switch (outcome.type) {
+    case "completed":
+      return Boolean(persisted.run.finishedAt) && !persisted.run.resumeAt;
+    case "waiting": {
+      if (!persisted.run.resumeAt) return false;
+      return (
+        Date.parse(persisted.run.resumeAt) - Date.parse(persisted.run.updatedAt) ===
+        Math.max(0, Math.floor(outcome.resumeAfterMs))
+      );
+    }
+    case "review":
+      return !persisted.run.resumeAt;
+    case "human_gate":
+      return (
+        !persisted.run.resumeAt &&
+        persisted.run.humanGate.state === "pending" &&
+        persisted.run.humanGate.reason === outcome.reason &&
+        persisted.run.humanGate.resumeMode === "resume_attempt"
+      );
+    case "failed": {
+      if (persisted.run.lastErrorCode !== outcome.errorCode) return false;
+      const retryAfterMs =
+        outcome.retryable && current.run.attempt < current.run.budget.maxAttempts
+          ? Math.max(0, Math.floor(outcome.retryAfterMs ?? 30_000))
+          : undefined;
+      if (retryAfterMs === undefined) return !persisted.run.resumeAt;
+      if (!persisted.run.resumeAt) return false;
+      return (
+        Date.parse(persisted.run.resumeAt) - Date.parse(persisted.run.updatedAt) === retryAfterMs
+      );
+    }
   }
-  if (outcome.type === "failed" && persisted.run.lastErrorCode !== outcome.errorCode) {
-    return false;
-  }
-  return true;
 }
 
 async function persistOutcomeWithRetry(input: {
@@ -611,18 +645,15 @@ async function persistOutcomeWithRetry(input: {
       return await persistOutcome(input);
     } catch (error: unknown) {
       lastError = error;
+      if (!isRetryableOutcomePersistenceError(error)) throw error;
+
       const observed = await input.ledger
         .getByRunId(input.current.run.runId)
         .catch(() => null);
       if (observed && persistedOutcomeMatches(observed, input.current, input.outcome)) {
         return observed;
       }
-      if (
-        !isRetryableOutcomePersistenceError(error) ||
-        persistenceAttempt >= maxAttempts
-      ) {
-        throw error;
-      }
+      if (persistenceAttempt >= maxAttempts) throw error;
     }
   }
 
