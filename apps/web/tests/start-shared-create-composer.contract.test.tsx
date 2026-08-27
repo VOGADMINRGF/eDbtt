@@ -12,7 +12,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  default: (props: Record<string, unknown>) => <img alt="" {...props} />,
+  default: ({
+    fill: _fill,
+    priority: _priority,
+    ...props
+  }: Record<string, unknown>) => <img alt="" {...props} />,
 }));
 
 describe("/start shared create composer contract", () => {
@@ -26,9 +30,9 @@ describe("/start shared create composer contract", () => {
     expect(html).not.toContain("Kanonischer Einstieg");
     expect(html).not.toContain("Anhang");
     expect(html).not.toContain("Beitrag eingeben");
-    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
-    expect(html).toContain("Aktuelle Entwicklungen entdecken");
-    expect(html).toContain("Beitrag prüfen");
+    expect(html).toContain("Stimmen verbinden.");
+    expect(html).toContain("Entwicklungen entdecken");
+    expect(html).toContain("Beitrag starten");
     expect(html).toContain("Offene Beteiligung ansehen");
     expect(html).toContain("eDebatte veröffentlicht nichts automatisch.");
     expect(html).toContain("/create");
@@ -38,7 +42,7 @@ describe("/start shared create composer contract", () => {
     expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
   });
 
-  it("keeps a compact workspace entry for signed-in or returning context", () => {
+  it("keeps the returning-context participation path without restoring the composer", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <LandingStart
@@ -63,16 +67,12 @@ describe("/start shared create composer contract", () => {
       </LocaleProvider>,
     );
 
-    expect(html).toContain("Organisation");
-    expect(html).toContain("Themen, Beteiligung und Ergebnisse im Blick.");
-    expect(html).toContain("Organisationsbereich öffnen");
+    expect(html).toContain("Stimmen verbinden.");
+    expect(html).toContain("Neu für dich öffnen");
     expect(html).toContain("Verstehen, was sich verändert");
-    expect(html).toContain("Beitrag prüfen und strukturieren");
+    expect(html).toContain("Beitrag starten");
     expect(html).toContain("Offene Beteiligung ansehen");
-    expect(html).toContain(
-      "Verbinde neue Signale, Quellen, Veranstaltungen und Rückmeldungen mit bestehenden Dossiers und Beteiligungsräumen.",
-    );
-    expect(html).toContain('href="/account/organization/dashboard"');
+    expect(html).not.toContain("Beitrag eingeben");
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
     expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
