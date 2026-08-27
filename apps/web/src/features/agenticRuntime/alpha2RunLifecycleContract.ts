@@ -327,7 +327,7 @@ export function transitionAlpha2RunToNewHumanGate(
 
 export function consumeAlpha2HumanGateApproval(
   run: Alpha2RunRecord,
-  input: { gateRef: string; chargeAttempt?: boolean; now?: string },
+  input: { gateRef: string; now?: string },
 ): Alpha2RunRecord {
   if (
     run.humanGate.state !== "approved" ||
@@ -337,7 +337,7 @@ export function consumeAlpha2HumanGateApproval(
     throw new Error("alpha2_human_gate_approval_mismatch");
   }
   const now = input.now ?? new Date().toISOString();
-  const attempt = run.attempt + (input.chargeAttempt ? 1 : 0);
+  const attempt = run.attempt + (run.humanGate.resumeMode === "start_new_attempt" ? 1 : 0);
   if (attempt > run.budget.maxAttempts) {
     throw new Error("alpha2_attempt_budget_exhausted");
   }
@@ -357,15 +357,20 @@ export function consumeAlpha2HumanResumeApproval(
   if (
     run.humanGate.state !== "approved" ||
     run.humanGate.gateRef !== undefined ||
-    run.humanGate.resumeMode !== "resume_attempt" ||
+    !["start_new_attempt", "resume_attempt"].includes(run.humanGate.resumeMode ?? "") ||
     !run.humanGate.decisionRef
   ) {
     throw new Error("alpha2_human_resume_approval_mismatch");
   }
   const now = input.now ?? new Date().toISOString();
+  const attempt = run.attempt + (run.humanGate.resumeMode === "start_new_attempt" ? 1 : 0);
+  if (attempt > run.budget.maxAttempts) {
+    throw new Error("alpha2_attempt_budget_exhausted");
+  }
   return Alpha2RunRecordSchema.parse({
     ...run,
     updatedAt: now,
+    attempt,
     humanGate: { state: "not_required" },
     humanGateHistory: [...run.humanGateHistory, run.humanGate],
   });
@@ -396,7 +401,9 @@ export function transitionAlpha2Run(
       ? {
           ...candidateHumanGate,
           resumeMode:
-            candidateHumanGate.resumeMode ?? run.humanGate.resumeMode ?? "resume_attempt",
+            candidateHumanGate.resumeMode ??
+            run.humanGate.resumeMode ??
+            (run.attempt === 0 ? "start_new_attempt" : "resume_attempt"),
         }
       : candidateHumanGate;
 

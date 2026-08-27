@@ -820,16 +820,26 @@ export async function runAlpha2DurableStep(input: {
       };
     }
 
+    const resolvedHumanGateRef =
+      authorizationLease.run.status === "running" &&
+      authorizationLease.run.humanGate.state === "approved" &&
+      authorizationLease.run.humanGate.gateRef !== undefined &&
+      gateDecision.reasonCodes.length === 0
+        ? authorizationLease.run.humanGate.gateRef
+        : undefined;
+    const approvedHumanGateRef = gateDecision.approvedGateRef ?? resolvedHumanGateRef;
     const manualResumeApproval =
-      approvedHumanResumeMode === "resume_attempt" &&
-      authorizationLease.run.humanGate.gateRef === undefined;
-    const approvedResumeMode = gateDecision.approvedGateRef
+      authorizationLease.run.status === "running" &&
+      authorizationLease.run.humanGate.state === "approved" &&
+      authorizationLease.run.humanGate.gateRef === undefined &&
+      ["start_new_attempt", "resume_attempt"].includes(approvedHumanResumeMode ?? "");
+    const approvedResumeMode = approvedHumanGateRef
       ? authorizationLease.run.humanGate.resumeMode
       : manualResumeApproval
         ? approvedHumanResumeMode
         : undefined;
     const approvedResume =
-      (Boolean(gateDecision.approvedGateRef) || manualResumeApproval) &&
+      (Boolean(approvedHumanGateRef) || manualResumeApproval) &&
       authorizationLease.run.status === "running" &&
       approvedResumeMode !== "recover_abandoned_attempt";
     const chargeApprovedAttempt = approvedResumeMode === "start_new_attempt";
@@ -908,11 +918,10 @@ export async function runAlpha2DurableStep(input: {
         };
       }
 
-      if (gateDecision.approvedGateRef || manualResumeApproval) {
-        const consumed = gateDecision.approvedGateRef
+      if (approvedHumanGateRef || manualResumeApproval) {
+        const consumed = approvedHumanGateRef
           ? consumeAlpha2HumanGateApproval(executionCurrent.run, {
-              gateRef: gateDecision.approvedGateRef,
-              chargeAttempt: chargeApprovedAttempt,
+              gateRef: approvedHumanGateRef,
               now: executionNow,
             })
           : consumeAlpha2HumanResumeApproval(executionCurrent.run, { now: executionNow });
