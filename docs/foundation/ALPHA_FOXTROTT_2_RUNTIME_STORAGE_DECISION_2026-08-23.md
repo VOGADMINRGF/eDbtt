@@ -24,7 +24,7 @@ The runtime must solve the current operational failure mode: work may not disapp
 
 1. Every executable run has a persistent MongoDB record before dispatch.
 2. Every run has an idempotency key and optimistic version.
-3. Worker ownership is lease-based and expires safely.
+3. Worker ownership is attempt-specific and lease-based. Every external or mutating executor effect must cross the lease-fenced effect boundary and use the attempt token as its fencing/idempotency key; lease loss aborts the executor and blocks further effects.
 4. A worker may resume only from a persisted checkpoint/state.
 5. Queue delivery is at-least-once; execution must therefore be idempotent.
 6. Terminal, review and human-gate states are not automatically re-dispatched.
@@ -32,6 +32,7 @@ The runtime must solve the current operational failure mode: work may not disapp
 8. Recovery scans may recreate missing BullMQ jobs from due MongoDB ledger records.
 9. Queue success is not proof of mission success; the MongoDB run state is authoritative.
 10. No queue or recovery loop may bypass OpenTasks eligibility, risk gates, human-sovereignty gates, budgets or review requirements.
+11. Exact-head authorization evidence is resolved under the acquired lease, bound to a concrete commit SHA and observation time, and rejected when missing, stale or mismatched.
 
 ## Human sovereignty
 

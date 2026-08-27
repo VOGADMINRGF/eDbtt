@@ -47,11 +47,26 @@ export type Alpha2WorkerOutcome =
       retryAfterMs?: number;
     });
 
+export type Alpha2ExecutionFence = {
+  /** Attempt-specific token that side-effect adapters must use as their fencing/idempotency key. */
+  token: string;
+  assertActive(): Promise<void>;
+  /**
+   * Every external or mutating effect must cross this boundary. The lease is
+   * validated immediately before and after the effect, and the attempt token is
+   * supplied to the adapter so a later delivery cannot reuse this ownership.
+   */
+  runSideEffect<T>(
+    effect: (input: { fenceToken: string }) => Promise<T> | T,
+  ): Promise<T>;
+};
+
 export interface Alpha2WorkerExecutor {
   execute(input: {
     run: Alpha2RunRecord;
     workerId: string;
     signal: AbortSignal;
+    fence: Alpha2ExecutionFence;
   }): Promise<Alpha2WorkerOutcome>;
 }
 
@@ -269,6 +284,9 @@ async function persistExecutionBlock(input: {
   }
 
   const checkpointId = `runtime_block_v${current.version}`;
+  const checkpointAlreadyExists = current.run.checkpoints.some(
+    (checkpoint) => checkpoint.checkpointId === checkpointId,
+  );
   const checkpointed = appendAlpha2Checkpoint(current.run, {
     checkpointId,
     createdAt: input.now,
@@ -288,7 +306,7 @@ async function persistExecutionBlock(input: {
     { owner: input.leaseOwner, now: input.now },
     undefined,
     undefined,
-    checkpointId,
+    checkpointAlreadyExists ? undefined : checkpointId,
   );
 }
 
@@ -359,6 +377,9 @@ async function persistOutcome(input: {
   now: string;
   leaseOwner: string;
 }) {
+  const checkpointAlreadyExists = input.current.run.checkpoints.some(
+    (checkpoint) => checkpoint.checkpointId === input.outcome.checkpointId,
+  );
   let run = withOutcomeRefs(input.current.run, input.outcome);
   run = appendAlpha2Checkpoint(run, {
     checkpointId: input.outcome.checkpointId,
@@ -416,7 +437,7 @@ async function persistOutcome(input: {
     { owner: input.leaseOwner, now: input.now },
     resumeAfterMs,
     undefined,
-    input.outcome.checkpointId,
+    checkpointAlreadyExists ? undefined : input.outcome.checkpointId,
   );
 }
 
@@ -442,9 +463,15 @@ function startLeaseHeartbeat(input: {
   runId: string;
   leaseOwner: string;
   leaseMs: number;
+  onLost?: () => void;
 }) {
   let lost = false;
   let pending: Promise<void> | null = null;
+  const markLost = () => {
+    if (lost) return;
+    lost = true;
+    input.onLost?.();
+  };
   const renew = () => {
     if (pending) return pending;
     pending = input.ledger
@@ -455,10 +482,10 @@ function startLeaseHeartbeat(input: {
         leaseMs: input.leaseMs,
       })
       .then((renewed) => {
-        if (!renewed) lost = true;
+        if (!renewed) markLost();
       })
       .catch(() => {
-        lost = true;
+        markLost();
       })
       .finally(() => {
         pending = null;
@@ -469,6 +496,10 @@ function startLeaseHeartbeat(input: {
   timer.unref?.();
 
   return {
+    async assertActive() {
+      await renew();
+      if (lost) throw new Error("alpha2_ledger_lease_lost");
+    },
     async stopAndVerify(now: string) {
       clearInterval(timer);
       await pending;
@@ -479,7 +510,7 @@ function startLeaseHeartbeat(input: {
           now,
           leaseMs: input.leaseMs,
         });
-        if (!renewed) lost = true;
+        if (!renewed) markLost();
       }
       if (lost) throw new Error("alpha2_ledger_lease_lost");
     },
@@ -505,6 +536,8 @@ async function executeWithinWallClockBudget(input: {
   workerId: string;
   executor: Alpha2WorkerExecutor;
   now: string;
+  controller: AbortController;
+  fence: Alpha2ExecutionFence;
 }): Promise<Alpha2WorkerOutcome> {
   const maxWallClockMs = input.run.budget.maxWallClockMs;
   if (maxWallClockMs !== undefined && !input.run.wallClockDeadlineAt) {
@@ -528,13 +561,13 @@ async function executeWithinWallClockBudget(input: {
     };
   }
 
-  const controller = new AbortController();
   const execution = Promise.resolve()
     .then(() =>
       input.executor.execute({
         run: input.run,
         workerId: input.workerId,
-        signal: controller.signal,
+        signal: input.controller.signal,
+        fence: input.fence,
       }),
     )
     .catch((error: unknown) => executorFailure(input.run, error));
@@ -563,7 +596,7 @@ async function executeWithinWallClockBudget(input: {
         }
         timedOut = true;
         resolve(timeoutOutcome);
-        controller.abort("alpha2_wall_clock_budget_exhausted");
+        input.controller.abort("alpha2_wall_clock_budget_exhausted");
       }, delayMs);
     };
     schedule();
@@ -572,7 +605,7 @@ async function executeWithinWallClockBudget(input: {
   try {
     const result = await Promise.race([execution, timeout]);
     if (timedOut || globalThis.performance.now() >= deadlineMs) {
-      controller.abort("alpha2_wall_clock_budget_exhausted");
+      input.controller.abort("alpha2_wall_clock_budget_exhausted");
       // Ownership must not be released while an abort-ignoring executor can still
       // perform side effects. A non-cooperative executor therefore keeps this
       // delivery (and its heartbeat) fenced until it actually settles.
@@ -697,18 +730,41 @@ export async function runAlpha2DurableStep(input: {
       leaseOwner,
     });
     if (start.exhausted) return { state: "attempts_exhausted", run: start.current.run };
+    const executionController = new AbortController();
     const heartbeat = startLeaseHeartbeat({
       ledger: input.ledger,
       runId: input.runId,
       leaseOwner,
       leaseMs,
+      onLost: () => executionController.abort("alpha2_ledger_lease_lost"),
     });
+    const executionFence: Alpha2ExecutionFence = {
+      token: leaseOwner,
+      async assertActive() {
+        if (executionController.signal.aborted) {
+          throw new Error(String(executionController.signal.reason ?? "alpha2_execution_aborted"));
+        }
+        await heartbeat.assertActive();
+        if (executionController.signal.aborted) {
+          throw new Error(String(executionController.signal.reason ?? "alpha2_execution_aborted"));
+        }
+      },
+      async runSideEffect(effect) {
+        await this.assertActive();
+        const result = await effect({ fenceToken: leaseOwner });
+        await this.assertActive();
+        return result;
+      },
+    };
     try {
+      await executionFence.assertActive();
       const outcome = await executeWithinWallClockBudget({
         run: start.current.run,
         workerId: input.workerId,
         executor: input.executor,
         now: authoritativeLeaseNow,
+        controller: executionController,
+        fence: executionFence,
       });
       const outcomeAt = input.now ?? new Date().toISOString();
       await heartbeat.stopAndVerify(outcomeAt);

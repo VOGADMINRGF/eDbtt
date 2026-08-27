@@ -164,7 +164,11 @@ class FakeLedger implements Alpha2RunLedger {
     leaseMs: number;
   }) {
     const current = this.records.get(input.runId);
-    const leaseNow = this.serverNow ?? input.now;
+    const leaseNow =
+      this.serverNow ??
+      (current?.lease
+        ? new Date(Date.parse(current.lease.expiresAt) - input.leaseMs).toISOString()
+        : input.now);
     if (
       !current ||
       current.lease?.owner !== input.owner ||
@@ -905,6 +909,46 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(stored?.run.checkpoints).toEqual([]);
   });
 
+  it("aborts execution and rejects fenced side effects after heartbeat ownership is lost", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-fenced-effect"));
+    let sideEffects = 0;
+    let signalAborted = false;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: "run-fenced-effect",
+        workerId: "worker-a",
+        executionId: "delivery-a",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute({ signal, fence }) {
+            ledger.stealLease(
+              "run-fenced-effect",
+              "worker-b:run-fenced-effect:attempt-1:version-1:delivery-b",
+              "2026-08-23T21:00:00.000Z",
+            );
+            await expect(
+              fence.runSideEffect(({ fenceToken }) => {
+                expect(fenceToken).toBe(fence.token);
+                sideEffects += 1;
+              }),
+            ).rejects.toThrow("alpha2_ledger_lease_lost");
+            signalAborted = signal.aborted;
+            return { type: "completed", checkpointId: "must-not-persist" };
+          },
+        },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    ).rejects.toThrow("alpha2_ledger_lease_lost");
+
+    expect(sideEffects).toBe(0);
+    expect(signalAborted).toBe(true);
+    expect((await ledger.getByRunId("run-fenced-effect"))?.run.checkpoints).toEqual([]);
+  });
+
   it("charges an abandoned running step against the retry budget", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
@@ -1306,6 +1350,48 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.run.updatedAt).toBe(ledger.serverNow);
     expect(result.run.finishedAt).toBe(ledger.serverNow);
     expect(result.run.checkpoints.at(-1)?.createdAt).toBe(ledger.serverNow);
+  });
+
+  it("preserves the authoritative timestamp of an existing checkpoint id", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.serverNow = "2026-08-23T20:00:00.000Z";
+    ledger.seed(run("run-duplicate-checkpoint"));
+
+    const first = await runAlpha2DurableStep({
+      runId: "run-duplicate-checkpoint",
+      workerId: "worker-checkpoint",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "waiting", checkpointId: "cp-repeat", resumeAfterMs: 0 };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    expect(first.state).toBe("executed");
+    if (first.state !== "executed") throw new Error("unexpected state");
+    expect(first.run.checkpoints[0]?.createdAt).toBe("2026-08-23T20:00:00.000Z");
+
+    ledger.serverNow = "2026-08-23T20:01:00.000Z";
+    const second = await runAlpha2DurableStep({
+      runId: "run-duplicate-checkpoint",
+      workerId: "worker-checkpoint",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-repeat" };
+        },
+      },
+      now: "2026-08-23T20:01:00.000Z",
+    });
+
+    expect(second.state).toBe("executed");
+    if (second.state !== "executed") throw new Error("unexpected state");
+    expect(second.run.checkpoints).toHaveLength(1);
+    expect(second.run.checkpoints[0]?.createdAt).toBe("2026-08-23T20:00:00.000Z");
   });
 
   it("awaits an in-flight recovery scan before scheduler shutdown completes", async () => {
