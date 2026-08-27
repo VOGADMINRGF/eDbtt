@@ -15,6 +15,7 @@ import {
 } from "@/features/agenticRuntime/alpha2RunLedgerContract";
 import {
   createAlpha2RunRecord,
+  transitionAlpha2Run,
   type Alpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 
@@ -32,6 +33,8 @@ class PersistenceLedger implements Alpha2RunLedger {
   private record: Alpha2VersionedRun | null = null;
   transientCompletedWrites = 0;
   completedWriteAttempts = 0;
+  conflictWithLaterCompletedWrite = false;
+  ambiguousForeignCompletedWrite = false;
 
   seed(run: Alpha2RunRecord) {
     this.record = { run, version: 0, lease: null };
@@ -68,6 +71,33 @@ class PersistenceLedger implements Alpha2RunLedger {
     }
     if (input.run.status === "completed") {
       this.completedWriteAttempts += 1;
+      if (this.conflictWithLaterCompletedWrite) {
+        this.conflictWithLaterCompletedWrite = false;
+        this.record = {
+          run: input.run,
+          version: current.version + 2,
+          lease: current.lease,
+        };
+        throw new Error("alpha2_ledger_version_conflict");
+      }
+      if (this.ambiguousForeignCompletedWrite) {
+        this.ambiguousForeignCompletedWrite = false;
+        this.record = {
+          run: {
+            ...input.run,
+            checkpoints: input.run.checkpoints.map((checkpoint) =>
+              checkpoint.checkpointId === "completed-once"
+                ? { ...checkpoint, cursor: "foreign-delivery-cursor" }
+                : checkpoint,
+            ),
+          },
+          version: current.version + 1,
+          lease: current.lease,
+        };
+        const error = new Error("simulated ambiguous mongo write");
+        error.name = "MongoNetworkError";
+        throw error;
+      }
       if (this.transientCompletedWrites > 0) {
         this.transientCompletedWrites -= 1;
         const error = new Error("simulated transient mongo write");
@@ -194,6 +224,50 @@ function authorization() {
 }
 
 describe("Alpha2 outcome persistence hardening", () => {
+  it("canonicalizes initial pending gates to a new attempt and rejects spoofed resume modes", () => {
+    const initial = createAlpha2RunRecord({
+      runId: "run-initial-gate",
+      idempotencyKey: "idem-run-initial-gate",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      humanGate: { state: "pending", reason: "initial approval required" },
+      now: NOW,
+    });
+    expect(initial.humanGate.resumeMode).toBe("start_new_attempt");
+
+    expect(() =>
+      createAlpha2RunRecord({
+        runId: "run-initial-gate-spoof",
+        idempotencyKey: "idem-run-initial-gate-spoof",
+        taskId: "ALPHA2-TEST-01",
+        kind: "engineering_slice",
+        primaryRole: "governance_compliance",
+        riskClass: "green",
+        route: { mode: "automatic", capabilityClass: "test" },
+        humanGate: {
+          state: "pending",
+          reason: "initial approval required",
+          resumeMode: "resume_attempt",
+        },
+        now: NOW,
+      }),
+    ).toThrow("alpha2_human_gate_resume_mode_mismatch");
+
+    expect(() =>
+      transitionAlpha2Run(testRun("run-queued-gate-spoof"), "human_gate", {
+        now: NOW,
+        humanGate: {
+          state: "pending",
+          reason: "queued approval required",
+          resumeMode: "resume_attempt",
+        },
+      }),
+    ).toThrow("alpha2_human_gate_resume_mode_mismatch");
+  });
+
   it("retries a transient completed-outcome CAS while retaining the active lease", async () => {
     const ledger = new PersistenceLedger();
     const dispatcher = new NoopDispatcher();
@@ -223,6 +297,55 @@ describe("Alpha2 outcome persistence hardening", () => {
     expect(result.run.attempt).toBe(1);
     expect(executions).toBe(1);
     expect(ledger.completedWriteAttempts).toBe(2);
+  });
+
+  it("never reconciles a lease or version conflict against a later matching checkpoint", async () => {
+    const ledger = new PersistenceLedger();
+    const dispatcher = new NoopDispatcher();
+    ledger.seed(testRun("run-conflicting-outcome"));
+    ledger.conflictWithLaterCompletedWrite = true;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: "run-conflicting-outcome",
+        workerId: "worker-conflicting-outcome",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            return { type: "completed", checkpointId: "completed-once" };
+          },
+        },
+        currentHeadSha: HEAD,
+        authorization: authorization(),
+        now: NOW,
+      }),
+    ).rejects.toThrow("alpha2_ledger_version_conflict");
+    expect(ledger.completedWriteAttempts).toBe(1);
+  });
+
+  it("rejects an ambiguous transport write when the exact successor outcome identity differs", async () => {
+    const ledger = new PersistenceLedger();
+    const dispatcher = new NoopDispatcher();
+    ledger.seed(testRun("run-foreign-ambiguous-outcome"));
+    ledger.ambiguousForeignCompletedWrite = true;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: "run-foreign-ambiguous-outcome",
+        workerId: "worker-foreign-ambiguous-outcome",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            return { type: "completed", checkpointId: "completed-once" };
+          },
+        },
+        currentHeadSha: HEAD,
+        authorization: authorization(),
+        now: NOW,
+      }),
+    ).rejects.toThrow("alpha2_ledger_version_conflict");
   });
 
   it("persists the structured resolver timeout code instead of the generic Error name", async () => {
