@@ -122,7 +122,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
     worker,
     recovery,
     async recoverNow() {
-      return recovery.tick();
+      return recovery.recoverNow();
     },
     async close() {
       await recovery.stop();

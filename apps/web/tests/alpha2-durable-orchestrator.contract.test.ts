@@ -31,7 +31,9 @@ class FakeLedger implements Alpha2RunLedger {
   private records = new Map<string, Alpha2VersionedRun>();
   leaseOwners: string[] = [];
   serverNow: string | undefined;
+  serverNowAfterNextCompareAndSwap: string | undefined;
   listRecoverableBarrier: Promise<void> | undefined;
+  listRecoverableError: Error | undefined;
   onListRecoverable: (() => void) | undefined;
 
   seed(run: Alpha2RunRecord) {
@@ -120,6 +122,10 @@ class FakeLedger implements Alpha2RunLedger {
       lease: current.lease,
     } satisfies Alpha2VersionedRun;
     this.records.set(input.run.runId, next);
+    if (this.serverNowAfterNextCompareAndSwap) {
+      this.serverNow = this.serverNowAfterNextCompareAndSwap;
+      this.serverNowAfterNextCompareAndSwap = undefined;
+    }
     return next;
   }
 
@@ -205,6 +211,7 @@ class FakeLedger implements Alpha2RunLedger {
   async listRecoverable(input: { now: string; limit?: number }) {
     this.onListRecoverable?.();
     await this.listRecoverableBarrier;
+    if (this.listRecoverableError) throw this.listRecoverableError;
     return [...this.records.values()]
       .filter((entry) => {
         if (isAlpha2TerminalRun(entry.run) || isAlpha2HumanStoppedRun(entry.run)) return false;
@@ -402,6 +409,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
         primaryRole: "governance_compliance",
         riskClass: "orange",
         route: { mode: "automatic", capabilityClass: "test" },
+        budget: { maxAttempts: 1 },
         now: "2026-08-23T20:00:00.000Z",
       }),
     );
@@ -449,6 +457,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
         state: "approved",
         reason: blocked.run.humanGate.reason,
         gateRef: blocked.run.humanGate.gateRef,
+        resumeMode: blocked.run.humanGate.resumeMode,
         decisionRef: "human:orange-action-approval",
         decidedAt: "2026-08-23T20:00:01.000Z",
       },
@@ -464,7 +473,12 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       executor: {
         async execute() {
           executions += 1;
-          return { type: "completed", checkpointId: "cp-approved-orange" };
+          return {
+            type: "failed",
+            checkpointId: "cp-approved-orange",
+            errorCode: "approved_action_failed",
+            retryable: true,
+          };
         },
       },
       currentHeadSha: authorization.observedHeadSha,
@@ -475,6 +489,9 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(executions).toBe(1);
     expect(executed.state).toBe("executed");
     if (executed.state !== "executed") throw new Error("unexpected state");
+    expect(executed.run.attempt).toBe(1);
+    expect(executed.run.status).toBe("failed");
+    expect(executed.run.resumeAt).toBeUndefined();
     expect(executed.run.humanGate.state).toBe("not_required");
     expect(executed.run.humanGateHistory).toContainEqual(
       expect.objectContaining({
@@ -603,6 +620,35 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
         "authorization_evidence_stale",
       ]),
     );
+  });
+
+  it("revalidates authorization freshness after a slow start transition", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.serverNow = "2026-08-23T20:00:00.000Z";
+    ledger.serverNowAfterNextCompareAndSwap = "2026-08-23T20:00:02.000Z";
+    ledger.seed(run("run-authorization-stale-at-start"));
+    let executions = 0;
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-authorization-stale-at-start",
+      workerId: "worker-gated",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executions += 1;
+          return { type: "completed", checkpointId: "must-not-run" };
+        },
+      },
+      authorizationMaxAgeMs: 1_000,
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(executions).toBe(0);
+    expect(result.state).toBe("execution_blocked");
+    if (result.state !== "execution_blocked") throw new Error("unexpected state");
+    expect(result.reasonCodes).toContain("authorization_evidence_stale");
   });
 
   it("fails closed on unmetered durable model-call and cost budgets", async () => {
@@ -1616,7 +1662,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
 
     const scheduler = startAlpha2RecoveryScheduler({ ledger, dispatcher });
     await started;
-    const manualScan = scheduler.tick();
+    const manualScan = scheduler.recoverNow();
     let stopCompleted = false;
     const stopping = scheduler.stop().then(() => {
       stopCompleted = true;
@@ -1629,6 +1675,32 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(stopCompleted).toBe(true);
     expect(manualResults).toHaveLength(1);
     expect(dispatcher.jobs).toHaveLength(1);
+  });
+
+  it("propagates a tracked manual recovery failure to its caller", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.listRecoverableError = new Error("mongo_recovery_unavailable");
+    let releaseScan!: () => void;
+    ledger.listRecoverableBarrier = new Promise<void>((resolve) => {
+      releaseScan = resolve;
+    });
+    let scanStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      scanStarted = resolve;
+    });
+    ledger.onListRecoverable = scanStarted;
+    const onError = vi.fn();
+
+    const scheduler = startAlpha2RecoveryScheduler({ ledger, dispatcher, onError });
+    await started;
+    const manualScan = scheduler.recoverNow();
+    releaseScan();
+    await expect(manualScan).rejects.toThrow("mongo_recovery_unavailable");
+    await scheduler.stop();
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+      message: "mongo_recovery_unavailable",
+    }));
   });
 
   it("hashes the full BullMQ dispatch identity without truncation collisions", async () => {

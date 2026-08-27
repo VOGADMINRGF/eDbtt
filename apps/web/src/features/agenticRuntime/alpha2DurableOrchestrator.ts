@@ -217,7 +217,12 @@ function runtimeGateRef(input: {
 function executionGateDecision(
   run: Alpha2RunRecord,
   authorization: Alpha2ExecutionAuthorization | undefined,
-  input: { currentHeadSha: string; authoritativeNow: string; maxAgeMs: number },
+  input: {
+    currentHeadSha: string;
+    authoritativeNow: string;
+    maxAgeMs: number;
+    approvedGateRef?: string;
+  },
 ) {
   const hardReasonCodes: string[] = [];
   const actionReasonCodes: string[] = [];
@@ -310,8 +315,8 @@ function executionGateDecision(
   const approvedActionGate =
     hardReasons.length === 0 &&
     actionReasons.length > 0 &&
-    run.humanGate.state === "approved" &&
-    run.humanGate.gateRef === gateRef;
+    ((run.humanGate.state === "approved" && run.humanGate.gateRef === gateRef) ||
+      input.approvedGateRef === gateRef);
 
   return {
     reasonCodes: approvedActionGate ? [] : allReasons,
@@ -329,6 +334,12 @@ async function persistExecutionBlock(input: {
   gateRef: string;
 }) {
   let current = input.leased;
+  const resumeMode =
+    current.run.status === "waiting"
+      ? ("resume_attempt" as const)
+      : current.run.status === "running"
+        ? ("recover_abandoned_attempt" as const)
+        : ("start_new_attempt" as const);
   if (current.run.status === "failed") {
     const queued = transitionAlpha2Run(current.run, "queued", { now: input.now });
     current = await save(input.ledger, current, queued, {
@@ -353,6 +364,7 @@ async function persistExecutionBlock(input: {
     now: input.now,
     reason: input.reasonCodes.join(","),
     gateRef: input.gateRef,
+    resumeMode,
   });
   return save(
     input.ledger,
@@ -766,16 +778,26 @@ export async function runAlpha2DurableStep(input: {
     } catch {
       authorization = undefined;
     }
-    const gateDecision = executionGateDecision(leased.run, authorization, {
+    const authorizationLease = await input.ledger.renewLease({
+      runId: input.runId,
+      owner: leaseOwner,
+      now: new Date().toISOString(),
+      leaseMs,
+    });
+    if (!authorizationLease?.lease) throw new Error("alpha2_ledger_lease_lost");
+    const authorizationNow = new Date(
+      Date.parse(authorizationLease.lease.expiresAt) - leaseMs,
+    ).toISOString();
+    const gateDecision = executionGateDecision(authorizationLease.run, authorization, {
       currentHeadSha: input.currentHeadSha,
-      authoritativeNow: authoritativeLeaseNow,
+      authoritativeNow: authorizationNow,
       maxAgeMs: Math.max(1_000, input.authorizationMaxAgeMs ?? 60_000),
     });
     if (gateDecision.reasonCodes.length > 0) {
       const stopped = await persistExecutionBlock({
         ledger: input.ledger,
-        leased,
-        now: startedAt,
+        leased: authorizationLease,
+        now: authorizationNow,
         leaseOwner,
         reasonCodes: gateDecision.reasonCodes,
         gateRef: gateDecision.gateRef,
@@ -787,24 +809,19 @@ export async function runAlpha2DurableStep(input: {
       };
     }
 
-    let authorizedLeased = leased;
-    let approvedResume = false;
-    if (gateDecision.approvedGateRef) {
-      const consumed = consumeAlpha2HumanGateApproval(leased.run, {
-        gateRef: gateDecision.approvedGateRef,
-        now: startedAt,
-      });
-      authorizedLeased = await save(input.ledger, leased, consumed, {
-        owner: leaseOwner,
-        now: startedAt,
-      });
-      approvedResume = leased.run.status === "running";
-    }
+    const approvedResumeMode = gateDecision.approvedGateRef
+      ? authorizationLease.run.humanGate.resumeMode
+      : undefined;
+    const approvedResume =
+      Boolean(gateDecision.approvedGateRef) &&
+      authorizationLease.run.status === "running" &&
+      approvedResumeMode !== "recover_abandoned_attempt";
+    const chargeApprovedAttempt = approvedResumeMode === "start_new_attempt";
 
     const start = await moveToRunning({
       ledger: input.ledger,
-      leased: authorizedLeased,
-      now: startedAt,
+      leased: authorizationLease,
+      now: authorizationNow,
       leaseOwner,
       approvedResume,
     });
@@ -847,9 +864,73 @@ export async function runAlpha2DurableStep(input: {
       },
     };
     try {
-      const executionNow = await executionFence.assertActive();
+      let executionCurrent = start.current;
+      let executionNow = await executionFence.assertActive();
+      let freshGateDecision = executionGateDecision(executionCurrent.run, authorization, {
+        currentHeadSha: input.currentHeadSha,
+        authoritativeNow: executionNow,
+        maxAgeMs: Math.max(1_000, input.authorizationMaxAgeMs ?? 60_000),
+        approvedGateRef: gateDecision.approvedGateRef,
+      });
+      if (freshGateDecision.reasonCodes.length > 0) {
+        const stopped = await persistExecutionBlock({
+          ledger: input.ledger,
+          leased: executionCurrent,
+          now: executionNow,
+          leaseOwner,
+          reasonCodes: freshGateDecision.reasonCodes,
+          gateRef: freshGateDecision.gateRef,
+        });
+        return {
+          state: "execution_blocked",
+          run: stopped.run,
+          reasonCodes: freshGateDecision.reasonCodes,
+        };
+      }
+
+      if (gateDecision.approvedGateRef) {
+        const consumed = consumeAlpha2HumanGateApproval(executionCurrent.run, {
+          gateRef: gateDecision.approvedGateRef,
+          chargeAttempt: chargeApprovedAttempt,
+          now: executionNow,
+        });
+        executionCurrent = await save(
+          input.ledger,
+          executionCurrent,
+          consumed,
+          { owner: leaseOwner, now: executionNow },
+          undefined,
+          chargeApprovedAttempt
+            ? { maxWallClockMs: consumed.budget.maxWallClockMs }
+            : undefined,
+        );
+        executionFence.generation = executionCurrent.version;
+        executionNow = await executionFence.assertActive();
+        freshGateDecision = executionGateDecision(executionCurrent.run, authorization, {
+          currentHeadSha: input.currentHeadSha,
+          authoritativeNow: executionNow,
+          maxAgeMs: Math.max(1_000, input.authorizationMaxAgeMs ?? 60_000),
+          approvedGateRef: gateDecision.approvedGateRef,
+        });
+        if (freshGateDecision.reasonCodes.length > 0) {
+          const stopped = await persistExecutionBlock({
+            ledger: input.ledger,
+            leased: executionCurrent,
+            now: executionNow,
+            leaseOwner,
+            reasonCodes: freshGateDecision.reasonCodes,
+            gateRef: freshGateDecision.gateRef,
+          });
+          return {
+            state: "execution_blocked",
+            run: stopped.run,
+            reasonCodes: freshGateDecision.reasonCodes,
+          };
+        }
+      }
+
       const outcome = await executeWithinWallClockBudget({
-        run: start.current.run,
+        run: executionCurrent.run,
         workerId: input.workerId,
         executor: input.executor,
         now: executionNow,
@@ -860,7 +941,7 @@ export async function runAlpha2DurableStep(input: {
       await heartbeat.stopAndVerify(outcomeAt);
       const persisted = await persistOutcome({
         ledger: input.ledger,
-        current: start.current,
+        current: executionCurrent,
         outcome,
         now: outcomeAt,
         leaseOwner,
@@ -931,7 +1012,7 @@ export function startAlpha2RecoveryScheduler(input: {
   let active = true;
   let inFlight: ReturnType<typeof recoverAlpha2DueRuns> | null = null;
 
-  const tick = () => {
+  const runTrackedScan = () => {
     if (!active) return Promise.resolve([]);
     if (inFlight) return inFlight;
     inFlight = recoverAlpha2DueRuns({
@@ -939,15 +1020,16 @@ export function startAlpha2RecoveryScheduler(input: {
       dispatcher: input.dispatcher,
       limit: input.batchSize ?? 50,
     })
-      .catch((error) => {
-        input.onError?.(error);
-        return [];
-      })
       .finally(() => {
         inFlight = null;
       });
     return inFlight;
   };
+  const tick = () =>
+    runTrackedScan().catch((error) => {
+      input.onError?.(error);
+      return [];
+    });
 
   const timer = setInterval(() => void tick(), intervalMs);
   timer.unref?.();
@@ -957,8 +1039,9 @@ export function startAlpha2RecoveryScheduler(input: {
     async stop() {
       active = false;
       clearInterval(timer);
-      await inFlight;
+      await inFlight?.catch(() => undefined);
     },
+    recoverNow: runTrackedScan,
     tick,
   };
 }

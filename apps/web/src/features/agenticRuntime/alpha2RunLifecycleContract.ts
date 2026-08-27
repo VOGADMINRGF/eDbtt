@@ -41,6 +41,11 @@ export const ALPHA2_GATE_STATES = [
   "expired",
 ] as const;
 export const ALPHA2_ROUTE_MODES = ["automatic", "pinned"] as const;
+export const ALPHA2_GATE_RESUME_MODES = [
+  "start_new_attempt",
+  "resume_attempt",
+  "recover_abandoned_attempt",
+] as const;
 
 export type Alpha2RunStatus = (typeof ALPHA2_RUN_STATUSES)[number];
 export type Alpha2RunKind = (typeof ALPHA2_RUN_KINDS)[number];
@@ -55,6 +60,7 @@ const Alpha2RunKindSchema = z.enum(ALPHA2_RUN_KINDS);
 const Alpha2RiskClassSchema = z.enum(ALPHA2_RISK_CLASSES);
 const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
+const Alpha2GateResumeModeSchema = z.enum(ALPHA2_GATE_RESUME_MODES);
 const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
 const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
   "approved",
@@ -110,6 +116,7 @@ export const Alpha2HumanGateSchema = z
     state: Alpha2GateStateSchema,
     reason: z.string().min(1).optional(),
     gateRef: z.string().min(1).optional(),
+    resumeMode: Alpha2GateResumeModeSchema.optional(),
     decisionRef: z.string().min(1).optional(),
     decidedAt: z.string().datetime().optional(),
   })
@@ -290,7 +297,12 @@ export function createAlpha2RunRecord(input: {
 
 export function transitionAlpha2RunToNewHumanGate(
   run: Alpha2RunRecord,
-  input: { reason: string; gateRef: string; now?: string },
+  input: {
+    reason: string;
+    gateRef: string;
+    resumeMode: (typeof ALPHA2_GATE_RESUME_MODES)[number];
+    now?: string;
+  },
 ): Alpha2RunRecord {
   assertAlpha2RunTransition(run.status, "human_gate");
   const now = input.now ?? new Date().toISOString();
@@ -305,6 +317,7 @@ export function transitionAlpha2RunToNewHumanGate(
       state: "pending",
       reason: input.reason,
       gateRef: input.gateRef,
+      resumeMode: input.resumeMode,
     },
     humanGateHistory: preservesDecision
       ? [...run.humanGateHistory, run.humanGate]
@@ -314,7 +327,7 @@ export function transitionAlpha2RunToNewHumanGate(
 
 export function consumeAlpha2HumanGateApproval(
   run: Alpha2RunRecord,
-  input: { gateRef: string; now?: string },
+  input: { gateRef: string; chargeAttempt?: boolean; now?: string },
 ): Alpha2RunRecord {
   if (
     run.humanGate.state !== "approved" ||
@@ -324,9 +337,14 @@ export function consumeAlpha2HumanGateApproval(
     throw new Error("alpha2_human_gate_approval_mismatch");
   }
   const now = input.now ?? new Date().toISOString();
+  const attempt = run.attempt + (input.chargeAttempt ? 1 : 0);
+  if (attempt > run.budget.maxAttempts) {
+    throw new Error("alpha2_attempt_budget_exhausted");
+  }
   return Alpha2RunRecordSchema.parse({
     ...run,
     updatedAt: now,
+    attempt,
     humanGate: { state: "not_required" },
     humanGateHistory: [...run.humanGateHistory, run.humanGate],
   });
@@ -358,6 +376,14 @@ export function transitionAlpha2Run(
     nextHumanGate.gateRef !== run.humanGate.gateRef
   ) {
     throw new Error("alpha2_human_gate_approval_ref_mismatch");
+  }
+  if (
+    run.status === "human_gate" &&
+    run.humanGate.resumeMode &&
+    nextHumanGate.state === "approved" &&
+    nextHumanGate.resumeMode !== run.humanGate.resumeMode
+  ) {
+    throw new Error("alpha2_human_gate_resume_mode_mismatch");
   }
 
   if (run.status === "human_gate" && ["running", "review"].includes(to)) {
