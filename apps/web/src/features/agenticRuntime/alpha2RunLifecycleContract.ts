@@ -394,18 +394,28 @@ export function transitionAlpha2Run(
   }
 
   const candidateHumanGate = input.humanGate ?? run.humanGate;
-  const nextHumanGate =
+  const expectedResumeMode =
     to === "running" &&
     ["review", "human_gate"].includes(run.status) &&
     candidateHumanGate.state === "approved"
-      ? {
-          ...candidateHumanGate,
-          resumeMode:
-            candidateHumanGate.resumeMode ??
-            run.humanGate.resumeMode ??
-            (run.attempt === 0 ? "start_new_attempt" : "resume_attempt"),
-        }
-      : candidateHumanGate;
+      ? run.humanGate.resumeMode ??
+        (run.attempt === 0 ? "start_new_attempt" : "resume_attempt")
+      : undefined;
+
+  if (
+    expectedResumeMode &&
+    candidateHumanGate.resumeMode &&
+    candidateHumanGate.resumeMode !== expectedResumeMode
+  ) {
+    throw new Error("alpha2_human_gate_resume_mode_mismatch");
+  }
+
+  const nextHumanGate = expectedResumeMode
+    ? {
+        ...candidateHumanGate,
+        resumeMode: expectedResumeMode,
+      }
+    : candidateHumanGate;
 
   if (
     run.status === "human_gate" &&
