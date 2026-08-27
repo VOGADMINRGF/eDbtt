@@ -6,7 +6,6 @@ import {
   type Alpha2ExecutionJob,
 } from "@/features/agenticRuntime/alpha2BullmqExecutionQueue";
 import {
-  recoverAlpha2DueRuns,
   runAlpha2DurableStep,
   startAlpha2RecoveryScheduler,
   createAlpha2ResolvingExecutor,
@@ -123,11 +122,7 @@ export function startAlpha2ControlPlaneRuntime(input: {
     worker,
     recovery,
     async recoverNow() {
-      return recoverAlpha2DueRuns({
-        ledger,
-        dispatcher,
-        limit: input.recoveryBatchSize,
-      });
+      return recovery.tick();
     },
     async close() {
       await recovery.stop();

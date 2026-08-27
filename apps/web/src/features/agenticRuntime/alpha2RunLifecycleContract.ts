@@ -109,6 +109,7 @@ export const Alpha2HumanGateSchema = z
   .object({
     state: Alpha2GateStateSchema,
     reason: z.string().min(1).optional(),
+    gateRef: z.string().min(1).optional(),
     decisionRef: z.string().min(1).optional(),
     decidedAt: z.string().datetime().optional(),
   })
@@ -289,7 +290,7 @@ export function createAlpha2RunRecord(input: {
 
 export function transitionAlpha2RunToNewHumanGate(
   run: Alpha2RunRecord,
-  input: { reason: string; now?: string },
+  input: { reason: string; gateRef: string; now?: string },
 ): Alpha2RunRecord {
   assertAlpha2RunTransition(run.status, "human_gate");
   const now = input.now ?? new Date().toISOString();
@@ -303,10 +304,31 @@ export function transitionAlpha2RunToNewHumanGate(
     humanGate: {
       state: "pending",
       reason: input.reason,
+      gateRef: input.gateRef,
     },
     humanGateHistory: preservesDecision
       ? [...run.humanGateHistory, run.humanGate]
       : run.humanGateHistory,
+  });
+}
+
+export function consumeAlpha2HumanGateApproval(
+  run: Alpha2RunRecord,
+  input: { gateRef: string; now?: string },
+): Alpha2RunRecord {
+  if (
+    run.humanGate.state !== "approved" ||
+    run.humanGate.gateRef !== input.gateRef ||
+    !run.humanGate.decisionRef
+  ) {
+    throw new Error("alpha2_human_gate_approval_mismatch");
+  }
+  const now = input.now ?? new Date().toISOString();
+  return Alpha2RunRecordSchema.parse({
+    ...run,
+    updatedAt: now,
+    humanGate: { state: "not_required" },
+    humanGateHistory: [...run.humanGateHistory, run.humanGate],
   });
 }
 
@@ -328,6 +350,15 @@ export function transitionAlpha2Run(
   }
 
   const nextHumanGate = input.humanGate ?? run.humanGate;
+
+  if (
+    run.status === "human_gate" &&
+    run.humanGate.gateRef &&
+    nextHumanGate.state === "approved" &&
+    nextHumanGate.gateRef !== run.humanGate.gateRef
+  ) {
+    throw new Error("alpha2_human_gate_approval_ref_mismatch");
+  }
 
   if (run.status === "human_gate" && ["running", "review"].includes(to)) {
     if (nextHumanGate.state !== "approved") {

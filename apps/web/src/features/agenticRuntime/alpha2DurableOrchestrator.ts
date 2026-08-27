@@ -1,7 +1,8 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   Alpha2RunRecordSchema,
   appendAlpha2Checkpoint,
+  consumeAlpha2HumanGateApproval,
   transitionAlpha2Run,
   transitionAlpha2RunToNewHumanGate,
   type Alpha2RunRecord,
@@ -48,17 +49,24 @@ export type Alpha2WorkerOutcome =
     });
 
 export type Alpha2ExecutionFence = {
-  /** Attempt-specific token that side-effect adapters must use as their fencing/idempotency key. */
+  /** Attempt-specific ownership token; never reuse it across deliveries. */
   token: string;
-  assertActive(): Promise<void>;
+  generation: number;
+  assertActive(): Promise<string>;
   /**
-   * Every external or mutating effect must cross this boundary. The lease is
-   * validated immediately before and after the effect, and the attempt token is
-   * supplied to the adapter so a later delivery cannot reuse this ownership.
+   * Every external or mutating effect must cross this boundary. The sink must
+   * atomically deduplicate by idempotencyKey and reject a generation older than
+   * the latest committed generation before applying the mutation.
    */
-  runSideEffect<T>(
-    effect: (input: { fenceToken: string }) => Promise<T> | T,
-  ): Promise<T>;
+  runSideEffect<T>(input: {
+    effectId: string;
+    sink: (fence: {
+      idempotencyKey: string;
+      generation: number;
+      attemptToken: string;
+      assertActive: () => Promise<string>;
+    }) => Promise<T> | T;
+  }): Promise<T>;
 };
 
 export interface Alpha2WorkerExecutor {
@@ -191,23 +199,49 @@ async function save(
   });
 }
 
-function executionBlockReasons(
+function runtimeGateRef(input: {
+  run: Alpha2RunRecord;
+  authorization?: Alpha2ExecutionAuthorization;
+  currentHeadSha: string;
+  reasonCodes: string[];
+}) {
+  const identity = JSON.stringify({
+    taskId: input.run.taskId,
+    headSha: input.currentHeadSha,
+    action: input.authorization?.action ?? null,
+    reasonCodes: [...input.reasonCodes].sort(),
+  });
+  return `alpha2_gate_${createHash("sha256").update(identity).digest("hex")}`;
+}
+
+function executionGateDecision(
   run: Alpha2RunRecord,
   authorization: Alpha2ExecutionAuthorization | undefined,
   input: { currentHeadSha: string; authoritativeNow: string; maxAgeMs: number },
 ) {
-  const reasonCodes: string[] = [];
+  const hardReasonCodes: string[] = [];
+  const actionReasonCodes: string[] = [];
 
-  if (!authorization) return ["missing_runtime_execution_authorization"];
+  if (!authorization) {
+    const reasonCodes = ["missing_runtime_execution_authorization"];
+    return {
+      reasonCodes,
+      gateRef: runtimeGateRef({
+        run,
+        currentHeadSha: input.currentHeadSha,
+        reasonCodes,
+      }),
+    };
+  }
 
   if (!/^[0-9a-f]{40}$/i.test(input.currentHeadSha)) {
-    reasonCodes.push("runtime_head_sha_missing");
+    hardReasonCodes.push("runtime_head_sha_missing");
   }
   if (
     !/^[0-9a-f]{40}$/i.test(authorization.observedHeadSha) ||
     authorization.observedHeadSha !== input.currentHeadSha
   ) {
-    reasonCodes.push("authorization_head_sha_mismatch");
+    hardReasonCodes.push("authorization_head_sha_mismatch");
   }
   const observedAtMs = Date.parse(authorization.observedAt);
   const authoritativeNowMs = Date.parse(input.authoritativeNow);
@@ -217,54 +251,73 @@ function executionBlockReasons(
     authoritativeNowMs - observedAtMs > input.maxAgeMs ||
     observedAtMs - authoritativeNowMs > input.maxAgeMs
   ) {
-    reasonCodes.push("authorization_evidence_stale");
+    hardReasonCodes.push("authorization_evidence_stale");
   }
 
   try {
     const task = findAlpha2OpenTask(authorization.openTasksText, run.taskId);
     if (!task) {
-      reasonCodes.push("task_missing_from_canonical_opentasks");
+      hardReasonCodes.push("task_missing_from_canonical_opentasks");
     } else {
       const eligibility = evaluateAlpha2TaskEligibility({
         task,
         ownership: authorization.ownership,
       });
       if (!eligibility.continuationEligible) {
-        reasonCodes.push(...eligibility.reasonCodes);
+        hardReasonCodes.push(...eligibility.reasonCodes);
       }
     }
   } catch {
-    reasonCodes.push("canonical_opentasks_unreadable");
+    hardReasonCodes.push("canonical_opentasks_unreadable");
   }
 
   if (authorization.ownership.exactHead !== true) {
-    reasonCodes.push("owner_not_on_exact_head");
+    hardReasonCodes.push("owner_not_on_exact_head");
   }
   if (authorization.ownership.ciState !== "success") {
-    reasonCodes.push("exact_head_ci_not_successful");
+    hardReasonCodes.push("exact_head_ci_not_successful");
   }
   if ((authorization.ownership.unresolvedReviewThreads ?? 1) > 0) {
-    reasonCodes.push("unresolved_review_threads");
+    hardReasonCodes.push("unresolved_review_threads");
   }
 
   try {
     if (authorization.action.riskClass !== run.riskClass) {
-      reasonCodes.push("action_risk_class_mismatch");
+      hardReasonCodes.push("action_risk_class_mismatch");
     }
     const actionGate = resolveAlpha2ActionGate(authorization.action);
-    if (!actionGate.autoExecutionAllowed) reasonCodes.push(...actionGate.reasonCodes);
+    if (!actionGate.autoExecutionAllowed) actionReasonCodes.push(...actionGate.reasonCodes);
   } catch {
-    reasonCodes.push("action_gate_evidence_invalid");
+    hardReasonCodes.push("action_gate_evidence_invalid");
   }
 
   if (run.budget.maxModelCalls !== undefined) {
-    reasonCodes.push("durable_model_call_metering_not_available");
+    hardReasonCodes.push("durable_model_call_metering_not_available");
   }
   if (run.budget.maxEstimatedCostEur !== undefined) {
-    reasonCodes.push("durable_cost_metering_not_available");
+    hardReasonCodes.push("durable_cost_metering_not_available");
   }
 
-  return unique(reasonCodes);
+  const hardReasons = unique(hardReasonCodes);
+  const actionReasons = unique(actionReasonCodes);
+  const allReasons = unique([...hardReasons, ...actionReasons]);
+  const gateRef = runtimeGateRef({
+    run,
+    authorization,
+    currentHeadSha: input.currentHeadSha,
+    reasonCodes: allReasons,
+  });
+  const approvedActionGate =
+    hardReasons.length === 0 &&
+    actionReasons.length > 0 &&
+    run.humanGate.state === "approved" &&
+    run.humanGate.gateRef === gateRef;
+
+  return {
+    reasonCodes: approvedActionGate ? [] : allReasons,
+    gateRef,
+    approvedGateRef: approvedActionGate ? gateRef : undefined,
+  };
 }
 
 async function persistExecutionBlock(input: {
@@ -273,6 +326,7 @@ async function persistExecutionBlock(input: {
   now: string;
   leaseOwner: string;
   reasonCodes: string[];
+  gateRef: string;
 }) {
   let current = input.leased;
   if (current.run.status === "failed") {
@@ -298,6 +352,7 @@ async function persistExecutionBlock(input: {
   const stopped = transitionAlpha2RunToNewHumanGate(checkpointed, {
     now: input.now,
     reason: input.reasonCodes.join(","),
+    gateRef: input.gateRef,
   });
   return save(
     input.ledger,
@@ -315,6 +370,7 @@ async function moveToRunning(input: {
   leased: Alpha2VersionedRun;
   now: string;
   leaseOwner: string;
+  approvedResume?: boolean;
 }) {
   let current = input.leased;
   let run = current.run;
@@ -328,7 +384,7 @@ async function moveToRunning(input: {
     });
   }
 
-  if (run.status === "running") {
+  if (run.status === "running" && !input.approvedResume) {
     run = transitionAlpha2Run(run, "failed", {
       now: input.now,
       errorCode:
@@ -466,7 +522,7 @@ function startLeaseHeartbeat(input: {
   onLost?: () => void;
 }) {
   let lost = false;
-  let pending: Promise<void> | null = null;
+  let pending: Promise<Alpha2VersionedRun | null> | null = null;
   const markLost = () => {
     if (lost) return;
     lost = true;
@@ -483,9 +539,11 @@ function startLeaseHeartbeat(input: {
       })
       .then((renewed) => {
         if (!renewed) markLost();
+        return renewed;
       })
       .catch(() => {
         markLost();
+        return null;
       })
       .finally(() => {
         pending = null;
@@ -497,8 +555,9 @@ function startLeaseHeartbeat(input: {
 
   return {
     async assertActive() {
-      await renew();
-      if (lost) throw new Error("alpha2_ledger_lease_lost");
+      const renewed = await renew();
+      if (lost || !renewed?.lease) throw new Error("alpha2_ledger_lease_lost");
+      return new Date(Date.parse(renewed.lease.expiresAt) - input.leaseMs).toISOString();
     },
     async stopAndVerify(now: string) {
       clearInterval(timer);
@@ -707,27 +766,47 @@ export async function runAlpha2DurableStep(input: {
     } catch {
       authorization = undefined;
     }
-    const reasonCodes = executionBlockReasons(leased.run, authorization, {
+    const gateDecision = executionGateDecision(leased.run, authorization, {
       currentHeadSha: input.currentHeadSha,
       authoritativeNow: authoritativeLeaseNow,
       maxAgeMs: Math.max(1_000, input.authorizationMaxAgeMs ?? 60_000),
     });
-    if (reasonCodes.length > 0) {
+    if (gateDecision.reasonCodes.length > 0) {
       const stopped = await persistExecutionBlock({
         ledger: input.ledger,
         leased,
         now: startedAt,
         leaseOwner,
-        reasonCodes,
+        reasonCodes: gateDecision.reasonCodes,
+        gateRef: gateDecision.gateRef,
       });
-      return { state: "execution_blocked", run: stopped.run, reasonCodes };
+      return {
+        state: "execution_blocked",
+        run: stopped.run,
+        reasonCodes: gateDecision.reasonCodes,
+      };
+    }
+
+    let authorizedLeased = leased;
+    let approvedResume = false;
+    if (gateDecision.approvedGateRef) {
+      const consumed = consumeAlpha2HumanGateApproval(leased.run, {
+        gateRef: gateDecision.approvedGateRef,
+        now: startedAt,
+      });
+      authorizedLeased = await save(input.ledger, leased, consumed, {
+        owner: leaseOwner,
+        now: startedAt,
+      });
+      approvedResume = leased.run.status === "running";
     }
 
     const start = await moveToRunning({
       ledger: input.ledger,
-      leased,
+      leased: authorizedLeased,
       now: startedAt,
       leaseOwner,
+      approvedResume,
     });
     if (start.exhausted) return { state: "attempts_exhausted", run: start.current.run };
     const executionController = new AbortController();
@@ -740,29 +819,40 @@ export async function runAlpha2DurableStep(input: {
     });
     const executionFence: Alpha2ExecutionFence = {
       token: leaseOwner,
+      generation: start.current.version,
       async assertActive() {
         if (executionController.signal.aborted) {
           throw new Error(String(executionController.signal.reason ?? "alpha2_execution_aborted"));
         }
-        await heartbeat.assertActive();
+        const authoritativeNow = await heartbeat.assertActive();
         if (executionController.signal.aborted) {
           throw new Error(String(executionController.signal.reason ?? "alpha2_execution_aborted"));
         }
+        return authoritativeNow;
       },
-      async runSideEffect(effect) {
+      async runSideEffect(effectInput) {
+        if (!effectInput.effectId.trim()) throw new Error("alpha2_effect_id_missing");
         await this.assertActive();
-        const result = await effect({ fenceToken: leaseOwner });
+        const idempotencyKey = `alpha2_effect_${createHash("sha256")
+          .update(JSON.stringify([input.runId, effectInput.effectId]))
+          .digest("hex")}`;
+        const result = await effectInput.sink({
+          idempotencyKey,
+          generation: this.generation,
+          attemptToken: leaseOwner,
+          assertActive: () => this.assertActive(),
+        });
         await this.assertActive();
         return result;
       },
     };
     try {
-      await executionFence.assertActive();
+      const executionNow = await executionFence.assertActive();
       const outcome = await executeWithinWallClockBudget({
         run: start.current.run,
         workerId: input.workerId,
         executor: input.executor,
-        now: authoritativeLeaseNow,
+        now: executionNow,
         controller: executionController,
         fence: executionFence,
       });
@@ -839,24 +929,23 @@ export function startAlpha2RecoveryScheduler(input: {
 }) {
   const intervalMs = Math.max(10_000, input.intervalMs ?? 60_000);
   let active = true;
-  let inFlight: Promise<void> | null = null;
+  let inFlight: ReturnType<typeof recoverAlpha2DueRuns> | null = null;
 
   const tick = () => {
-    if (!active) return Promise.resolve();
+    if (!active) return Promise.resolve([]);
     if (inFlight) return inFlight;
-    inFlight = (async () => {
-      try {
-        await recoverAlpha2DueRuns({
-          ledger: input.ledger,
-          dispatcher: input.dispatcher,
-          limit: input.batchSize ?? 50,
-        });
-      } catch (error) {
+    inFlight = recoverAlpha2DueRuns({
+      ledger: input.ledger,
+      dispatcher: input.dispatcher,
+      limit: input.batchSize ?? 50,
+    })
+      .catch((error) => {
         input.onError?.(error);
-      }
-    })().finally(() => {
-      inFlight = null;
-    });
+        return [];
+      })
+      .finally(() => {
+        inFlight = null;
+      });
     return inFlight;
   };
 

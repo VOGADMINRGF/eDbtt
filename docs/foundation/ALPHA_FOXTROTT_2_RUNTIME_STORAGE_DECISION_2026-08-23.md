@@ -24,7 +24,7 @@ The runtime must solve the current operational failure mode: work may not disapp
 
 1. Every executable run has a persistent MongoDB record before dispatch.
 2. Every run has an idempotency key and optimistic version.
-3. Worker ownership is attempt-specific and lease-based. Every external or mutating executor effect must cross the lease-fenced effect boundary and use the attempt token as its fencing/idempotency key; lease loss aborts the executor and blocks further effects.
+3. Worker ownership is attempt-specific and lease-based. Every external or mutating executor effect must cross the lease-fenced effect boundary; the sink must atomically deduplicate a stable run/effect idempotency key and reject stale monotonic fence generations. Lease loss aborts the executor and blocks further effects.
 4. A worker may resume only from a persisted checkpoint/state.
 5. Queue delivery is at-least-once; execution must therefore be idempotent.
 6. Terminal, review and human-gate states are not automatically re-dispatched.
