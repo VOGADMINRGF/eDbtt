@@ -67,10 +67,12 @@ const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
   "rejected",
   "expired",
 ]);
-const SAFE_STRUCTURED_ERROR_CODE = /^[a-z0-9][a-z0-9_.:-]{0,127}$/i;
+const SAFE_STRUCTURED_ERROR_CODE = /^alpha2_[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
 export function normalizeAlpha2ErrorCode(errorCode: unknown, fallback = "alpha2_run_failed") {
-  return typeof errorCode === "string" && SAFE_STRUCTURED_ERROR_CODE.test(errorCode)
+  return typeof errorCode === "string" &&
+    errorCode.length <= 128 &&
+    SAFE_STRUCTURED_ERROR_CODE.test(errorCode)
     ? errorCode
     : fallback;
 }
