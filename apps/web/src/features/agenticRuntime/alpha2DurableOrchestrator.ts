@@ -4,6 +4,7 @@ import {
   appendAlpha2Checkpoint,
   consumeAlpha2HumanGateApproval,
   consumeAlpha2HumanResumeApproval,
+  normalizeAlpha2ErrorCode,
   transitionAlpha2Run,
   transitionAlpha2RunToNewHumanGate,
   type Alpha2RunRecord,
@@ -200,7 +201,6 @@ async function save(
   });
 }
 
-const SAFE_STRUCTURED_ERROR_CODE = /^[a-z0-9][a-z0-9_.:-]{0,127}$/i;
 const RETRYABLE_MONGO_ERROR_NAMES = new Set([
   "MongoNetworkError",
   "MongoNetworkTimeoutError",
@@ -213,25 +213,12 @@ function structuredErrorCode(error: unknown, fallback: string) {
   const candidate = error as
     | { code?: unknown; name?: unknown; message?: unknown }
     | null;
-  if (
-    typeof candidate?.code === "string" &&
-    SAFE_STRUCTURED_ERROR_CODE.test(candidate.code)
-  ) {
-    return candidate.code;
-  }
-  if (
-    typeof candidate?.message === "string" &&
-    /^alpha2_[a-z0-9_:-]+$/i.test(candidate.message)
-  ) {
-    return candidate.message;
-  }
-  if (
-    typeof candidate?.name === "string" &&
-    candidate.name !== "Error" &&
-    SAFE_STRUCTURED_ERROR_CODE.test(candidate.name)
-  ) {
-    return candidate.name;
-  }
+  const code = normalizeAlpha2ErrorCode(candidate?.code, "");
+  if (code) return code;
+  const message = normalizeAlpha2ErrorCode(candidate?.message, "");
+  if (message) return message;
+  const name = normalizeAlpha2ErrorCode(candidate?.name, "");
+  if (name) return name;
   return fallback;
 }
 
@@ -615,7 +602,12 @@ function persistedOutcomeMatches(
         persisted.run.humanGate.resumeMode === "resume_attempt"
       );
     case "failed": {
-      if (persisted.run.lastErrorCode !== outcome.errorCode) return false;
+      const normalizedErrorCode = normalizeAlpha2ErrorCode(
+        outcome.errorCode,
+        "alpha2_run_failed",
+      );
+      if (persisted.run.lastErrorCode !== normalizedErrorCode) return false;
+      if (checkpoint.errorCode !== normalizedErrorCode) return false;
       const retryAfterMs =
         outcome.retryable && current.run.attempt < current.run.budget.maxAttempts
           ? Math.max(0, Math.floor(outcome.retryAfterMs ?? 30_000))
