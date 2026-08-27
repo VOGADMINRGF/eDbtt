@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  consumeAlpha2HumanResumeApproval,
   createAlpha2RunRecord,
   transitionAlpha2Run,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
@@ -73,5 +74,35 @@ describe("Alpha-Foxtrott 2 human-gate immutability", () => {
         },
       }),
     ).toThrow("alpha2_human_gate_approval_ref_mismatch");
+  });
+
+  it("derives an initial gate resume mode from durable state and rejects caller overrides", () => {
+    const gated = transitionAlpha2Run(createQueuedRun(), "human_gate", {
+      humanGate: { state: "pending", reason: "Human decision required" },
+    });
+
+    expect(gated.attempt).toBe(0);
+    expect(gated.humanGate.resumeMode).toBeUndefined();
+
+    expect(() =>
+      transitionAlpha2Run(gated, "running", {
+        humanGate: {
+          state: "approved",
+          decisionRef: "decision:spoofed-resume-mode",
+          resumeMode: "resume_attempt",
+        },
+      }),
+    ).toThrow("alpha2_human_gate_resume_mode_mismatch");
+
+    const approved = transitionAlpha2Run(gated, "running", {
+      humanGate: {
+        state: "approved",
+        decisionRef: "decision:approved",
+      },
+    });
+
+    expect(approved.humanGate.resumeMode).toBe("start_new_attempt");
+    const consumed = consumeAlpha2HumanResumeApproval(approved);
+    expect(consumed.attempt).toBe(1);
   });
 });
