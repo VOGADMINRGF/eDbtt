@@ -504,8 +504,13 @@ export function transitionAlpha2Run(
   const preservesResumeAt = to === "waiting" || to === "failed";
   const normalizedErrorCode =
     to === "failed" ? normalizeAlpha2ErrorCode(input.errorCode, "alpha2_run_failed") : undefined;
+  const latestCheckpoint = run.checkpoints.at(-1);
   const checkpoints =
-    to === "failed" && normalizedErrorCode && run.checkpoints.at(-1)?.status === "failed"
+    to === "failed" &&
+    normalizedErrorCode &&
+    latestCheckpoint?.status === "failed" &&
+    latestCheckpoint.createdAt === now &&
+    latestCheckpoint.errorCode === undefined
       ? run.checkpoints.map((checkpoint, index) =>
           index === run.checkpoints.length - 1
             ? { ...checkpoint, errorCode: normalizedErrorCode }
