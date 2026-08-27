@@ -34,11 +34,10 @@ describe("/start create light entry", () => {
   it("keeps the homepage on the product landing instead of the create-light form", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
-    expect(html).toContain("Aktuelle Entwicklungen entdecken");
-    expect(html).toContain("Beitrag prüfen");
-    expect(html).toContain("Beitrag starten");
-    expect(html).toContain("Offene Beteiligung ansehen");
+    expect(html).toContain("Abstimmen. Verstehen. Gemeinsam weiterkommen.");
+    expect(html).toContain("Kostenlos Abstimmung starten");
+    expect(html).toContain("Direkt ausprobieren");
+    expect(html).toContain("Mit einer passenden Vorlage starten");
     expect(html).not.toContain('data-testid="start-create-light-entry"');
     expect(html).not.toContain("Beitrag eingeben");
   });

@@ -20,36 +20,28 @@ vi.mock("next/image", () => ({
 }));
 
 describe("landing clarity contract", () => {
-  it("explains eDebatte as a development, evidence and participation system", () => {
+  it("explains the ballot-first journey, audiences and guardrails", () => {
     const html = renderToStaticMarkup(<LandingStart />);
     const headings = [...html.matchAll(/<h1([^>]*)>/g)];
 
     expect(headings).toHaveLength(1);
     expect(headings[0]?.[1] ?? "").not.toContain("sr-only");
 
-    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
-    expect(html).toContain(
-      "eDebatte bündelt aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten",
-    );
-    expect(html).toContain("Nicht nur die nächste Schlagzeile.");
-    expect(html).toContain("Was ist neu?");
-    expect(html).toContain("Was ist belegt?");
-    expect(html).toContain("Was bleibt offen?");
-    expect(html).toContain("Wo kannst du mitwirken?");
-    expect(html).toContain("Aktuelle Entwicklungen entdecken");
-    expect(html).toContain("Beitrag prüfen");
-    expect(html).toContain("Mitwirken, wo deine Sicht gebraucht wird");
-    expect(html).toContain("Dossiers verstehen");
-    expect(html).toContain("Für Organisationen, Medien &amp; Kultur");
-    expect(html).toContain("Für Verwaltung &amp; Behörden");
-    expect(html).toContain("Mit Voxy");
-    expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
-    expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
-    expect(html).toContain('href="/create"');
+    expect(html).toContain("Abstimmen. Verstehen. Gemeinsam weiterkommen.");
+    expect(html).toContain("Direkt ausprobieren");
+    expect(html).toContain("Kostenlos Abstimmung starten");
+    expect(html).toContain("Vereine");
+    expect(html).toContain("Bürgerinitiativen &amp; lokale Gruppen");
+    expect(html).toContain("Verbände &amp; Netzwerke");
+    expect(html).toContain("Organisationen &amp; Kommunen");
+    expect(html).toContain("Frage stellen");
+    expect(html).toContain("Link teilen");
+    expect(html).toContain("Positionen verstehen");
+    expect(html).toContain("Keine Abstimmung über Fakten oder Wahrheit");
+    expect(html).toContain("Keine automatische Veröffentlichung");
+    expect(html).toContain("Richtwert bis 30 Teilnehmende");
+    expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage"');
     expect(html).toContain('href="/swipes"');
-    expect(html).toContain('href="/themen"');
-    expect(html).toContain('href="/dossier"');
-    expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
 
     expect(html).not.toContain("500K");
     expect(html).not.toContain("250 Partner");
@@ -59,30 +51,16 @@ describe("landing clarity contract", () => {
     expect(html).not.toContain("/brand/voxy/voxy-presenting.webp");
   });
 
-  it("keeps landing source files free of forbidden card utility tokens", () => {
+  it("keeps the conversion landing free of debug and demo language", () => {
     const sources = [
       "src/app/start/LandingStart.tsx",
-      "src/features/home/HomeSplitVoxyLanding.tsx",
+      "src/features/home/HomeGoToMarketLanding.tsx",
     ].map((path) => readFileSync(resolve(process.cwd(), path), "utf8"));
 
-    const forbiddenTokens = [
-      "shadow-",
-      "drop-shadow",
-      "bg-white",
-      "bg-black",
-      "bg-slate-",
-      "bg-zinc-",
-      "bg-neutral-",
-      "border-slate-",
-      "border-zinc-",
-      "ring-1",
-    ];
-
     for (const source of sources) {
-      for (const token of forbiddenTokens) {
-        expect(source).not.toContain(token);
-      }
       expect(source).not.toContain("Developer-Hinweis");
+      expect(source).not.toContain("Runtime-basiert");
+      expect(source).not.toContain("/demo/");
     }
   });
 
@@ -90,7 +68,7 @@ describe("landing clarity contract", () => {
     const startPageSource = readFileSync(resolve(process.cwd(), "src/app/start/page.tsx"), "utf8");
     const landingSource = readFileSync(resolve(process.cwd(), "src/app/start/LandingStart.tsx"), "utf8");
     const splitLandingSource = readFileSync(
-      resolve(process.cwd(), "src/features/home/HomeSplitVoxyLanding.tsx"),
+      resolve(process.cwd(), "src/features/home/HomeGoToMarketLanding.tsx"),
       "utf8",
     );
 
@@ -100,6 +78,6 @@ describe("landing clarity contract", () => {
     expect(landingSource).not.toContain("localStorage");
     expect(landingSource).not.toContain("/demo/");
     expect(splitLandingSource).not.toContain("/demo/");
-    expect(splitLandingSource).not.toContain("/brand/voxy/voxy-presenting.webp");
+    expect(splitLandingSource).not.toContain("/brand/voxy/");
   });
 });

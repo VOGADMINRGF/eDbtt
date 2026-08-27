@@ -92,10 +92,10 @@ describe("mobile entry routes contract", () => {
   it("keeps /start as a mobile-first citizen entry without demo dossier fallback", () => {
     const html = renderToStaticMarkup(<LandingStart blocks={[]} />);
 
-    expect(html).toContain("Verstehen, was sich verändert. Mitreden, wo es zählt.");
-    expect((html.match(/data-testid="home-entry-card"/g) ?? []).length).toBe(4);
-    expect(html).toContain("Beitrag starten");
-    expect(html).toContain('href="/dossier"');
+    expect(html).toContain("Abstimmen. Verstehen. Gemeinsam weiterkommen.");
+    expect(html).toContain("Direkt ausprobieren");
+    expect(html).toContain("Eigene Abstimmung kostenlos starten");
+    expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage"');
     expect(html).not.toContain('href="/dossier/demo"');
   });
 
@@ -104,12 +104,11 @@ describe("mobile entry routes contract", () => {
     expect(startPageSource).not.toContain("min-h-screen");
   });
 
-  it("reserves space for the voxy guide artwork so the hero does not jump on load", () => {
+  it("renders the interactive question before secondary homepage sections", () => {
     const html = renderToStaticMarkup(<LandingStart blocks={[]} />);
 
-    expect(html).toContain('data-voxy-avatar=""');
-    expect(html).toContain("aspect-ratio:4 / 5");
-    expect(html).toContain("/brand/voxy/voxy-create-guide-light.png");
-    expect(html).toContain("/brand/voxy/voxy-create-guide-dark.png");
+    expect(html).toContain('data-home-ballot-source="product-example"');
+    expect(html.indexOf("Direkt ausprobieren")).toBeLessThan(html.indexOf("Passt zu eurer Gruppe"));
+    expect(html).toContain("min-h-12");
   });
 });

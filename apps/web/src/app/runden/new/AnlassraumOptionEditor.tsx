@@ -4,6 +4,7 @@ import {
 } from "@/features/surfaces/runden/manualAnlassraumSetup";
 
 type AnlassraumOptionEditorProps = {
+  conversionMode?: boolean;
   communityOptionsMode: ManualAnlassraumCommunityOptionsMode;
   configuredOptionCount: number;
   onAddOption: () => void;
@@ -30,7 +31,9 @@ export default function AnlassraumOptionEditor(props: AnlassraumOptionEditorProp
           </p>
           <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Optionen</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-            Lege feste Antwortoptionen zuerst selbst an. Community-Vorschläge können den Raum später ergänzen.
+            {props.conversionMode
+              ? "Lege die Antwortmöglichkeiten selbst fest. Weitere Vorschläge können nach bewusster Prüfung ergänzt werden."
+              : "Lege feste Antwortoptionen zuerst selbst an. Community-Vorschläge können den Raum später ergänzen."}
           </p>
         </div>
         <span className="vog-chip">
@@ -83,7 +86,7 @@ export default function AnlassraumOptionEditor(props: AnlassraumOptionEditorProp
 
       <div className="public-proof-zone mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-          Community-Vorschläge
+          {props.conversionMode ? "Weitere Antwortvorschläge" : "Community-Vorschläge"}
         </p>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
           {MANUAL_ANLASSRAUM_COMMUNITY_OPTIONS_MODE_CHOICES.map((choice) => {

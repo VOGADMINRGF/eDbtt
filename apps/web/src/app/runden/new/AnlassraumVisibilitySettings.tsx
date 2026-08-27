@@ -6,6 +6,7 @@ import {
 } from "@/features/surfaces/runden/manualAnlassraumSetup";
 
 type AnlassraumVisibilitySettingsProps = {
+  conversionMode?: boolean;
   onScopeChange: (value: ManualAnlassraumScope) => void;
   onVisibilityChange: (value: ManualAnlassraumVisibility) => void;
   scope: ManualAnlassraumScope;
@@ -29,8 +30,9 @@ export default function AnlassraumVisibilitySettings(
       </p>
       <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Sichtbarkeit</h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-        Öffentlich heißt nicht automatisch geprüft. Du entscheidest bewusst, ob der Anlass erst intern bleibt oder
-        später für Beteiligung sichtbar werden soll.
+        {props.conversionMode
+          ? "Öffentlich heißt nicht automatisch geprüft. Du entscheidest bewusst, ob die Abstimmung intern bleibt oder später für Beteiligung freigegeben wird."
+          : "Öffentlich heißt nicht automatisch geprüft. Du entscheidest bewusst, ob der Anlass erst intern bleibt oder später für Beteiligung sichtbar werden soll."}
       </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -41,6 +43,11 @@ export default function AnlassraumVisibilitySettings(
           <div className="mt-3 space-y-2">
             {MANUAL_ANLASSRAUM_SCOPE_CHOICES.map((choice) => {
               const selected = props.scope === choice.value;
+              const conversionDescription = choice.value === "public"
+                ? "Die Abstimmung kann später bewusst für Beteiligung geöffnet werden."
+                : choice.value === "organization_internal"
+                  ? "Die Abstimmung bleibt zunächst im geschützten Arbeitsbereich deiner Organisation."
+                  : "Ein kleiner Kreis bereitet die Abstimmung zuerst gemeinsam vor.";
               return (
                 <button
                   key={choice.value}
@@ -55,7 +62,9 @@ export default function AnlassraumVisibilitySettings(
                   )}
                 >
                   <span className="block text-sm font-semibold">{choice.label}</span>
-                  <span className="mt-1 block text-xs leading-5">{choice.description}</span>
+                  <span className="mt-1 block text-xs leading-5">
+                    {props.conversionMode ? conversionDescription : choice.description}
+                  </span>
                 </button>
               );
             })}

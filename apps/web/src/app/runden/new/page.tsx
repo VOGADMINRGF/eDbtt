@@ -7,9 +7,9 @@ import { readRundenEntryCanonReadModel } from "@/features/surfaces/runden/runden
 import AnlassraumSetupForm from "./AnlassraumSetupForm";
 
 export const metadata: Metadata = {
-  title: "Mitmachraum vorbereiten - eDebatte",
+  title: "Kostenlose Abstimmung vorbereiten - eDebatte",
   description:
-    "Lege einen Mitmachraum zuerst als Entwurf an und entscheide später bewusst über Voxy, Prüfung und Sichtbarkeit.",
+    "Lege eine Abstimmung kostenlos als Entwurf an und entscheide später bewusst über Unterstützung, Prüfung und Sichtbarkeit.",
 };
 
 type SearchParamsShape =
@@ -25,6 +25,8 @@ export default async function RundenManualCreatePage(props: {
   searchParams?: SearchParamsShape;
 }) {
   const resolved = props.searchParams ? await props.searchParams : undefined;
+  const conversionMode = readParam(resolved?.gtm) === "1";
+  const initialTemplateId = readParam(resolved?.template) ?? null;
   const initialServerDraft = await readManualAnlassraumServerDraftForCurrentUser(
     readParam(resolved?.draftId),
   );
@@ -40,24 +42,26 @@ export default async function RundenManualCreatePage(props: {
         <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-              eDebatte Mitmachraum
+              {conversionMode ? "eDebatte Abstimmung" : "eDebatte Mitmachraum"}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] md:text-4xl">
-              Mitmachraum vorbereiten
+              {conversionMode ? "Eigene Abstimmung kostenlos starten" : "Mitmachraum vorbereiten"}
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Setze zuerst Thema, Frage und mögliche Antworten. Danach entscheidest du: ohne Voxy weiter oder mit Voxy strukturieren.
+              {conversionMode
+                ? "Lege Frage und Antwortmöglichkeiten fest. Alles bleibt ein Entwurf, bis du es selbst geprüft und bewusst freigegeben hast."
+                : "Setze zuerst Thema, Frage und mögliche Antworten. Danach entscheidest du: ohne Voxy weiter oder mit Voxy strukturieren."}
             </p>
           </div>
           <Link
-            href="/themen"
+            href={conversionMode ? "/" : "/themen"}
             className="vog-btn-secondary"
           >
-            Zurück zur Themensuche
+            {conversionMode ? "Zurück zur Startseite" : "Zurück zur Themensuche"}
           </Link>
         </div>
 
-        <section
+        {!conversionMode ? <section
           className="mx-auto w-full max-w-[78rem] rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-4 text-sm text-[rgb(var(--fg))]"
           data-runden-entry-canon="true"
         >
@@ -84,13 +88,29 @@ export default async function RundenManualCreatePage(props: {
           <p className="mt-3 leading-6 text-[rgb(var(--muted))]">
             So bleibt verständlich, was vorbereitet wurde, was noch offen ist und wobei Menschen konkret aktiv dabei sein können.
           </p>
-        </section>
+        </section> : (
+          <section className="mx-auto w-full max-w-[78rem] rounded-2xl border border-cyan-300 bg-cyan-50 px-5 py-4 text-sm text-cyan-950 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-50">
+            <p className="font-semibold">Kostenlos für kleine Gruppen</p>
+            <p className="mt-1 leading-6">Du kannst ohne Registrierung beginnen und den Entwurf lokal sichern. Für eine dauerhafte Freigabe und das Teilen ist anschließend eine Anmeldung erforderlich.</p>
+          </section>
+        )}
 
-        <div className="mx-auto w-full max-w-[78rem]">
-          <FrontendAiTransparencyPanel model={frontendAiTransparency} />
-        </div>
+        {conversionMode ? (
+          <section className="mx-auto w-full max-w-[78rem] rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-4 text-sm text-[rgb(var(--muted))]">
+            <strong className="text-[rgb(var(--fg))]">Du behältst die Kontrolle.</strong>{" "}
+            KI-Unterstützung ist optional, wird gekennzeichnet und veröffentlicht oder entscheidet nichts selbstständig.
+          </section>
+        ) : (
+          <div className="mx-auto w-full max-w-[78rem]">
+            <FrontendAiTransparencyPanel model={frontendAiTransparency} />
+          </div>
+        )}
 
-        <AnlassraumSetupForm initialServerDraft={initialServerDraft} />
+        <AnlassraumSetupForm
+          conversionMode={conversionMode}
+          initialServerDraft={initialServerDraft}
+          initialTemplateId={initialTemplateId}
+        />
       </main>
     </section>
   );
