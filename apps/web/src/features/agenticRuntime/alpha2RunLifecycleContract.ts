@@ -67,6 +67,13 @@ const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
   "rejected",
   "expired",
 ]);
+const SAFE_STRUCTURED_ERROR_CODE = /^[a-z0-9][a-z0-9_.:-]{0,127}$/i;
+
+export function normalizeAlpha2ErrorCode(errorCode: unknown, fallback = "alpha2_run_failed") {
+  return typeof errorCode === "string" && SAFE_STRUCTURED_ERROR_CODE.test(errorCode)
+    ? errorCode
+    : fallback;
+}
 
 export const Alpha2SafeTraceArtifactRefSchema = z
   .object({
@@ -136,6 +143,7 @@ export const Alpha2CheckpointSchema = z
     createdAt: z.string().datetime(),
     status: Alpha2RunStatusSchema,
     cursor: z.string().min(1).optional(),
+    errorCode: z.string().min(1).optional(),
     evidenceRefs: z.array(z.string().min(1)).default([]),
     safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).default([]),
     artifactRefs: z.array(Alpha2SafeTraceArtifactRefSchema).default([]),
@@ -494,6 +502,16 @@ export function transitionAlpha2Run(
   }
 
   const preservesResumeAt = to === "waiting" || to === "failed";
+  const normalizedErrorCode =
+    to === "failed" ? normalizeAlpha2ErrorCode(input.errorCode, "alpha2_run_failed") : undefined;
+  const checkpoints =
+    to === "failed" && normalizedErrorCode && run.checkpoints.at(-1)?.status === "failed"
+      ? run.checkpoints.map((checkpoint, index) =>
+          index === run.checkpoints.length - 1
+            ? { ...checkpoint, errorCode: normalizedErrorCode }
+            : checkpoint,
+        )
+      : run.checkpoints;
   const next = {
     ...run,
     status: to,
@@ -503,7 +521,8 @@ export function transitionAlpha2Run(
     resumeAt: preservesResumeAt ? input.resumeAt : undefined,
     attempt: to === "running" && run.status === "queued" ? run.attempt + 1 : run.attempt,
     humanGate: nextHumanGate,
-    lastErrorCode: to === "failed" ? input.errorCode ?? "alpha2_run_failed" : undefined,
+    checkpoints,
+    lastErrorCode: normalizedErrorCode,
   } satisfies Alpha2RunRecord;
 
   return Alpha2RunRecordSchema.parse(next);
