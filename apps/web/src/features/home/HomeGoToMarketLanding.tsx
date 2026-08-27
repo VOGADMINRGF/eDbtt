@@ -12,57 +12,83 @@ type Props = { experience: StartExperienceModel };
 const copy = {
   de: {
     eyebrow: "Damit nicht Lautstärke entscheidet.",
-    title: "Eine Frage. Viele Perspektiven. Ein gemeinsamer nächster Schritt.",
-    intro: "eDebatte beginnt so einfach wie eine Abstimmung – und zeigt danach, was hinter den Stimmen steckt: neue Vorschläge, Gründe, Quellen und offene Fragen.",
+    title: "Eine Frage. Viele Perspektiven. Ein klareres Bild.",
+    intro: "eDebatte beginnt so einfach wie eine Abstimmung – und hilft danach zu verstehen, was Menschen wirklich beitragen: Positionen, neue Vorschläge, Gründe, Erfahrungen, Quellen und offene Fragen.",
     cta: "Kostenlos starten",
     free: `Bis ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} Teilnehmende kostenlos`,
-    differenceTitle: "Nicht nur zählen. Verstehen, was daraus entsteht.",
-    differenceIntro: "Du startest mit einer Frage. Alles Weitere wächst nur dann dazu, wenn es für eure Entscheidung wirklich hilft.",
+    differenceTitle: "Nicht nur Antworten sammeln. Verstehen, was dahinterliegt.",
+    differenceIntro: "Eine Frage reicht für den Start. Aus einzelnen Antworten kann Schritt für Schritt ein nachvollziehbares Bild entstehen – ohne dass daraus ein endloser Chat oder ein Formularprojekt wird.",
     difference: [
-      ["Position", "Eine schnelle Entscheidung oder Priorität."],
-      ["Öffnen", "Fehlt eine Antwort, können Menschen eine bessere vorschlagen."],
-      ["Verstehen", "Gründe, Erfahrungen und Quellen geben dem Ergebnis Kontext."],
-      ["Weitergehen", "Offene Punkte werden zur nächsten Frage statt zum Ende der Diskussion."],
+      ["Fragen", "Eine klare Frage öffnet den Raum – für Entscheidung, Feedback oder Recherche."],
+      ["Zuhören", "Menschen wählen Positionen oder ergänzen eigene Perspektiven und Vorschläge."],
+      ["Verstehen", "Gründe, Erfahrungen und Quellen geben Antworten Kontext und Gewicht."],
+      ["Weitergehen", "Offene Punkte werden sichtbar und können zum nächsten gemeinsamen Schritt führen."],
     ],
-    examplesTitle: "Für Entscheidungen, die mehr verdienen als einen Chatverlauf.",
+    examplesTitle: "Eine einfache Frage. Unterschiedliche Aufgaben.",
     examples: [
-      ["Du & kleine Gruppen", "Ideen klären und gemeinsam herausfinden, was wirklich trägt."],
-      ["Vereine", "Mitglieder beteiligen und neue Vorschläge sichtbar in Entscheidungen einbeziehen."],
-      ["Initiativen & Gruppen", "Forderungen priorisieren und verstehen, warum Unterstützer unterschiedlich entscheiden."],
-      ["Verbände & Organisationen", "Viele Perspektiven zu einem nachvollziehbaren gemeinsamen Bild verbinden."],
+      ["Entscheiden", "Privat, im Verein oder in einer Initiative: Optionen vergleichen, neue Vorschläge aufnehmen und Prioritäten sichtbar machen."],
+      ["Zuhören", "Teams und Unternehmen: Mitarbeiter- oder Kundenperspektiven einsammeln, ohne sie in Freitext und Meetings zu verlieren."],
+      ["Priorisieren", "Organisationen und Verbände: viele Hinweise oder Ideen ordnen und erkennen, was trägt, was strittig ist und was fehlt."],
+      ["Recherchieren", "Journalisten und Redaktionen: Leserfragen, Erfahrungen, Hinweise und Quellen strukturiert sammeln und relevante Spuren sichtbar machen."],
     ],
-    howTitle: "Frage. Teilen. Verstehen.",
+    audienceLine: "Für Menschen, Vereine, Initiativen, Redaktionen, Teams, Verbände und Organisationen.",
+    howTitle: "Frage. Einladen. Verstehen.",
     how: [
-      ["01", "Frage stellen", "Eine Frage genügt für den Start."],
-      ["02", "Menschen einladen", "Antworten vorgeben oder eigene Vorschläge zulassen."],
-      ["03", "Mehr sehen", "Nicht nur das Ergebnis – auch das, was dahinterliegt."],
+      ["01", "Frage stellen", "Ein Satz genügt für den Start."],
+      ["02", "Menschen einladen", "Antworten vorgeben oder eigene Beiträge und Vorschläge zulassen."],
+      ["03", "Mehr sehen", "Nicht nur zählen – erkennen, was Menschen meinen, begründen und ergänzen."],
     ],
-    freeTitle: "Einfach anfangen. Der Rest kommt, wenn du ihn brauchst.",
+    freeTitle: "Einfach anfangen. Tiefe entsteht erst, wenn du sie brauchst.",
     freeText: `Der Einstieg ist kostenlos bis ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} Teilnehmende. Mehr Reichweite, KI-Unterstützung und vertiefte Auswertung sind Erweiterungen – kein Hindernis vor der ersten Frage.`,
     trustTitle: "Du bestimmst, was passiert.",
-    trust: ["Nichts geht automatisch online.", "KI bleibt optional und gekennzeichnet.", "Neue Antwortvorschläge können vor Sichtbarkeit geprüft werden.", "Abgestimmt wird über Positionen und Lösungen – nicht über Wahrheit."],
-    finalTitle: "Welche Frage geht dir gerade nicht aus dem Kopf?",
-    finalText: "Mach daraus in wenigen Augenblicken eine gemeinsame Entscheidung.",
+    trust: [
+      "Nichts geht automatisch online.",
+      "KI bleibt optional und gekennzeichnet.",
+      "Neue Vorschläge können vor Sichtbarkeit geprüft werden.",
+      "Fakten werden nicht zur Abstimmung gestellt; Quellen und Erfahrungen bleiben als solche erkennbar.",
+    ],
+    finalTitle: "Welche Frage willst du nicht länger nur im Raum stehen lassen?",
+    finalText: "Stell sie. Hör zu. Und mach sichtbar, was sonst zwischen Einzelstimmen verloren geht.",
   },
   en: {
     eyebrow: "So volume does not decide.",
-    title: "One question. Many perspectives. One shared next step.",
-    intro: "eDebatte starts as simply as a ballot, then shows what sits behind the votes: new proposals, reasons, sources and open questions.",
+    title: "One question. Many perspectives. A clearer picture.",
+    intro: "eDebatte starts as simply as a ballot, then helps you understand what people actually contribute: positions, new proposals, reasons, experiences, sources and open questions.",
     cta: "Start for free",
     free: `Free up to ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} participants`,
-    differenceTitle: "Do not just count. Understand what emerges.",
-    differenceIntro: "Start with one question. Everything else only appears when it actually helps the decision.",
-    difference: [["Position", "A quick decision or priority."], ["Open", "If an answer is missing, people can propose a better one."], ["Understand", "Reasons, experiences and sources add context."], ["Continue", "Open points become the next question instead of the end of the discussion."]],
-    examplesTitle: "For decisions that deserve more than a chat thread.",
-    examples: [["You & small groups", "Clarify ideas and discover what really carries together."], ["Clubs", "Involve members and bring new proposals visibly into decisions."], ["Initiatives & groups", "Prioritise demands and understand why supporters decide differently."], ["Associations & organisations", "Connect many perspectives into one traceable shared picture."]],
-    howTitle: "Ask. Share. Understand.",
-    how: [["01", "Ask", "One question is enough to start."], ["02", "Invite", "Offer answers or allow people to add their own."], ["03", "See more", "Not just the result – also what sits behind it."]],
-    freeTitle: "Just start. Add the rest when you need it.",
+    differenceTitle: "Do not just collect answers. Understand what sits behind them.",
+    differenceIntro: "One question is enough to start. Individual responses can gradually become a traceable shared picture without turning into an endless chat or a form project.",
+    difference: [
+      ["Ask", "One clear question opens the space for a decision, feedback or research."],
+      ["Listen", "People choose positions or add their own perspectives and proposals."],
+      ["Understand", "Reasons, experiences and sources add context and meaning."],
+      ["Continue", "Open points stay visible and can lead into the next shared step."],
+    ],
+    examplesTitle: "One simple question. Different jobs to be done.",
+    examples: [
+      ["Decide", "For private groups, clubs or initiatives: compare options, capture new proposals and reveal priorities."],
+      ["Listen", "For teams and companies: gather employee or customer perspectives without losing them in free text and meetings."],
+      ["Prioritise", "For organisations and associations: structure many ideas and see what carries, what is disputed and what is missing."],
+      ["Research", "For journalists and newsrooms: collect reader questions, experiences, tips and sources and surface relevant leads."],
+    ],
+    audienceLine: "For people, clubs, initiatives, newsrooms, teams, associations and organisations.",
+    howTitle: "Ask. Invite. Understand.",
+    how: [
+      ["01", "Ask", "One sentence is enough to start."],
+      ["02", "Invite", "Offer answers or allow people to add their own contributions and proposals."],
+      ["03", "See more", "Do not just count – see what people mean, explain and add."],
+    ],
+    freeTitle: "Start simple. Add depth only when you need it.",
     freeText: `Start free with up to ${GO_TO_MARKET_PACKAGING.freeParticipantGuideline} participants. More reach, AI support and deeper analysis are extensions, not barriers before the first question.`,
     trustTitle: "You decide what happens.",
-    trust: ["Nothing goes online automatically.", "AI remains optional and labelled.", "New answer proposals can be reviewed before becoming visible.", "People vote on positions and solutions – not on truth."],
-    finalTitle: "Which question is on your mind right now?",
-    finalText: "Turn it into a shared decision in just a few moments.",
+    trust: [
+      "Nothing goes online automatically.",
+      "AI remains optional and labelled.",
+      "New proposals can be reviewed before becoming visible.",
+      "Facts are not put to a vote; sources and experiences remain identifiable as such.",
+    ],
+    finalTitle: "Which question do you no longer want to leave hanging?",
+    finalText: "Ask it. Listen. And make visible what would otherwise disappear between individual voices.",
   },
 } as const;
 
@@ -101,6 +127,7 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
 
       <section className="mx-auto max-w-[76rem] px-5 py-16 sm:px-8 lg:px-10" aria-labelledby="examples-title">
         <h2 id="examples-title" className="max-w-4xl text-3xl font-black tracking-tight sm:text-5xl">{t.examplesTitle}</h2>
+        <p className="mt-4 max-w-4xl text-sm leading-6 text-[color:var(--muted)]">{t.audienceLine}</p>
         <div className="mt-10 divide-y divide-[color:var(--border)] border-y border-[color:var(--border)]">
           {t.examples.map(([title, body], index) => <div key={title} className="grid gap-2 py-6 sm:grid-cols-[3rem_14rem_1fr] sm:items-baseline"><span className="text-xs font-black text-cyan-600">0{index + 1}</span><h3 className="text-lg font-bold">{title}</h3><p className="text-sm leading-6 text-[color:var(--muted)]">{body}</p></div>)}
         </div>
@@ -116,7 +143,7 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
         <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-start"><div><h2 className="text-3xl font-black tracking-tight sm:text-5xl">{t.freeTitle}</h2><p className="mt-5 max-w-2xl text-base leading-7 text-[color:var(--muted)]">{t.freeText}</p><Link href={buildFreeBallotStartHref(undefined, "homepage-free")} className="mt-7 inline-flex min-h-12 items-center rounded-full bg-slate-950 px-6 py-3 font-bold text-white dark:bg-white dark:text-slate-950">{t.cta} →</Link></div><div className="border-l-2 border-cyan-400 pl-6"><h3 className="text-xl font-bold">{t.trustTitle}</h3><ul className="mt-4 space-y-3">{t.trust.map((item) => <li key={item} className="text-sm leading-6 text-[color:var(--muted)]">{item}</li>)}</ul></div></div>
       </section>
 
-      <section className="border-t border-[color:var(--border)] px-5 py-16 text-center sm:px-8"><h2 className="mx-auto max-w-4xl text-3xl font-black tracking-tight sm:text-5xl">{t.finalTitle}</h2><p className="mt-4 text-base text-[color:var(--muted)]">{t.finalText}</p><Link href={buildFreeBallotStartHref(undefined, "homepage-final")} className="mt-7 inline-flex min-h-14 items-center rounded-full bg-cyan-500 px-8 py-3.5 font-black text-slate-950 shadow-lg">{t.cta} →</Link></section>
+      <section className="border-t border-[color:var(--border)] px-5 py-16 text-center sm:px-8"><h2 className="mx-auto max-w-4xl text-3xl font-black tracking-tight sm:text-5xl">{t.finalTitle}</h2><p className="mx-auto mt-4 max-w-3xl text-base text-[color:var(--muted)]">{t.finalText}</p><Link href={buildFreeBallotStartHref(undefined, "homepage-final")} className="mt-7 inline-flex min-h-14 items-center rounded-full bg-cyan-500 px-8 py-3.5 font-black text-slate-950 shadow-lg">{t.cta} →</Link></section>
     </div>
   );
 }
