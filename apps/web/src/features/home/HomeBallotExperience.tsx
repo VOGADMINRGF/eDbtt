@@ -35,7 +35,7 @@ export function HomeBallotExperience() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "local" | "error">(
     "idle",
   );
-  const resultRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<globalThis.HTMLDivElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
