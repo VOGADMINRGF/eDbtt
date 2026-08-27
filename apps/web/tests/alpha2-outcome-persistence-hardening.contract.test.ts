@@ -35,6 +35,7 @@ class PersistenceLedger implements Alpha2RunLedger {
   completedWriteAttempts = 0;
   conflictWithLaterCompletedWrite = false;
   ambiguousForeignCompletedWrite = false;
+  ambiguousFailedWrite = false;
 
   seed(run: Alpha2RunRecord) {
     this.record = { run, version: 0, lease: null };
@@ -69,12 +70,32 @@ class PersistenceLedger implements Alpha2RunLedger {
     if (input.lease && current.lease?.owner !== input.lease.owner) {
       throw new Error("alpha2_ledger_lease_lost");
     }
-    if (input.run.status === "completed") {
+    const persistedRun =
+      input.resumeAfterMs === undefined
+        ? input.run
+        : {
+            ...input.run,
+            resumeAt: new Date(
+              Date.parse(input.run.updatedAt) + Math.max(0, Math.floor(input.resumeAfterMs)),
+            ).toISOString(),
+          };
+    if (persistedRun.status === "failed" && this.ambiguousFailedWrite) {
+      this.ambiguousFailedWrite = false;
+      this.record = {
+        run: persistedRun,
+        version: current.version + 1,
+        lease: current.lease,
+      };
+      const error = new Error("simulated ambiguous failed mongo write");
+      error.name = "MongoNetworkError";
+      throw error;
+    }
+    if (persistedRun.status === "completed") {
       this.completedWriteAttempts += 1;
       if (this.conflictWithLaterCompletedWrite) {
         this.conflictWithLaterCompletedWrite = false;
         this.record = {
-          run: input.run,
+          run: persistedRun,
           version: current.version + 2,
           lease: current.lease,
         };
@@ -84,8 +105,8 @@ class PersistenceLedger implements Alpha2RunLedger {
         this.ambiguousForeignCompletedWrite = false;
         this.record = {
           run: {
-            ...input.run,
-            checkpoints: input.run.checkpoints.map((checkpoint) =>
+            ...persistedRun,
+            checkpoints: persistedRun.checkpoints.map((checkpoint) =>
               checkpoint.checkpointId === "completed-once"
                 ? { ...checkpoint, cursor: "foreign-delivery-cursor" }
                 : checkpoint,
@@ -106,7 +127,7 @@ class PersistenceLedger implements Alpha2RunLedger {
       }
     }
     const next = {
-      run: input.run,
+      run: persistedRun,
       version: current.version + 1,
       lease: current.lease,
     } satisfies Alpha2VersionedRun;
@@ -378,11 +399,11 @@ describe("Alpha2 outcome persistence hardening", () => {
     expect(result.run.checkpoints.at(-1)?.errorCode).toBe("alpha2_executor_resolution_timeout");
   });
 
-  it("sanitizes executor-returned failure codes before durable persistence", async () => {
+  it("rejects secret-shaped executor failure codes before durable persistence", async () => {
     const ledger = new PersistenceLedger();
     const dispatcher = new NoopDispatcher();
     ledger.seed(testRun("run-unsafe-returned-code"));
-    const unsafeCode = "provider secret token must not enter the durable ledger";
+    const unsafeCode = "sk-proj-AbCdEf0123456789";
 
     const result = await runAlpha2DurableStep({
       runId: "run-unsafe-returned-code",
@@ -410,6 +431,44 @@ describe("Alpha2 outcome persistence hardening", () => {
     expect(result.run.lastErrorCode).toBe("alpha2_run_failed");
     expect(result.run.checkpoints.at(-1)?.errorCode).toBe("alpha2_run_failed");
     expect(JSON.stringify(result.run)).not.toContain(unsafeCode);
+  });
+
+  it("reconciles an ambiguous failed write against the normalized durable error code", async () => {
+    const ledger = new PersistenceLedger();
+    const dispatcher = new NoopDispatcher();
+    ledger.seed(testRun("run-ambiguous-failed-code", 2));
+    ledger.ambiguousFailedWrite = true;
+    const unsafeCode = "sk-proj-AmbiguousSecret012345";
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-ambiguous-failed-code",
+      workerId: "worker-ambiguous-failed-code",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "failed",
+            checkpointId: "ambiguous-failed-code",
+            errorCode: unsafeCode,
+            retryable: true,
+            retryAfterMs: 0,
+          };
+        },
+      },
+      currentHeadSha: HEAD,
+      authorization: authorization(),
+      now: NOW,
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("alpha2_run_failed");
+    expect(result.run.checkpoints.at(-1)?.errorCode).toBe("alpha2_run_failed");
+    expect(JSON.stringify(result.run)).not.toContain(unsafeCode);
+    expect(dispatcher.jobs).toHaveLength(1);
+    expect(dispatcher.jobs[0]?.reason).toBe("retry");
   });
 
   it("retains a structured failure code in checkpoint history after a successful retry", async () => {
