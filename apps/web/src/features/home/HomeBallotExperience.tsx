@@ -1,207 +1,106 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useLocale } from "@/context/LocaleContext";
-import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
-import type { SwipeDecision, SwipeItem } from "@/features/swipes/types";
 import { buildFreeBallotStartHref } from "@features/pricing/goToMarketPackaging";
 
 type Choice = {
   id: string;
-  label: string;
-  decision?: SwipeDecision;
+  de: string;
+  en: string;
 };
 
 const SAMPLE = {
-  id: "gtm-product-example",
   title: {
-    de: "Was sollte bei einer gemeinsamen Entscheidung zuerst zählen?",
-    en: "What should matter first in a shared decision?",
+    de: "Wir haben 5.000 € zusätzliches Budget. Was sollten wir zuerst umsetzen?",
+    en: "We have an extra €5,000 budget. What should we do first?",
   },
-  choices: {
-    de: ["Betroffene hören", "Folgen prüfen", "Gemeinsam priorisieren"],
-    en: ["Hear those affected", "Check the impact", "Set priorities together"],
-  },
-} as const;
+  choices: [
+    { id: "equipment", de: "Ausstattung verbessern", en: "Improve equipment" },
+    { id: "event", de: "Gemeinsames Event", en: "Community event" },
+    { id: "members", de: "Neue Mitglieder gewinnen", en: "Attract new members" },
+  ] satisfies Choice[],
+};
 
 export function HomeBallotExperience() {
   const { locale } = useLocale();
-  const { ensureActiveProcessingAllowed } = usePrivacyGate();
   const language = locale === "de" ? "de" : "en";
-  const [liveItem, setLiveItem] = useState<SwipeItem | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "local" | "error">(
-    "idle",
-  );
   const resultRef = useRef<globalThis.HTMLDivElement>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    void fetch("/api/swipes/feed", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filter: {}, limit: 1 }),
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        const payload = (await response.json()) as { items?: SwipeItem[] };
-        const candidate = payload.items?.[0] ?? null;
-        if (!candidate || candidate.id.startsWith("seed-")) return null;
-        return candidate;
-      })
-      .then((candidate) => {
-        if (candidate) setLiveItem(candidate);
-      })
-      .catch(() => undefined);
-
-    return () => controller.abort();
-  }, []);
+  const selectedChoice = SAMPLE.choices.find((choice) => choice.id === selectedId) ?? null;
 
   useEffect(() => {
     if (selectedId) resultRef.current?.focus();
   }, [selectedId]);
 
-  const choices = useMemo<Choice[]>(() => {
-    if (!liveItem) {
-      return SAMPLE.choices[language].map((label, index) => ({
-        id: `sample-${index}`,
-        label,
-      }));
-    }
-
-    return [
-      { id: "agree", label: language === "de" ? "Dafür" : "In favour", decision: "agree" },
-      { id: "neutral", label: language === "de" ? "Noch offen" : "Still open", decision: "neutral" },
-      { id: "disagree", label: language === "de" ? "Dagegen" : "Against", decision: "disagree" },
-    ];
-  }, [language, liveItem]);
-
-  const selectedChoice = choices.find((choice) => choice.id === selectedId) ?? null;
-  const question = liveItem?.title ?? SAMPLE.title[language];
-
-  async function selectChoice(choice: Choice) {
-    setSelectedId(choice.id);
-
-    if (!liveItem || !choice.decision) {
-      setSaveState("local");
-      return;
-    }
-
-    const acknowledged = ensureActiveProcessingAllowed("homepage-ballot");
-    if (!acknowledged) {
-      setSaveState("local");
-      return;
-    }
-
-    setSaveState("saving");
-    try {
-      const response = await fetch("/api/swipes/vote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ statementId: liveItem.id, decision: choice.decision }),
-      });
-      setSaveState(response.ok ? "saved" : "error");
-    } catch {
-      setSaveState("error");
-    }
-  }
-
   return (
     <section
       aria-labelledby="home-ballot-question"
       className="rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface-elevated)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:p-7"
-      data-home-ballot-source={liveItem ? "runtime" : "product-example"}
+      data-home-ballot-source="product-example"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--muted)]">
-        <span>{language === "de" ? "Direkt ausprobieren" : "Try it now"}</span>
-        <span className="rounded-full bg-[color:var(--surface-muted)] px-3 py-1 normal-case tracking-normal">
-          {liveItem
-            ? language === "de"
-              ? "Aktuelle Frage"
-              : "Current question"
-            : language === "de"
-              ? "Interaktives Beispiel"
-              : "Interactive example"}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">
+          {language === "de" ? "Probier es direkt aus" : "Try it now"}
+        </span>
+        <span className="rounded-full bg-[color:var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[color:var(--muted)]">
+          {language === "de" ? "Interaktives Beispiel" : "Interactive example"}
         </span>
       </div>
 
-      <h2
-        id="home-ballot-question"
-        className="mt-5 text-balance text-2xl font-semibold leading-tight text-[color:var(--foreground)] sm:text-3xl"
-      >
-        {question}
+      <h2 id="home-ballot-question" className="mt-5 text-balance text-2xl font-bold leading-tight text-[color:var(--foreground)] sm:text-3xl">
+        {SAMPLE.title[language]}
       </h2>
+      <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+        {language === "de" ? "Wähle spontan eine Antwort." : "Choose an answer spontaneously."}
+      </p>
 
-      <div className="mt-6 grid gap-3" role="group" aria-label={language === "de" ? "Antwort auswählen" : "Choose an answer"}>
-        {choices.map((choice) => {
+      <div className="mt-6 grid gap-3 sm:grid-cols-3" role="group" aria-label={language === "de" ? "Antwort auswählen" : "Choose an answer"}>
+        {SAMPLE.choices.map((choice) => {
           const active = selectedId === choice.id;
           return (
             <button
               key={choice.id}
               type="button"
               aria-pressed={active}
-              onClick={() => void selectChoice(choice)}
-              className={`min-h-12 rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 ${
+              onClick={() => setSelectedId(choice.id)}
+              className={`min-h-24 rounded-2xl border px-4 py-4 text-left text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 ${
                 active
-                  ? "border-cyan-500 bg-cyan-500 text-slate-950"
-                  : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] hover:border-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/30"
+                  ? "border-cyan-500 bg-cyan-500 text-slate-950 shadow-md"
+                  : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] hover:-translate-y-0.5 hover:border-cyan-400"
               }`}
             >
-              {choice.label}
+              <span className="block text-lg">{choice[language]}</span>
+              <span className="mt-3 block text-xs font-medium opacity-70">{active ? (language === "de" ? "Deine Auswahl ✓" : "Your choice ✓") : (language === "de" ? "Auswählen →" : "Choose →")}</span>
             </button>
           );
         })}
       </div>
 
       {selectedChoice ? (
-        <div
-          ref={resultRef}
-          tabIndex={-1}
-          aria-live="polite"
-          className="mt-5 rounded-2xl border border-cyan-400/50 bg-cyan-50 p-4 text-sm text-slate-800 outline-none dark:bg-cyan-950/30 dark:text-cyan-50"
-        >
-          <p className="font-semibold">
-            {language === "de" ? "Deine Position:" : "Your position:"} {selectedChoice.label}
+        <div ref={resultRef} tabIndex={-1} aria-live="polite" className="mt-5 rounded-2xl border border-cyan-300 bg-cyan-50 p-4 text-cyan-950 outline-none dark:border-cyan-400/30 dark:bg-cyan-950/25 dark:text-cyan-50">
+          <p className="font-bold">{language === "de" ? `Deine Position: ${selectedChoice.de}` : `Your position: ${selectedChoice.en}`}</p>
+          <p className="mt-1 text-sm leading-6">
+            {language === "de"
+              ? "Bei einer echten Abstimmung siehst du hier, wie sich die Positionen verteilen – und welche eigenen Vorschläge zusätzlich eingebracht wurden. Das hier ist nur deine Auswahl, kein erfundenes Gruppenergebnis."
+              : "In a real ballot, this is where you see how positions are distributed and which additional suggestions people submitted. This is only your choice, not an invented group result."}
           </p>
-          <p className="mt-1 text-xs leading-relaxed">
-            {!liveItem || saveState === "local"
-              ? language === "de"
-                ? "Das ist deine Auswahl in diesem Beispiel – kein erfundenes Gruppenergebnis."
-                : "This is your choice in the example—not an invented group result."
-              : saveState === "saving"
-                ? language === "de"
-                  ? "Deine Position wird gespeichert …"
-                  : "Saving your position …"
-                : saveState === "saved"
-                  ? language === "de"
-                    ? "Deine Position wurde gespeichert. Ergebnisse entstehen aus den abgegebenen Positionen."
-                    : "Your position was saved. Results emerge from submitted positions."
-                  : language === "de"
-                    ? "Deine Auswahl ist sichtbar; das Speichern ist gerade nicht verfügbar."
-                    : "Your choice is visible; saving is currently unavailable."}
-          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <span className="rounded-xl bg-white/70 px-3 py-2 text-xs font-semibold text-slate-800 dark:bg-white/10 dark:text-cyan-50">{language === "de" ? "Positionen vergleichen" : "Compare positions"}</span>
+            <span className="rounded-xl bg-white/70 px-3 py-2 text-xs font-semibold text-slate-800 dark:bg-white/10 dark:text-cyan-50">{language === "de" ? "Eigene Antworten zulassen" : "Allow own answers"}</span>
+            <span className="rounded-xl bg-white/70 px-3 py-2 text-xs font-semibold text-slate-800 dark:bg-white/10 dark:text-cyan-50">{language === "de" ? "Ergebnis gemeinsam verstehen" : "Understand the result"}</span>
+          </div>
         </div>
-      ) : (
-        <p className="mt-4 text-xs leading-relaxed text-[color:var(--muted)]">
-          {language === "de"
-            ? "Eine Auswahl genügt. Bei echten Fragen werden Ergebnisse nur aus tatsächlich abgegebenen Positionen gebildet."
-            : "One choice is enough. For real questions, results only use positions that people actually submit."}
-        </p>
-      )}
+      ) : null}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-        <Link
-          href={buildFreeBallotStartHref(undefined, "homepage-ballot")}
-          className="inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 dark:bg-white dark:text-slate-950"
-        >
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs leading-relaxed text-[color:var(--muted)]">
+          {language === "de" ? "Du hast selbst etwas zu klären?" : "Have something to decide yourself?"}
+        </p>
+        <Link href={buildFreeBallotStartHref(undefined, "homepage-ballot")} className="inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 dark:bg-white dark:text-slate-950">
           {language === "de" ? "Eigene Abstimmung kostenlos starten" : "Start your own ballot for free"}
-        </Link>
-        <Link href="/swipes" className="text-center text-sm font-semibold text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-300">
-          {language === "de" ? "Weitere Fragen" : "More questions"}
         </Link>
       </div>
     </section>
