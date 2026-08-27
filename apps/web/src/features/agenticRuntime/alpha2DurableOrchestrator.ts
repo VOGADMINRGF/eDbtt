@@ -332,14 +332,16 @@ async function persistExecutionBlock(input: {
   leaseOwner: string;
   reasonCodes: string[];
   gateRef: string;
+  resumeMode?: NonNullable<Alpha2RunRecord["humanGate"]["resumeMode"]>;
 }) {
   let current = input.leased;
   const resumeMode =
-    current.run.status === "waiting"
+    input.resumeMode ??
+    (current.run.status === "waiting"
       ? ("resume_attempt" as const)
       : current.run.status === "running"
         ? ("recover_abandoned_attempt" as const)
-        : ("start_new_attempt" as const);
+        : ("start_new_attempt" as const));
   if (current.run.status === "failed") {
     const queued = transitionAlpha2Run(current.run, "queued", { now: input.now });
     current = await save(input.ledger, current, queued, {
@@ -880,6 +882,10 @@ export async function runAlpha2DurableStep(input: {
           leaseOwner,
           reasonCodes: freshGateDecision.reasonCodes,
           gateRef: freshGateDecision.gateRef,
+          resumeMode:
+            approvedResumeMode === "start_new_attempt"
+              ? "start_new_attempt"
+              : "resume_attempt",
         });
         return {
           state: "execution_blocked",
@@ -920,6 +926,7 @@ export async function runAlpha2DurableStep(input: {
             leaseOwner,
             reasonCodes: freshGateDecision.reasonCodes,
             gateRef: freshGateDecision.gateRef,
+            resumeMode: "resume_attempt",
           });
           return {
             state: "execution_blocked",

@@ -502,6 +502,107 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     );
   });
 
+  it("preserves an approved resume attempt when authorization expires before execution", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const initial = createAlpha2RunRecord({
+      runId: "run-approved-resume-reblocked",
+      idempotencyKey: "idem-run-approved-resume-reblocked",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "orange",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const running = transitionAlpha2Run(initial, "running", {
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const waiting = transitionAlpha2Run(running, "waiting", {
+      now: "2026-08-23T20:00:00.000Z",
+      resumeAt: "2026-08-23T20:01:00.000Z",
+    });
+    ledger.seed(waiting);
+    const authorization = {
+      observedHeadSha: "1111111111111111111111111111111111111111",
+      observedAt: "2026-08-23T20:01:00.000Z",
+      openTasksText: AUTHORIZED_OPENTASKS,
+      ownership: {
+        branch: "feat/alpha2-test",
+        prNumber: 637,
+        exactHead: true,
+        ciState: "success" as const,
+        unresolvedReviewThreads: 0,
+      },
+      action: {
+        actionKind: "read_only" as const,
+        riskClass: "orange" as const,
+        confidence: "high" as const,
+        reversible: true,
+        evidenceRefs: ["test:approved-resume-reblocked"],
+      },
+    };
+
+    const blocked = await runAlpha2DurableStepInternal({
+      runId: initial.runId,
+      workerId: "worker-gated",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          throw new Error("must not execute");
+        },
+      },
+      currentHeadSha: authorization.observedHeadSha,
+      authorization,
+      now: authorization.observedAt,
+    });
+    expect(blocked.state).toBe("execution_blocked");
+    if (blocked.state !== "execution_blocked") throw new Error("unexpected state");
+    expect(blocked.run.humanGate.resumeMode).toBe("resume_attempt");
+
+    const approved = transitionAlpha2Run(blocked.run, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: blocked.run.humanGate.reason,
+        gateRef: blocked.run.humanGate.gateRef,
+        resumeMode: blocked.run.humanGate.resumeMode,
+        decisionRef: "human:resume-approval",
+        decidedAt: "2026-08-23T20:01:00.000Z",
+      },
+    });
+    ledger.seed(approved);
+    ledger.serverNow = "2026-08-23T20:01:00.000Z";
+    ledger.serverNowAfterNextCompareAndSwap = "2026-08-23T20:01:02.000Z";
+    let executions = 0;
+
+    const reblocked = await runAlpha2DurableStepInternal({
+      runId: initial.runId,
+      workerId: "worker-gated",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executions += 1;
+          return { type: "completed", checkpointId: "must-not-run" };
+        },
+      },
+      currentHeadSha: authorization.observedHeadSha,
+      authorization,
+      authorizationMaxAgeMs: 1_000,
+      now: authorization.observedAt,
+    });
+
+    expect(executions).toBe(0);
+    expect(reblocked.state).toBe("execution_blocked");
+    if (reblocked.state !== "execution_blocked") throw new Error("unexpected state");
+    expect(reblocked.reasonCodes).toContain("authorization_evidence_stale");
+    expect(reblocked.run.attempt).toBe(1);
+    expect(reblocked.run.humanGate.resumeMode).toBe("resume_attempt");
+  });
+
   it("preserves an earlier gate approval while recording a new runtime block", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
