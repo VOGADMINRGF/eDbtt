@@ -3,6 +3,7 @@ import { anlassraumCol } from "@features/anlassraum/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
 import { buildDossierUpdateReadModel } from "@features/dossier/updateReadModel";
 import { loadSocialDistributionQueueReadModel } from "@features/outputEngine/socialDistributionQueueReadModel";
+import { requireQrStudioTargetHref } from "@/features/qr/security";
 import { streamPublicInputsCol, streamSessionsCol } from "./db";
 import {
   getStreamPublicStatusMeta,
@@ -448,7 +449,7 @@ export function buildStreamShareContext(runtime: StreamPublicRuntime) {
     contextKind: "event" as const,
     primaryTargetKind: "companion_public_target" as const,
     canonicalTarget: path,
-    qrTarget: path,
+    qrTarget: requireQrStudioTargetHref(path),
     shareTitle: runtime.session.title,
     sharePrompt:
       runtime.participation.openForInput

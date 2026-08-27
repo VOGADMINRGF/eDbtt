@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json().catch(() => ({}))) as SelectMethodBody;
     const method = body.method === "totp" ? "otp" : body.method;
-    const requestedRedirect = body.next ? sanitizeRedirect(body.next) : null;
+    const requestedRedirect =
+      typeof body.next === "string" ? sanitizeRedirect(body.next) : null;
     if (method !== "email" && method !== "otp") {
       return errorResponse("method_required", 400);
     }
@@ -79,7 +80,10 @@ export async function POST(req: NextRequest) {
       method,
       emailForCode: credentials?.email || user.email,
       purpose: existing.purpose ?? "login_verify",
-      redirectTo: requestedRedirect ?? existing.redirectTo ?? null,
+      redirectTo:
+        typeof body.next === "string"
+          ? requestedRedirect
+          : sanitizeRedirect(existing.redirectTo),
       locale: mailLocaleFromUser(user),
     });
     if (!challengeResult.ok) {

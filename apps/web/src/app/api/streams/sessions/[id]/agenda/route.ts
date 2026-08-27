@@ -14,12 +14,24 @@ import type {
   StreamSessionStatus,
 } from "@features/stream/types";
 import { resolveSessionStatus } from "@features/stream/types";
+import { normalizeOptionalPublicQrTarget } from "@/features/qr/security";
 import { enforceStreamHost, enforceStreamIdentityReady, requireCreatorContext } from "../../../utils";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 async function loadSession(sessionId: string) {
   const col = await streamSessionsCol();
   return col.findOne({ _id: new ObjectId(sessionId) });
+}
+
+function normalizeAgendaQrTarget(value: unknown) {
+  const result = normalizeOptionalPublicQrTarget(value);
+  if (!result.ok) {
+    return {
+      ok: false as const,
+      message: "Das QR-Ziel muss ein sicherer interner Pfad oder ein explizit freigegebenes HTTPS-Ziel sein.",
+    };
+  }
+  return { ok: true as const, value: result.value };
 }
 
 export async function GET(
@@ -98,8 +110,14 @@ export async function POST(
 
   const agendaCol = await streamAgendaCol();
   const now = new Date();
-  const qrTargetRaw = typeof body?.qrTarget === "string" ? body.qrTarget.trim() : null;
-  const qrTarget = qrTargetRaw ? qrTargetRaw.slice(0, 1000) : null;
+  const qrTargetResult = normalizeAgendaQrTarget(body?.qrTarget ?? null);
+  if (!qrTargetResult.ok) {
+    return NextResponse.json(
+      { ok: false, error: "invalid_qr_target", message: qrTargetResult.message },
+      { status: 400 },
+    );
+  }
+  const qrTarget = qrTargetResult.value;
   const doc: StreamAgendaItemDoc = {
     sessionId: new ObjectId(id),
     creatorId: ctx.userId,
@@ -202,8 +220,14 @@ export async function PATCH(
       { $set: { status: "skipped", archivedAt: now, updatedAt: now } },
     );
   } else if (action === "set_qr_target") {
-    const qrTargetRaw = typeof body?.qrTarget === "string" ? body.qrTarget.trim() : "";
-    const qrTarget = qrTargetRaw ? qrTargetRaw.slice(0, 1000) : null;
+    const qrTargetResult = normalizeAgendaQrTarget(body?.qrTarget ?? null);
+    if (!qrTargetResult.ok) {
+      return NextResponse.json(
+        { ok: false, error: "invalid_qr_target", message: qrTargetResult.message },
+        { status: 400 },
+      );
+    }
+    const qrTarget = qrTargetResult.value;
     await agendaCol.updateOne(itemFilter, { $set: { qrTarget, updatedAt: now } });
   } else {
     await agendaCol.updateOne(
