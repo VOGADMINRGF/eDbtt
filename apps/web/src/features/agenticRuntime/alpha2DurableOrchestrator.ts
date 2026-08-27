@@ -200,6 +200,68 @@ async function save(
   });
 }
 
+const SAFE_STRUCTURED_ERROR_CODE = /^[a-z0-9][a-z0-9_.:-]{0,127}$/i;
+const RETRYABLE_MONGO_ERROR_NAMES = new Set([
+  "MongoNetworkError",
+  "MongoNetworkTimeoutError",
+  "MongoServerSelectionError",
+  "MongoPoolClearedError",
+  "MongoTopologyClosedError",
+]);
+
+function structuredErrorCode(error: unknown, fallback: string) {
+  const candidate = error as
+    | { code?: unknown; name?: unknown; message?: unknown }
+    | null;
+  if (
+    typeof candidate?.code === "string" &&
+    SAFE_STRUCTURED_ERROR_CODE.test(candidate.code)
+  ) {
+    return candidate.code;
+  }
+  if (
+    typeof candidate?.message === "string" &&
+    /^alpha2_[a-z0-9_:-]+$/i.test(candidate.message)
+  ) {
+    return candidate.message;
+  }
+  if (
+    typeof candidate?.name === "string" &&
+    candidate.name !== "Error" &&
+    SAFE_STRUCTURED_ERROR_CODE.test(candidate.name)
+  ) {
+    return candidate.name;
+  }
+  return fallback;
+}
+
+function isRetryableOutcomePersistenceError(error: unknown) {
+  const code = structuredErrorCode(error, "");
+  if (code === "alpha2_ledger_lease_lost" || code === "alpha2_ledger_version_conflict") {
+    return false;
+  }
+  const candidate = error as
+    | { name?: unknown; hasErrorLabel?: (label: string) => boolean }
+    | null;
+  if (
+    typeof candidate?.name === "string" &&
+    RETRYABLE_MONGO_ERROR_NAMES.has(candidate.name)
+  ) {
+    return true;
+  }
+  if (typeof candidate?.hasErrorLabel === "function") {
+    try {
+      return (
+        candidate.hasErrorLabel("RetryableWriteError") ||
+        candidate.hasErrorLabel("TransientTransactionError")
+      );
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 function runtimeGateRef(input: {
   run: Alpha2RunRecord;
   authorization?: Alpha2ExecutionAuthorization;
@@ -513,6 +575,60 @@ async function persistOutcome(input: {
   );
 }
 
+function persistedOutcomeMatches(
+  persisted: Alpha2VersionedRun,
+  current: Alpha2VersionedRun,
+  outcome: Alpha2WorkerOutcome,
+) {
+  if (persisted.version <= current.version) return false;
+  if (persisted.run.status !== checkpointStatus(outcome)) return false;
+  if (
+    !persisted.run.checkpoints.some(
+      (checkpoint) => checkpoint.checkpointId === outcome.checkpointId,
+    )
+  ) {
+    return false;
+  }
+  if (outcome.type === "failed" && persisted.run.lastErrorCode !== outcome.errorCode) {
+    return false;
+  }
+  return true;
+}
+
+async function persistOutcomeWithRetry(input: {
+  ledger: Alpha2RunLedger;
+  current: Alpha2VersionedRun;
+  outcome: Alpha2WorkerOutcome;
+  now: string;
+  leaseOwner: string;
+  maxAttempts?: number;
+}) {
+  const maxAttempts = Math.max(1, Math.min(input.maxAttempts ?? 3, 5));
+  let lastError: unknown;
+
+  for (let persistenceAttempt = 1; persistenceAttempt <= maxAttempts; persistenceAttempt += 1) {
+    try {
+      return await persistOutcome(input);
+    } catch (error: unknown) {
+      lastError = error;
+      const observed = await input.ledger
+        .getByRunId(input.current.run.runId)
+        .catch(() => null);
+      if (observed && persistedOutcomeMatches(observed, input.current, input.outcome)) {
+        return observed;
+      }
+      if (
+        !isRetryableOutcomePersistenceError(error) ||
+        persistenceAttempt >= maxAttempts
+      ) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError ?? new Error("alpha2_outcome_persistence_failed");
+}
+
 function createLeaseOwner(input: {
   workerId: string;
   runId: string;
@@ -596,11 +712,10 @@ function startLeaseHeartbeat(input: {
 }
 
 function executorFailure(run: Alpha2RunRecord, error: unknown): Alpha2WorkerOutcome {
-  const candidate = error as { code?: unknown; name?: unknown } | null;
   return {
     type: "failed",
     checkpointId: `exception_${run.runId}_${run.attempt}`,
-    errorCode: String(candidate?.code ?? candidate?.name ?? "alpha2_worker_exception"),
+    errorCode: structuredErrorCode(error, "alpha2_worker_exception"),
     retryable: true,
     retryAfterMs: 30_000,
   };
@@ -969,9 +1084,8 @@ export async function runAlpha2DurableStep(input: {
         controller: executionController,
         fence: executionFence,
       });
-      const outcomeAt = input.now ?? new Date().toISOString();
-      await heartbeat.stopAndVerify(outcomeAt);
-      const persisted = await persistOutcome({
+      const outcomeAt = await heartbeat.assertActive();
+      const persisted = await persistOutcomeWithRetry({
         ledger: input.ledger,
         current: executionCurrent,
         outcome,
