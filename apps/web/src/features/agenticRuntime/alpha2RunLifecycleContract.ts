@@ -350,6 +350,27 @@ export function consumeAlpha2HumanGateApproval(
   });
 }
 
+export function consumeAlpha2HumanResumeApproval(
+  run: Alpha2RunRecord,
+  input: { now?: string } = {},
+): Alpha2RunRecord {
+  if (
+    run.humanGate.state !== "approved" ||
+    run.humanGate.gateRef !== undefined ||
+    run.humanGate.resumeMode !== "resume_attempt" ||
+    !run.humanGate.decisionRef
+  ) {
+    throw new Error("alpha2_human_resume_approval_mismatch");
+  }
+  const now = input.now ?? new Date().toISOString();
+  return Alpha2RunRecordSchema.parse({
+    ...run,
+    updatedAt: now,
+    humanGate: { state: "not_required" },
+    humanGateHistory: [...run.humanGateHistory, run.humanGate],
+  });
+}
+
 export function transitionAlpha2Run(
   run: Alpha2RunRecord,
   to: Alpha2RunStatus,
@@ -367,7 +388,17 @@ export function transitionAlpha2Run(
     throw new Error("alpha2_human_gate_decision_is_immutable");
   }
 
-  const nextHumanGate = input.humanGate ?? run.humanGate;
+  const candidateHumanGate = input.humanGate ?? run.humanGate;
+  const nextHumanGate =
+    to === "running" &&
+    ["review", "human_gate"].includes(run.status) &&
+    candidateHumanGate.state === "approved"
+      ? {
+          ...candidateHumanGate,
+          resumeMode:
+            candidateHumanGate.resumeMode ?? run.humanGate.resumeMode ?? "resume_attempt",
+        }
+      : candidateHumanGate;
 
   if (
     run.status === "human_gate" &&
@@ -390,6 +421,10 @@ export function transitionAlpha2Run(
     if (nextHumanGate.state !== "approved") {
       throw new Error("alpha2_human_gate_exit_requires_approval");
     }
+  }
+
+  if (run.status === "review" && to === "running" && nextHumanGate.state !== "approved") {
+    throw new Error("alpha2_review_exit_requires_approval");
   }
 
   if (run.status === "human_gate" && !DECIDED_HUMAN_GATE_STATES.has(nextHumanGate.state)) {

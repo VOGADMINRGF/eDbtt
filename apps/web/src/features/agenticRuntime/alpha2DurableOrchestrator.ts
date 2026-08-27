@@ -3,6 +3,7 @@ import {
   Alpha2RunRecordSchema,
   appendAlpha2Checkpoint,
   consumeAlpha2HumanGateApproval,
+  consumeAlpha2HumanResumeApproval,
   transitionAlpha2Run,
   transitionAlpha2RunToNewHumanGate,
   type Alpha2RunRecord,
@@ -479,6 +480,7 @@ async function persistOutcome(input: {
         humanGate: {
           state: "pending",
           reason: input.outcome.reason,
+          resumeMode: "resume_attempt",
         },
       });
       break;
@@ -694,12 +696,13 @@ async function executeWithinWallClockBudget(input: {
 function nextDispatch(input: {
   run: Alpha2RunRecord;
   outcome: Alpha2WorkerOutcome;
+  ledgerVersion: number;
 }): { reason: Alpha2ExecutionReason; delayMs: number; dispatchKey: string } | null {
   if (input.outcome.type === "waiting") {
     return {
       reason: "scheduled_resume",
       delayMs: Math.max(0, input.outcome.resumeAfterMs),
-      dispatchKey: `resume_${input.outcome.checkpointId}`,
+      dispatchKey: `resume_v${input.ledgerVersion}_${input.outcome.checkpointId}`,
     };
   }
 
@@ -711,7 +714,7 @@ function nextDispatch(input: {
     return {
       reason: "retry",
       delayMs: Math.max(0, input.outcome.retryAfterMs ?? 30_000),
-      dispatchKey: `retry_${input.outcome.checkpointId}`,
+      dispatchKey: `retry_v${input.ledgerVersion}_${input.outcome.checkpointId}`,
     };
   }
 
@@ -795,6 +798,11 @@ export async function runAlpha2DurableStep(input: {
       authoritativeNow: authorizationNow,
       maxAgeMs: Math.max(1_000, input.authorizationMaxAgeMs ?? 60_000),
     });
+    const approvedHumanResumeMode =
+      authorizationLease.run.status === "running" &&
+      authorizationLease.run.humanGate.state === "approved"
+        ? authorizationLease.run.humanGate.resumeMode
+        : undefined;
     if (gateDecision.reasonCodes.length > 0) {
       const stopped = await persistExecutionBlock({
         ledger: input.ledger,
@@ -803,6 +811,7 @@ export async function runAlpha2DurableStep(input: {
         leaseOwner,
         reasonCodes: gateDecision.reasonCodes,
         gateRef: gateDecision.gateRef,
+        resumeMode: approvedHumanResumeMode,
       });
       return {
         state: "execution_blocked",
@@ -811,11 +820,16 @@ export async function runAlpha2DurableStep(input: {
       };
     }
 
+    const manualResumeApproval =
+      approvedHumanResumeMode === "resume_attempt" &&
+      authorizationLease.run.humanGate.gateRef === undefined;
     const approvedResumeMode = gateDecision.approvedGateRef
       ? authorizationLease.run.humanGate.resumeMode
-      : undefined;
+      : manualResumeApproval
+        ? approvedHumanResumeMode
+        : undefined;
     const approvedResume =
-      Boolean(gateDecision.approvedGateRef) &&
+      (Boolean(gateDecision.approvedGateRef) || manualResumeApproval) &&
       authorizationLease.run.status === "running" &&
       approvedResumeMode !== "recover_abandoned_attempt";
     const chargeApprovedAttempt = approvedResumeMode === "start_new_attempt";
@@ -894,12 +908,14 @@ export async function runAlpha2DurableStep(input: {
         };
       }
 
-      if (gateDecision.approvedGateRef) {
-        const consumed = consumeAlpha2HumanGateApproval(executionCurrent.run, {
-          gateRef: gateDecision.approvedGateRef,
-          chargeAttempt: chargeApprovedAttempt,
-          now: executionNow,
-        });
+      if (gateDecision.approvedGateRef || manualResumeApproval) {
+        const consumed = gateDecision.approvedGateRef
+          ? consumeAlpha2HumanGateApproval(executionCurrent.run, {
+              gateRef: gateDecision.approvedGateRef,
+              chargeAttempt: chargeApprovedAttempt,
+              now: executionNow,
+            })
+          : consumeAlpha2HumanResumeApproval(executionCurrent.run, { now: executionNow });
         executionCurrent = await save(
           input.ledger,
           executionCurrent,
@@ -954,7 +970,11 @@ export async function runAlpha2DurableStep(input: {
         leaseOwner,
       });
 
-      const dispatch = nextDispatch({ run: persisted.run, outcome });
+      const dispatch = nextDispatch({
+        run: persisted.run,
+        outcome,
+        ledgerVersion: persisted.version,
+      });
       if (!dispatch) return { state: "executed", run: persisted.run };
 
       try {

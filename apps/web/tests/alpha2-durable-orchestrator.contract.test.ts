@@ -869,6 +869,82 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     ]);
   });
 
+  it("versions continuation jobs when a worker repeats the same wait checkpoint", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-repeated-wait-checkpoint"));
+    const executor: Alpha2WorkerExecutor = {
+      async execute() {
+        return {
+          type: "waiting",
+          checkpointId: "cp-repeated-wait",
+          resumeAfterMs: 1_000,
+        };
+      },
+    };
+
+    await runAlpha2DurableStep({
+      runId: "run-repeated-wait-checkpoint",
+      workerId: "worker-a",
+      ledger,
+      dispatcher,
+      executor,
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    await runAlpha2DurableStep({
+      runId: "run-repeated-wait-checkpoint",
+      workerId: "worker-b",
+      ledger,
+      dispatcher,
+      executor,
+      now: "2026-08-23T20:00:01.000Z",
+    });
+
+    expect(dispatcher.jobs.map((job) => job.dispatchKey)).toEqual([
+      "resume_v2_cp-repeated-wait",
+      "resume_v4_cp-repeated-wait",
+    ]);
+  });
+
+  it("versions continuation jobs when a worker repeats the same retry checkpoint", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-repeated-retry-checkpoint"));
+    const executor: Alpha2WorkerExecutor = {
+      async execute() {
+        return {
+          type: "failed",
+          checkpointId: "cp-repeated-retry",
+          errorCode: "transient_failure",
+          retryable: true,
+          retryAfterMs: 1_000,
+        };
+      },
+    };
+
+    await runAlpha2DurableStep({
+      runId: "run-repeated-retry-checkpoint",
+      workerId: "worker-a",
+      ledger,
+      dispatcher,
+      executor,
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    await runAlpha2DurableStep({
+      runId: "run-repeated-retry-checkpoint",
+      workerId: "worker-b",
+      ledger,
+      dispatcher,
+      executor,
+      now: "2026-08-23T20:00:01.000Z",
+    });
+
+    expect(dispatcher.jobs.map((job) => job.dispatchKey)).toEqual([
+      "retry_v2_cp-repeated-retry",
+      "retry_v5_cp-repeated-retry",
+    ]);
+  });
+
   it("derives a persisted resume deadline from authoritative ledger time", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
@@ -934,6 +1010,139 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       now: "2026-08-24T20:00:00.000Z",
     });
     expect(recovered).toEqual([]);
+  });
+
+  it("resumes an approved executor human gate without consuming another attempt", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const limited = createAlpha2RunRecord({
+      runId: "run-approved-worker-gate",
+      idempotencyKey: "idem-run-approved-worker-gate",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(limited);
+    const gated = await runAlpha2DurableStep({
+      runId: limited.runId,
+      workerId: "worker-a",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "human_gate",
+            checkpointId: "cp-worker-gate",
+            reason: "human_confirmation_required",
+          };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    expect(gated.state).toBe("executed");
+    if (gated.state !== "executed") throw new Error("unexpected state");
+    expect(gated.run.humanGate.resumeMode).toBe("resume_attempt");
+
+    const approved = transitionAlpha2Run(gated.run, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: gated.run.humanGate.reason,
+        decisionRef: "human:worker-gate-approved",
+        decidedAt: "2026-08-23T20:01:00.000Z",
+      },
+    });
+    expect(approved.humanGate.resumeMode).toBe("resume_attempt");
+    ledger.seed(approved);
+
+    const resumed = await runAlpha2DurableStep({
+      runId: limited.runId,
+      workerId: "worker-b",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-worker-gate-done" };
+        },
+      },
+      now: "2026-08-23T20:01:00.000Z",
+    });
+    expect(resumed.state).toBe("executed");
+    if (resumed.state !== "executed") throw new Error("unexpected state");
+    expect(resumed.run.status).toBe("completed");
+    expect(resumed.run.attempt).toBe(1);
+    expect(resumed.run.humanGate.state).toBe("not_required");
+    expect(resumed.run.humanGateHistory).toContainEqual(
+      expect.objectContaining({ decisionRef: "human:worker-gate-approved" }),
+    );
+  });
+
+  it("requires and resumes an approved review without declaring the attempt abandoned", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const limited = createAlpha2RunRecord({
+      runId: "run-approved-review",
+      idempotencyKey: "idem-run-approved-review",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(limited);
+    const reviewed = await runAlpha2DurableStep({
+      runId: limited.runId,
+      workerId: "worker-a",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "review", checkpointId: "cp-review" };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    expect(reviewed.state).toBe("executed");
+    if (reviewed.state !== "executed") throw new Error("unexpected state");
+    expect(() =>
+      transitionAlpha2Run(reviewed.run, "running", {
+        now: "2026-08-23T20:01:00.000Z",
+      }),
+    ).toThrow("alpha2_review_exit_requires_approval");
+
+    const approved = transitionAlpha2Run(reviewed.run, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+      humanGate: {
+        state: "approved",
+        decisionRef: "human:review-approved",
+        decidedAt: "2026-08-23T20:01:00.000Z",
+      },
+    });
+    expect(approved.humanGate.resumeMode).toBe("resume_attempt");
+    ledger.seed(approved);
+
+    const resumed = await runAlpha2DurableStep({
+      runId: limited.runId,
+      workerId: "worker-b",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-review-done" };
+        },
+      },
+      now: "2026-08-23T20:01:00.000Z",
+    });
+    expect(resumed.state).toBe("executed");
+    if (resumed.state !== "executed") throw new Error("unexpected state");
+    expect(resumed.run.status).toBe("completed");
+    expect(resumed.run.attempt).toBe(1);
   });
 
   it("recovers a retryable failure from Mongo truth when queue dispatch was lost", async () => {
