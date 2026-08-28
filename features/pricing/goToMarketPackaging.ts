@@ -4,6 +4,18 @@ export const GO_TO_MARKET_PACKAGING = {
   guidelineIsHardLimit: false,
   checkoutIsAvailable: false,
   publishedPricesAreAvailable: false,
+  documentAnalysis: {
+    unitLabel: "Voxy-Analyse-Einheit",
+    unitSizeChars: 60_000,
+    singleUnitIncludedInEntryFlow: true,
+    largeDocumentApprovalFromUnits: 2,
+    pricingModel: "included_quota_plus_topup",
+    publicTokenPricing: false,
+    publicPerPagePricing: false,
+    publicPerCharacterPricing: false,
+    checkoutIsAvailable: false,
+    publishedTopUpPriceIsAvailable: false,
+  },
 } as const;
 
 export const GO_TO_MARKET_TEMPLATE_IDS = [
