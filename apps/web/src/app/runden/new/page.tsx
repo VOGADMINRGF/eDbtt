@@ -13,10 +13,7 @@ export const metadata: Metadata = {
 };
 
 type SearchParamsShape = Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
-
-function readParam(value?: string | string[]) {
-  return Array.isArray(value) ? value[0] : value;
-}
+function readParam(value?: string | string[]) { return Array.isArray(value) ? value[0] : value; }
 
 export default async function RundenManualCreatePage(props: { searchParams?: SearchParamsShape }) {
   const resolved = props.searchParams ? await props.searchParams : undefined;
@@ -29,43 +26,12 @@ export default async function RundenManualCreatePage(props: { searchParams?: Sea
   const frontendAiTransparency = buildRundenFrontendAiTransparencyReadModel(entryCanon, initialServerDraft);
 
   if (showGuidedStart) {
-    return (
-      <section className="public-canvas vog-page-stage min-h-screen">
-        <main className="public-shell vog-main-shell min-h-screen">
-          <div className="mx-auto mb-10 flex w-full max-w-3xl items-center justify-between gap-3">
-            <Link href="/" className="text-sm font-bold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">← eDebatte</Link>
-            <span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Kostenlos starten</span>
-          </div>
-          <GuidedBallotStart initialTemplateId={initialTemplateId} />
-        </main>
-      </section>
-    );
+    return <section className="public-canvas vog-page-stage min-h-screen"><main className="public-shell vog-main-shell min-h-screen"><div className="mx-auto mb-10 flex w-full max-w-3xl items-center justify-between gap-3"><Link href="/" className="text-sm font-bold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">← eDebatte</Link><span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Kostenlos starten</span></div><GuidedBallotStart initialTemplateId={initialTemplateId} /></main></section>;
   }
 
-  return (
-    <section className="public-canvas vog-page-stage min-h-screen">
-      <main className="public-shell vog-main-shell min-h-screen space-y-6">
-        {conversionMode ? (
-          <div className="mx-auto w-full max-w-[78rem] border-b border-[rgb(var(--border))] pb-5">
-            <Link href="/runden/new?gtm=1" className="text-sm font-bold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">← Zur einfachen Ansicht</Link>
-            <div className="mt-5 max-w-3xl">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Optionale Einstellungen</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-[rgb(var(--fg))] md:text-4xl">Nur ändern, was du wirklich brauchst.</h1>
-              <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">Deine Frage und Antworten stehen bereits. Alles darunter ist Zusatz: Sichtbarkeit, Prüfung, KI-Unterstützung oder spätere Weiterbearbeitung. Für eine einfache Abstimmung musst du hier nichts neu erfinden.</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-3">
-              <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">eDebatte Mitmachraum</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] md:text-4xl">Mitmachraum vorbereiten</h1></div>
-              <Link href="/themen" className="vog-btn-secondary">Zurück zur Themensuche</Link>
-            </div>
-            <div className="mx-auto w-full max-w-[78rem]"><FrontendAiTransparencyPanel model={frontendAiTransparency} /></div>
-          </>
-        )}
+  if (conversionMode) {
+    return <section className="public-canvas vog-page-stage min-h-screen"><main className="public-shell vog-main-shell min-h-screen"><div className="mx-auto w-full max-w-3xl"><Link href="/runden/new?gtm=1" className="text-sm font-bold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">← Zur einfachen Ansicht</Link><div className="mt-7 rounded-[2rem] border border-[rgb(var(--border))] p-6 sm:p-8"><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Bereit zum Teilen</p><h1 className="mt-3 text-3xl font-black tracking-tight text-[rgb(var(--fg))] sm:text-4xl">Deine Befragung steht.</h1><div className="mt-7 divide-y divide-[rgb(var(--border))] border-y border-[rgb(var(--border))]"><p className="flex justify-between gap-4 py-4 text-sm"><span>Frage & Antworten</span><strong>✓ vorbereitet</strong></p><p className="flex justify-between gap-4 py-4 text-sm"><span>Voxy</span><strong>✓ gewählt</strong></p><p className="flex justify-between gap-4 py-4 text-sm"><span>Sichtbarkeit</span><strong>privat bis zur Freigabe</strong></p></div><p className="mt-6 text-sm leading-6 text-[rgb(var(--muted))]">Nach dem Speichern erhältst du den Teilnahmelink und den echten QR-Code. Nichts wird automatisch veröffentlicht.</p></div><details className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))]"><summary className="cursor-pointer list-none px-5 py-4 font-black text-[rgb(var(--fg))]">Weitere Einstellungen <span className="ml-2 text-[rgb(var(--muted))]">▾</span></summary><div className="border-t border-[rgb(var(--border))] p-4 sm:p-6"><p className="mb-5 text-sm leading-6 text-[rgb(var(--muted))]">Nur öffnen, wenn du Sichtbarkeit, Moderation, KI-Unterstützung oder den erweiterten Ablauf verändern möchtest.</p><AnlassraumSetupForm conversionMode initialServerDraft={initialServerDraft} initialTemplateId={initialTemplateId} /></div></details></div></main></section>;
+  }
 
-        <AnlassraumSetupForm conversionMode={conversionMode} initialServerDraft={initialServerDraft} initialTemplateId={initialTemplateId} />
-      </main>
-    </section>
-  );
+  return <section className="public-canvas vog-page-stage min-h-screen"><main className="public-shell vog-main-shell min-h-screen space-y-6"><div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">eDebatte Mitmachraum</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] md:text-4xl">Mitmachraum vorbereiten</h1></div><Link href="/themen" className="vog-btn-secondary">Zurück zur Themensuche</Link></div><div className="mx-auto w-full max-w-[78rem]"><FrontendAiTransparencyPanel model={frontendAiTransparency} /></div><AnlassraumSetupForm conversionMode={false} initialServerDraft={initialServerDraft} initialTemplateId={initialTemplateId} /></main></section>;
 }
