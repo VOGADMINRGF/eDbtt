@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildMaterialIntakeContract, type MaterialIntakeInputItem } from "@/features/material/materialIntakeContract";
 import { createMaterialIntakeRecords } from "@/features/material/materialIntakeRepository";
 import { extractUploadedFileText } from "@/features/material/materialUploadedFileText";
+import { persistMaterialFullText } from "@/features/material/materialFullTextStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,10 +48,7 @@ async function resolveMaterialUploadWorkflow(req: NextRequest) {
   const scope = await resolveRequestScopeContext(req).catch(() => null);
   const scopeSummary = summarizeRequestScopeContext(scope);
   const actorId = scope?.actorId ?? "anonymous";
-  const organizationId =
-    scope?.membershipStatus === "verified"
-      ? scope.organizationId
-      : null;
+  const organizationId = scope?.membershipStatus === "verified" ? scope.organizationId : null;
   const regionId = scope?.regionIds[0] ?? null;
   const hasVerifiedMembership = Boolean(organizationId);
   let hasDossierStudioEntitlement = Boolean(scope?.isOperatorMode);
@@ -61,8 +59,7 @@ async function resolveMaterialUploadWorkflow(req: NextRequest) {
       entitlementRepo.getEntitlementsForOrganization(organizationId).catch(() => []),
       entitlementRepo.listEntitlementAuditEventsForOrganization(organizationId).catch(() => []),
     ]);
-    const organization =
-      scope.organizationMembership.organizations.find((entry) => entry.id === organizationId) ?? null;
+    const organization = scope.organizationMembership.organizations.find((entry) => entry.id === organizationId) ?? null;
     const verifiedMemberships = scope.organizationMembership.memberships.filter(
       (membership) => membership.organizationId === organizationId,
     );
@@ -74,10 +71,7 @@ async function resolveMaterialUploadWorkflow(req: NextRequest) {
       auditEvents,
       productionTruth: true,
     });
-    hasDossierStudioEntitlement = organizationEntitlementAllowsScope(
-      entitlementSummary,
-      "dossier_studio",
-    );
+    hasDossierStudioEntitlement = organizationEntitlementAllowsScope(entitlementSummary, "dossier_studio");
   }
 
   return {
@@ -108,6 +102,16 @@ export async function POST(req: NextRequest) {
     regionId: workflow.regionId,
     workflowState: workflow.workflowState,
   });
+
+  const fullTextPersistence = await Promise.all(
+    registry.records.map((record, index) =>
+      persistMaterialFullText({
+        materialId: record.id,
+        text: materialItems[index]?.text ?? null,
+      }),
+    ),
+  );
+
   const materialIntake = buildMaterialIntakeContract({
     items: materialItems,
     productionTruth: registry.persistence.productionTruth,
@@ -131,11 +135,16 @@ export async function POST(req: NextRequest) {
       supportedDirectly: ["txt", "md", "csv", "tsv", "json", "xml", "html"],
       requiresExternalProvider: ["pdf", "doc", "docx"],
     },
+    fullTextPersistence: {
+      stored: fullTextPersistence.filter((entry) => entry.stored).length,
+      privateOnly: true,
+      reviewRequired: true,
+    },
     message:
       externalExtractionPendingCount > 0
         ? "Textbasierte Uploads wurden serverseitig extrahiert. PDF/DOCX bleiben reviewpflichtig und warten auf einen produktiven Extraktionsprovider. Es wurde nichts automatisch veröffentlicht."
         : directExtractionCount > 0
-          ? "Textbasierte Uploads wurden serverseitig extrahiert und reviewpflichtig registriert. Es wurde nichts automatisch veröffentlicht."
+          ? "Textbasierte Uploads wurden serverseitig extrahiert, intern als Volltext gespeichert und reviewpflichtig registriert. Es wurde nichts automatisch veröffentlicht."
           : "Upload-Metadaten wurden angenommen und reviewpflichtig registriert. Für dieses Dateiformat wurde keine automatische Extraktion gestartet.",
     files: files.map((f, index) => ({
       name: f.name,
