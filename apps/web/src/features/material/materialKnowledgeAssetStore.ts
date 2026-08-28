@@ -16,13 +16,23 @@ export type MaterialKnowledgeIdentity = {
   ingestedAt: string;
 };
 
+export type MaterialKnowledgeProjection = {
+  provider: MaterialStructuredDraftResult["provider"];
+  themes: string[];
+  decisionPoints: string[];
+  claimsOrSourceHints: Array<{ text: string; sourceAnchors: string[] }>;
+  uncertainties: string[];
+  provenance: string[];
+  analysisUsage: MaterialStructuredDraftResult["analysisUsage"];
+};
+
 export type MaterialKnowledgeAsset = {
   id: string;
   materialId: string;
   contentFingerprint: string;
   characterCount: number;
   identity: MaterialKnowledgeIdentity;
-  structuredDrafts: MaterialStructuredDraftResult;
+  knowledge: MaterialKnowledgeProjection;
   privateOnly: true;
   reviewRequired: true;
   noAutoPublish: true;
@@ -64,8 +74,30 @@ function normalizeIdentity(
   };
 }
 
+function knowledgeProjection(drafts: MaterialStructuredDraftResult): MaterialKnowledgeProjection {
+  return {
+    provider: drafts.provider,
+    themes: clone(drafts.themes),
+    decisionPoints: clone(drafts.decisionPoints),
+    claimsOrSourceHints: clone(drafts.claimsOrSourceHints),
+    uncertainties: clone(drafts.uncertainties),
+    provenance: clone(drafts.provenance),
+    analysisUsage: clone(drafts.analysisUsage),
+  };
+}
+
+function legacyKnowledge(doc: any): MaterialKnowledgeProjection | null {
+  if (doc?.knowledge) return clone(doc.knowledge) as MaterialKnowledgeProjection;
+  if (doc?.structuredDrafts?.status === "generated") {
+    return knowledgeProjection(doc.structuredDrafts as MaterialStructuredDraftResult);
+  }
+  return null;
+}
+
 function fromDoc(doc: any, normalizedLength: number): MaterialKnowledgeAsset | null {
-  if (!doc || typeof doc.contentFingerprint !== "string" || !doc.structuredDrafts) return null;
+  if (!doc || typeof doc.contentFingerprint !== "string") return null;
+  const knowledge = legacyKnowledge(doc);
+  if (!knowledge) return null;
   const materialId = String(doc.materialId ?? "");
   return {
     id: String(doc._id ?? assetIdFor(doc.contentFingerprint)),
@@ -76,7 +108,7 @@ function fromDoc(doc: any, normalizedLength: number): MaterialKnowledgeAsset | n
       materialId,
       sourceFormat: typeof doc.identity?.sourceFormat === "string" ? doc.identity.sourceFormat : null,
     }),
-    structuredDrafts: clone(doc.structuredDrafts) as MaterialStructuredDraftResult,
+    knowledge,
     privateOnly: true,
     reviewRequired: true,
     noAutoPublish: true,
@@ -85,6 +117,28 @@ function fromDoc(doc: any, normalizedLength: number): MaterialKnowledgeAsset | n
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt ?? ""),
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt ?? ""),
   };
+}
+
+export function buildMaterialKnowledgeReuseText(asset: MaterialKnowledgeAsset) {
+  const blocks = [
+    `Titel: ${asset.identity.title}`,
+    asset.identity.publisher ? `Herausgeber: ${asset.identity.publisher}` : "",
+    asset.identity.versionLabel ? `Version/Stand: ${asset.identity.versionLabel}` : "",
+    asset.identity.publishedAt ? `Veröffentlicht: ${asset.identity.publishedAt}` : "",
+    asset.knowledge.themes.length > 0 ? `Themen:\n${asset.knowledge.themes.map((value) => `- ${value}`).join("\n")}` : "",
+    asset.knowledge.decisionPoints.length > 0
+      ? `Entscheidungs-/Prüfpunkte:\n${asset.knowledge.decisionPoints.map((value) => `- ${value}`).join("\n")}`
+      : "",
+    asset.knowledge.claimsOrSourceHints.length > 0
+      ? `Quellengebundene Hinweise:\n${asset.knowledge.claimsOrSourceHints
+          .map((hint) => `- ${hint.text}\n  Anker: ${hint.sourceAnchors.join(" | ")}`)
+          .join("\n")}`
+      : "",
+    asset.knowledge.uncertainties.length > 0
+      ? `Offene/unsichere Punkte:\n${asset.knowledge.uncertainties.map((value) => `- ${value}`).join("\n")}`
+      : "",
+  ].filter(Boolean);
+  return blocks.join("\n\n").trim();
 }
 
 export async function getReusableMaterialKnowledgeAsset(text: string): Promise<MaterialKnowledgeAsset | null> {
@@ -114,13 +168,14 @@ export async function persistMaterialKnowledgeAsset(input: {
   const fingerprint = fingerprintMaterialText(text);
   const now = new Date().toISOString();
   const identity = normalizeIdentity(input.identity, { materialId });
+  const knowledge = knowledgeProjection(input.structuredDrafts);
   const record: MaterialKnowledgeAsset = {
     id: assetIdFor(fingerprint),
     materialId,
     contentFingerprint: fingerprint,
     characterCount: text.length,
     identity,
-    structuredDrafts: clone(input.structuredDrafts),
+    knowledge,
     privateOnly: true,
     reviewRequired: true,
     noAutoPublish: true,
@@ -148,7 +203,7 @@ export async function persistMaterialKnowledgeAsset(input: {
         contentFingerprint: fingerprint,
         characterCount: text.length,
         identity: clone(identity),
-        structuredDrafts: clone(input.structuredDrafts),
+        knowledge: clone(knowledge),
         privateOnly: true,
         reviewRequired: true,
         noAutoPublish: true,
@@ -156,6 +211,7 @@ export async function persistMaterialKnowledgeAsset(input: {
         noAutoMerge: true,
         updatedAt: new Date(now),
       },
+      $unset: { structuredDrafts: "" },
       $setOnInsert: {
         _id: assetIdFor(fingerprint),
         createdAt: new Date(now),
