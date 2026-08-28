@@ -1,9 +1,12 @@
 import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 
 const COLLECTION = "edebatte_material_full_text";
+export const MATERIAL_FULL_TEXT_MAX_CHARS = 2_000_000;
+
 type MaterialFullTextRecord = {
   materialId: string;
   text: string;
+  characterCount: number;
   extractedBy: string | null;
   sourceFormat: string | null;
   privateOnly: true;
@@ -16,7 +19,10 @@ const memory = new Map<string, MaterialFullTextRecord>();
 function normalizeText(value: string | null | undefined) {
   const text = String(value ?? "").trim();
   if (!text) return null;
-  return text.slice(0, 250_000);
+  if (text.length > MATERIAL_FULL_TEXT_MAX_CHARS) {
+    throw new Error("material_full_text_too_large");
+  }
+  return text;
 }
 
 export async function persistMaterialFullText(input: {
@@ -32,6 +38,7 @@ export async function persistMaterialFullText(input: {
   const record: MaterialFullTextRecord = {
     materialId,
     text,
+    characterCount: text.length,
     extractedBy: String(input.extractedBy ?? "").trim() || null,
     sourceFormat: String(input.sourceFormat ?? "").trim() || null,
     privateOnly: true,
@@ -41,7 +48,7 @@ export async function persistMaterialFullText(input: {
 
   if (shouldUseInMemoryMongoFallback()) {
     memory.set(materialId, record);
-    return { stored: true, mode: "in_memory" as const };
+    return { stored: true, mode: "in_memory" as const, characterCount: text.length };
   }
 
   const col = await coreCol<any>(COLLECTION);
@@ -55,7 +62,7 @@ export async function persistMaterialFullText(input: {
     },
     { upsert: true },
   );
-  return { stored: true, mode: "persistent" as const };
+  return { stored: true, mode: "persistent" as const, characterCount: text.length };
 }
 
 export async function getMaterialFullText(materialId: string) {
@@ -81,6 +88,7 @@ export async function getMaterialFullTextRecord(materialId: string): Promise<Mat
   return {
     materialId: id,
     text: doc.text,
+    characterCount: typeof doc.characterCount === "number" ? doc.characterCount : doc.text.length,
     extractedBy: typeof doc.extractedBy === "string" ? doc.extractedBy : null,
     sourceFormat: typeof doc.sourceFormat === "string" ? doc.sourceFormat : null,
     privateOnly: true,
