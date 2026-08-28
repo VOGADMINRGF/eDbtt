@@ -30,7 +30,15 @@ Sobald die DoD unten erfüllt ist, kann `künftig` entfallen.
 - Material-/Upload-Intake existiert.
 - Dossier-Studio-Entitlement existiert.
 - Material Extraction / Dossier Handoff ist im Repository angelegt.
-- Aktueller Upload-Endpunkt bestätigt ausdrücklich noch **keine** automatische Extraktion, KI-Recherche oder Veröffentlichung. Deshalb keine überzogene Public Claim vor End-to-End-Abnahme.
+- Der Upload-Endpunkt extrahiert Textdateien sowie textbasierte PDF- und DOCX-Dateien lokal aus den echten Upload-Bytes und speichert den Volltext privat und reviewpflichtig.
+- Bildbasierte Scan-PDFs starten kein OCR und degradieren mit einem expliziten Leertext-Status. Legacy-`.doc` benötigt weiterhin eine externe Konvertierung.
+- Lokale Textextraktion startet weder KI-Recherche noch Veröffentlichung. Deshalb bleibt der öffentliche Premium-End-to-End-Claim bis zur vollständigen Review- und Persistenzabnahme als Vorankündigung markiert.
+
+## Implementierungsstand `PREMIUM-DOC-01`
+
+Der P0-Parserpfad verwendet serverseitig `pdf-parse` für PDF und `mammoth` für DOCX. Er begrenzt Dateigröße, PDF-Seiten und Volltextlänge, plausibilisiert MIME-Typ, Endung und Binärsignatur und liefert stabile Fehlergründe ohne Rohmaterial in Responses oder öffentliche Stores zu schreiben. Der bestehende Material-Intake führt lokale Dokumentextraktion als eigenen Zustand; Herkunft und Format bleiben am privaten Volltext nachvollziehbar.
+
+P1 bleibt davon getrennt: Provider-Ausgaben müssen strikt validierte AI-Drafts sein. Auswahl, Bearbeitung und jede vorbereitete Create-/Runden-Persistenz brauchen eine explizite menschliche Bestätigung; Graph-Matches bleiben Hinweise und erzeugen weder Merge noch Graph-Write.
 
 ## Definition of Done
 

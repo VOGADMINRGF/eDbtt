@@ -1,7 +1,17 @@
 import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 
 const COLLECTION = "edebatte_material_full_text";
-const memory = new Map<string, string>();
+type MaterialFullTextRecord = {
+  materialId: string;
+  text: string;
+  extractedBy: string | null;
+  sourceFormat: string | null;
+  privateOnly: true;
+  reviewRequired: true;
+  noAutoPublish: true;
+};
+
+const memory = new Map<string, MaterialFullTextRecord>();
 
 function normalizeText(value: string | null | undefined) {
   const text = String(value ?? "").trim();
@@ -12,13 +22,25 @@ function normalizeText(value: string | null | undefined) {
 export async function persistMaterialFullText(input: {
   materialId: string;
   text: string | null | undefined;
+  extractedBy?: string | null;
+  sourceFormat?: string | null;
 }) {
   const materialId = String(input.materialId ?? "").trim();
   const text = normalizeText(input.text);
   if (!materialId || !text) return { stored: false, mode: "none" as const };
 
+  const record: MaterialFullTextRecord = {
+    materialId,
+    text,
+    extractedBy: String(input.extractedBy ?? "").trim() || null,
+    sourceFormat: String(input.sourceFormat ?? "").trim() || null,
+    privateOnly: true,
+    reviewRequired: true,
+    noAutoPublish: true,
+  };
+
   if (shouldUseInMemoryMongoFallback()) {
-    memory.set(materialId, text);
+    memory.set(materialId, record);
     return { stored: true, mode: "in_memory" as const };
   }
 
@@ -27,11 +49,7 @@ export async function persistMaterialFullText(input: {
     { _id: materialId },
     {
       $set: {
-        materialId,
-        text,
-        privateOnly: true,
-        reviewRequired: true,
-        noAutoPublish: true,
+        ...record,
         updatedAt: new Date(),
       },
     },
@@ -45,10 +63,28 @@ export async function getMaterialFullText(materialId: string) {
   if (!id) return null;
 
   if (shouldUseInMemoryMongoFallback()) {
-    return memory.get(id) ?? null;
+    return memory.get(id)?.text ?? null;
   }
 
   const col = await coreCol<any>(COLLECTION);
   const doc = await col.findOne({ _id: id });
   return typeof doc?.text === "string" ? doc.text : null;
+}
+
+export async function getMaterialFullTextRecord(materialId: string): Promise<MaterialFullTextRecord | null> {
+  const id = String(materialId ?? "").trim();
+  if (!id) return null;
+  if (shouldUseInMemoryMongoFallback()) return memory.get(id) ?? null;
+  const col = await coreCol<any>(COLLECTION);
+  const doc = await col.findOne({ _id: id });
+  if (typeof doc?.text !== "string") return null;
+  return {
+    materialId: id,
+    text: doc.text,
+    extractedBy: typeof doc.extractedBy === "string" ? doc.extractedBy : null,
+    sourceFormat: typeof doc.sourceFormat === "string" ? doc.sourceFormat : null,
+    privateOnly: true,
+    reviewRequired: true,
+    noAutoPublish: true,
+  };
 }

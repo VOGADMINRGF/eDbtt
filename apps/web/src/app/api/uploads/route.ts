@@ -2,27 +2,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildMaterialIntakeContract, type MaterialIntakeInputItem } from "@/features/material/materialIntakeContract";
 import { createMaterialIntakeRecords } from "@/features/material/materialIntakeRepository";
-import { extractUploadedFileText } from "@/features/material/materialUploadedFileText";
+import {
+  extractUploadedFileText,
+  type UploadedFileTextExtraction,
+} from "@/features/material/materialUploadedFileText";
 import { persistMaterialFullText } from "@/features/material/materialFullTextStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function materialItemFromFile(file: File, index: number): Promise<MaterialIntakeInputItem> {
+async function materialItemFromFile(file: File, index: number): Promise<{
+  item: MaterialIntakeInputItem;
+  extraction: UploadedFileTextExtraction;
+}> {
   const extraction = await extractUploadedFileText(file);
   return {
-    id: `upload-${index + 1}`,
-    kind: "upload_document",
-    label: file.name || `Upload ${index + 1}`,
-    url: null,
-    uploadId: `upload-${index + 1}`,
-    mimeType: file.type || null,
-    fileName: file.name || null,
-    text: extraction.text,
-    pageRef: null,
-    timestampRef: null,
-    extractedBy: extraction.extractedBy,
-    extractionStatus: extraction.status,
+    item: {
+      id: `upload-${index + 1}`,
+      kind: "upload_document",
+      label: file.name || `Upload ${index + 1}`,
+      url: null,
+      uploadId: `upload-${index + 1}`,
+      mimeType: file.type || null,
+      fileName: file.name || null,
+      text: extraction.text,
+      pageRef: extraction.pageCount ? `Seiten: ${extraction.pageCount}` : null,
+      timestampRef: null,
+      extractedBy: extraction.extractedBy,
+      extractionStatus: extraction.status,
+    },
+    extraction,
   };
 }
 
@@ -90,7 +99,9 @@ async function resolveMaterialUploadWorkflow(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const fd = await req.formData();
   const files = fd.getAll("files").filter((entry): entry is File => entry instanceof File);
-  const materialItems = await Promise.all(files.map(materialItemFromFile));
+  const extractedFiles = await Promise.all(files.map(materialItemFromFile));
+  const materialItems = extractedFiles.map((entry) => entry.item);
+  const extractions = extractedFiles.map((entry) => entry.extraction);
   const workflow = await resolveMaterialUploadWorkflow(req);
   const registry = await createMaterialIntakeRecords({
     items: materialItems.map((item, index) => ({
@@ -108,6 +119,8 @@ export async function POST(req: NextRequest) {
       persistMaterialFullText({
         materialId: record.id,
         text: materialItems[index]?.text ?? null,
+        extractedBy: materialItems[index]?.extractedBy ?? null,
+        sourceFormat: extractions[index]?.sourceFormat ?? null,
       }),
     ),
   );
@@ -117,10 +130,14 @@ export async function POST(req: NextRequest) {
     productionTruth: registry.persistence.productionTruth,
     storageMode: registry.persistence.productionTruth ? "persistent_metadata_store" : "local_pending",
   });
-  const directExtractionCount = materialItems.filter((item) => item.extractionStatus === "full").length;
-  const externalExtractionPendingCount = materialItems.filter(
-    (item) => item.extractionStatus === "none" && /(?:\.pdf|\.docx?|application\/pdf|wordprocessingml)/i.test(`${item.fileName ?? ""} ${item.mimeType ?? ""}`),
+  const localExtractionCount = extractions.filter((entry) => entry.outcome === "extracted_locally").length;
+  const documentExtractionCount = extractions.filter(
+    (entry) => entry.outcome === "extracted_locally" && (entry.sourceFormat === "pdf" || entry.sourceFormat === "docx"),
   ).length;
+  const externalConversionCount = extractions.filter(
+    (entry) => entry.outcome === "external_conversion_required",
+  ).length;
+  const failedExtractionCount = extractions.filter((entry) => entry.outcome === "failed").length;
 
   return NextResponse.json({
     ok: true,
@@ -128,12 +145,16 @@ export async function POST(req: NextRequest) {
     productionTruth: registry.persistence.productionTruth,
     rawObjectStorageProductionTruth: false,
     scanProviderConfigured: false,
-    extractionProviderConfigured: directExtractionCount > 0,
+    extractionProviderConfigured: false,
+    localExtractionConfigured: true,
     extractionCapabilities: {
-      directText: directExtractionCount,
-      externalPending: externalExtractionPendingCount,
-      supportedDirectly: ["txt", "md", "csv", "tsv", "json", "xml", "html"],
-      requiresExternalProvider: ["pdf", "doc", "docx"],
+      extractedLocally: localExtractionCount,
+      documentsExtractedLocally: documentExtractionCount,
+      externalConversionRequired: externalConversionCount,
+      failed: failedExtractionCount,
+      supportedDirectly: ["txt", "md", "csv", "tsv", "json", "xml", "html", "pdf", "docx"],
+      requiresExternalConversion: ["doc"],
+      ocrConfigured: false,
     },
     fullTextPersistence: {
       stored: fullTextPersistence.filter((entry) => entry.stored).length,
@@ -141,17 +162,24 @@ export async function POST(req: NextRequest) {
       reviewRequired: true,
     },
     message:
-      externalExtractionPendingCount > 0
-        ? "Textbasierte Uploads wurden serverseitig extrahiert. PDF/DOCX bleiben reviewpflichtig und warten auf einen produktiven Extraktionsprovider. Es wurde nichts automatisch veröffentlicht."
-        : directExtractionCount > 0
-          ? "Textbasierte Uploads wurden serverseitig extrahiert, intern als Volltext gespeichert und reviewpflichtig registriert. Es wurde nichts automatisch veröffentlicht."
-          : "Upload-Metadaten wurden angenommen und reviewpflichtig registriert. Für dieses Dateiformat wurde keine automatische Extraktion gestartet.",
+      externalConversionCount > 0
+        ? "Unterstützte Dateien wurden serverseitig verarbeitet. Alte DOC-Dateien benötigen eine externe Konvertierung; es wurden keine KI-Recherche und keine Veröffentlichung automatisch gestartet."
+        : localExtractionCount > 0
+          ? "Unterstützte Uploads wurden serverseitig extrahiert, intern als privater Volltext gespeichert und reviewpflichtig registriert. Es wurden keine KI-Recherche und keine Veröffentlichung automatisch gestartet."
+          : failedExtractionCount > 0
+            ? "Der Upload wurde reviewpflichtig registriert, konnte aber nicht sicher extrahiert werden; keine KI-Recherche, OCR oder Veröffentlichung wurde automatisch gestartet."
+          : "Upload-Metadaten wurden angenommen und reviewpflichtig registriert. Für dieses Dateiformat wurden keine automatische Extraktion, KI-Recherche oder Veröffentlichung gestartet.",
     files: files.map((f, index) => ({
       name: f.name,
       size: f.size,
       type: f.type,
       extractionStatus: materialItems[index]?.extractionStatus ?? "none",
       extractedBy: materialItems[index]?.extractedBy ?? null,
+      extractionOutcome: extractions[index]?.outcome ?? "unsupported",
+      extractionReason: extractions[index]?.reason ?? null,
+      extractionWarnings: extractions[index]?.warnings ?? [],
+      sourceFormat: extractions[index]?.sourceFormat ?? "other",
+      pageCount: extractions[index]?.pageCount ?? null,
     })),
     requestScope: workflow.scopeSummary,
     materialIntake,
