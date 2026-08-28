@@ -4,6 +4,18 @@ import { callAnthropic } from "@features/ai/providers/anthropic";
 import { LANE_ROUTING_POLICY } from "@/features/ai/providerRoleRouting";
 import type { MaterialGraphFirstContext } from "@/features/material/materialGraphFirstContext";
 
+export const MATERIAL_ANALYSIS_UNIT_CHARS = 60_000;
+export const MATERIAL_ANALYSIS_MAX_CHUNKS = 12;
+
+export type MaterialAnalysisUsage = {
+  characterCount: number;
+  chunkCount: number;
+  unitSizeChars: number;
+  estimatedAnalysisUnits: number;
+  requiresVolumeApproval: boolean;
+  approved: boolean;
+};
+
 export type MaterialStructuredQuestionDraft = {
   id: string;
   theme: string;
@@ -21,7 +33,7 @@ export type MaterialStructuredOptionDraft = {
 };
 
 export type MaterialStructuredDraftResult = {
-  provider: "mistral" | "anthropic" | "none";
+  provider: "mistral" | "anthropic" | "mixed" | "none";
   status: "generated" | "blocked" | "failed";
   themes: string[];
   decisionPoints: string[];
@@ -30,6 +42,7 @@ export type MaterialStructuredDraftResult = {
   claimsOrSourceHints: Array<{ text: string; sourceAnchors: string[] }>;
   uncertainties: string[];
   provenance: string[];
+  analysisUsage: MaterialAnalysisUsage;
   reviewRequired: true;
   draftOnly: true;
   publicOutputAllowed: false;
@@ -88,6 +101,7 @@ type ParsedDrafts = Omit<
   MaterialStructuredDraftResult,
   | "provider"
   | "status"
+  | "analysisUsage"
   | "reviewRequired"
   | "draftOnly"
   | "publicOutputAllowed"
@@ -105,6 +119,66 @@ function normalizeForGrounding(value: string) {
 function groundedInDocument(anchor: string, documentText: string) {
   const normalizedAnchor = normalizeForGrounding(anchor);
   return normalizedAnchor.length >= 4 && normalizeForGrounding(documentText).includes(normalizedAnchor);
+}
+
+function uniqueStrings(values: string[], max = Number.POSITIVE_INFINITY) {
+  const seen = new Set<string>();
+  const output: string[] = [];
+  for (const value of values) {
+    const normalized = value.trim();
+    const key = normalizeForGrounding(normalized);
+    if (!normalized || seen.has(key)) continue;
+    seen.add(key);
+    output.push(normalized);
+    if (output.length >= max) break;
+  }
+  return output;
+}
+
+export function splitMaterialTextForAnalysis(text: string, maxChars = MATERIAL_ANALYSIS_UNIT_CHARS) {
+  const normalized = String(text ?? "").trim();
+  if (!normalized) return [];
+  if (normalized.length <= maxChars) return [normalized];
+
+  const paragraphs = normalized.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
+
+  const flush = () => {
+    if (current.trim()) chunks.push(current.trim());
+    current = "";
+  };
+
+  for (const paragraph of paragraphs) {
+    if (paragraph.length > maxChars) {
+      flush();
+      for (let start = 0; start < paragraph.length; start += maxChars) {
+        chunks.push(paragraph.slice(start, start + maxChars).trim());
+      }
+      continue;
+    }
+    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (candidate.length > maxChars) {
+      flush();
+      current = paragraph;
+    } else {
+      current = candidate;
+    }
+  }
+  flush();
+  return chunks;
+}
+
+function analysisUsageFor(text: string, approveCost: boolean): MaterialAnalysisUsage {
+  const chunks = splitMaterialTextForAnalysis(text);
+  return {
+    characterCount: text.length,
+    chunkCount: chunks.length,
+    unitSizeChars: MATERIAL_ANALYSIS_UNIT_CHARS,
+    estimatedAnalysisUnits: chunks.length,
+    requiresVolumeApproval: chunks.length > 1,
+    approved: chunks.length <= 1 || approveCost,
+  };
 }
 
 export function parseMaterialStructuredDraftPayload(input: {
@@ -141,7 +215,12 @@ export function parseMaterialStructuredDraftPayload(input: {
   };
 }
 
-function promptFor(input: { text: string; graph: MaterialGraphFirstContext }) {
+function promptFor(input: {
+  text: string;
+  graph: MaterialGraphFirstContext;
+  chunkIndex: number;
+  chunkCount: number;
+}) {
   const graphSummary = {
     matchedTopicIds: input.graph.matchedTopicIds,
     matchedDossierIds: input.graph.matchedDossierIds,
@@ -150,21 +229,14 @@ function promptFor(input: { text: string; graph: MaterialGraphFirstContext }) {
     coverageSummary: input.graph.coverageSummary,
     gapSummary: input.graph.gapSummary,
   };
-  return `Du strukturierst ein privates Dokument für einen menschlichen eDebatte-Review. Du veröffentlichst nichts, entscheidest nicht über Wahrheit und erzeugst keine Runde. Faktenbehauptungen sind Quellenhinweise, niemals Abstimmungsfragen. Fragen betreffen nur Entscheidungen, Prioritäten, Bewertungen oder Erfahrungen. Bestehendes eDebatte-Wissen wird zuerst wiederverwendet, weitergeführt oder ergänzt; neue Fragen nur für echte Lücken. Dokumentoptionen müssen wörtlich im Dokument vorkommen. Ergänzende Optionen erhalten source="ai_suggestion" und dürfen nicht als Dokumentinhalt erscheinen. Jeder sourceAnchor muss ein kurzes wörtliches Zitat aus dem Dokument sein. Keine Quellen, Gegenpositionen oder Mehrheiten erfinden.
-
-Graph-Kontext:
-${JSON.stringify(graphSummary)}
-
-Dokument:
-${input.text.slice(0, 120_000)}
-
-Antworte ausschließlich als valides JSON ohne Markdown und exakt mit diesen Feldern:
-{"themes":["..."],"decisionPoints":["..."],"questions":[{"id":"q-kurze-id","theme":"...","text":"...?","rationale":"...","sourceAnchors":["wörtlicher Textanker"]}],"options":[{"questionRef":"q-kurze-id","text":"...","source":"document","needsReview":true}],"claimsOrSourceHints":[{"text":"...","sourceAnchors":["wörtlicher Textanker"]}],"uncertainties":["..."]}
-Für source ist ausschließlich "document" oder "ai_suggestion" zulässig.
-Maximal 20 Fragen. Jede Frage und Option bleibt ein KI-Entwurf für menschliche Auswahl und Bearbeitung.`;
+  return `Du strukturierst Teil ${input.chunkIndex + 1} von ${input.chunkCount} eines privaten Dokuments für einen menschlichen eDebatte-Review. Du veröffentlichst nichts, entscheidest nicht über Wahrheit und erzeugst keine Runde. Faktenbehauptungen sind Quellenhinweise, niemals Abstimmungsfragen. Fragen betreffen nur Entscheidungen, Prioritäten, Bewertungen oder Erfahrungen. Bestehendes eDebatte-Wissen wird zuerst wiederverwendet, weitergeführt oder ergänzt; neue Fragen nur für echte Lücken. Dokumentoptionen müssen wörtlich im vorliegenden Dokumentteil vorkommen. Ergänzende Optionen erhalten source="ai_suggestion" und dürfen nicht als Dokumentinhalt erscheinen. Jeder sourceAnchor muss ein kurzes wörtliches Zitat aus dem vorliegenden Dokumentteil sein. Keine Quellen, Gegenpositionen oder Mehrheiten erfinden.\n\nGraph-Kontext:\n${JSON.stringify(graphSummary)}\n\nDokumentteil ${input.chunkIndex + 1}/${input.chunkCount}:\n${input.text}\n\nAntworte ausschließlich als valides JSON ohne Markdown und exakt mit diesen Feldern:\n{"themes":["..."],"decisionPoints":["..."],"questions":[{"id":"q-kurze-id","theme":"...","text":"...?","rationale":"...","sourceAnchors":["wörtlicher Textanker"]}],"options":[{"questionRef":"q-kurze-id","text":"...","source":"document","needsReview":true}],"claimsOrSourceHints":[{"text":"...","sourceAnchors":["wörtlicher Textanker"]}],"uncertainties":["..."]}\nFür source ist ausschließlich "document" oder "ai_suggestion" zulässig.\nMaximal 20 Fragen pro Dokumentteil. Jede Frage und Option bleibt ein KI-Entwurf für menschliche Auswahl und Bearbeitung.`;
 }
 
-function emptyResult(status: "blocked" | "failed", error: string | null): MaterialStructuredDraftResult {
+function emptyResult(
+  status: "blocked" | "failed",
+  error: string | null,
+  analysisUsage: MaterialAnalysisUsage,
+): MaterialStructuredDraftResult {
   return {
     provider: "none",
     status,
@@ -175,6 +247,7 @@ function emptyResult(status: "blocked" | "failed", error: string | null): Materi
     claimsOrSourceHints: [],
     uncertainties: [],
     provenance: [],
+    analysisUsage,
     reviewRequired: true,
     draftOnly: true,
     publicOutputAllowed: false,
@@ -186,48 +259,101 @@ function emptyResult(status: "blocked" | "failed", error: string | null): Materi
   };
 }
 
+function scopeChunkDrafts(parsed: ParsedDrafts, chunkIndex: number): ParsedDrafts {
+  const idMap = new Map(parsed.questions.map((question) => [question.id, `q-c${chunkIndex + 1}-${question.id.slice(2)}`]));
+  return {
+    ...parsed,
+    questions: parsed.questions.map((question) => ({ ...question, id: idMap.get(question.id) ?? question.id })),
+    options: parsed.options
+      .map((option) => ({ ...option, questionRef: idMap.get(option.questionRef) ?? "" }))
+      .filter((option) => Boolean(option.questionRef)),
+  };
+}
+
+function mergeChunkDrafts(chunks: ParsedDrafts[]): ParsedDrafts {
+  return {
+    themes: uniqueStrings(chunks.flatMap((chunk) => chunk.themes), 48),
+    decisionPoints: uniqueStrings(chunks.flatMap((chunk) => chunk.decisionPoints), 80),
+    questions: chunks.flatMap((chunk) => chunk.questions).slice(0, 200),
+    options: chunks.flatMap((chunk) => chunk.options).slice(0, 600),
+    claimsOrSourceHints: chunks.flatMap((chunk) => chunk.claimsOrSourceHints).slice(0, 160),
+    uncertainties: uniqueStrings(chunks.flatMap((chunk) => chunk.uncertainties), 80),
+    provenance: uniqueStrings(chunks.flatMap((chunk) => chunk.provenance)),
+  };
+}
+
 export async function generateMaterialStructuredDrafts(input: {
   text: string | null;
   graph: MaterialGraphFirstContext;
+  approveCost?: boolean;
 }): Promise<MaterialStructuredDraftResult> {
   const text = String(input.text ?? "").trim();
-  if (!text) return emptyResult("blocked", "material_full_text_missing");
+  const approveCost = input.approveCost === true;
+  const usage = analysisUsageFor(text, approveCost);
+  if (!text) return emptyResult("blocked", "material_full_text_missing", usage);
 
-  const prompt = promptFor({ text, graph: input.graph });
+  const chunks = splitMaterialTextForAnalysis(text);
+  if (chunks.length > MATERIAL_ANALYSIS_MAX_CHUNKS) {
+    return emptyResult("blocked", "material_analysis_volume_too_large", usage);
+  }
+  if (usage.requiresVolumeApproval && !approveCost) {
+    return emptyResult("blocked", "material_analysis_volume_approval_required", usage);
+  }
+
   const materialRouting = LANE_ROUTING_POLICY.find((entry) => entry.lane === "material_grounding");
   const providerOrder = materialRouting?.primaryAnalyzeCandidates ?? [];
   const providers = {
-    mistral: () => callMistral({ prompt, maxOutputTokens: 4_000 }),
-    anthropic: () => callAnthropic({ prompt, maxOutputTokens: 4_000 }),
+    mistral: (prompt: string) => callMistral({ prompt, maxOutputTokens: 4_000 }),
+    anthropic: (prompt: string) => callAnthropic({ prompt, maxOutputTokens: 4_000 }),
   } as const;
 
+  const parsedChunks: ParsedDrafts[] = [];
+  const providersUsed = new Set<"mistral" | "anthropic">();
   let lastError: string | null = null;
-  for (const provider of providerOrder) {
-    if (provider !== "mistral" && provider !== "anthropic") continue;
-    try {
-      const result = await providers[provider]();
-      const parsed = parseMaterialStructuredDraftPayload({
-        providerText: result.text,
-        documentText: text,
-        graphProvenance: input.graph.provenance,
-      });
-      return {
-        provider,
-        status: "generated",
-        ...parsed,
-        reviewRequired: true,
-        draftOnly: true,
-        publicOutputAllowed: false,
-        noAutoPublish: true,
-        noAutoCreateRound: true,
-        noAutoGraphWrite: true,
-        noAutoMerge: true,
-        error: null,
-      };
-    } catch (error) {
-      lastError = `${provider}:${error instanceof Error ? error.message : "provider_failed"}`;
+
+  for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+    const chunk = chunks[chunkIndex];
+    const prompt = promptFor({ text: chunk, graph: input.graph, chunkIndex, chunkCount: chunks.length });
+    let parsedForChunk: ParsedDrafts | null = null;
+
+    for (const provider of providerOrder) {
+      if (provider !== "mistral" && provider !== "anthropic") continue;
+      try {
+        const result = await providers[provider](prompt);
+        const parsed = parseMaterialStructuredDraftPayload({
+          providerText: result.text,
+          documentText: chunk,
+          graphProvenance: input.graph.provenance,
+        });
+        parsedForChunk = scopeChunkDrafts(parsed, chunkIndex);
+        providersUsed.add(provider);
+        break;
+      } catch (error) {
+        lastError = `${provider}:chunk_${chunkIndex + 1}:${error instanceof Error ? error.message : "provider_failed"}`;
+      }
     }
+
+    if (!parsedForChunk) {
+      return emptyResult("failed", lastError ?? `material_grounding_chunk_${chunkIndex + 1}_failed`, usage);
+    }
+    parsedChunks.push(parsedForChunk);
   }
 
-  return emptyResult("failed", lastError ?? "material_grounding_provider_unavailable");
+  const merged = mergeChunkDrafts(parsedChunks);
+  const provider = providersUsed.size > 1 ? "mixed" : providersUsed.has("mistral") ? "mistral" : providersUsed.has("anthropic") ? "anthropic" : "none";
+
+  return {
+    provider,
+    status: "generated",
+    ...merged,
+    analysisUsage: usage,
+    reviewRequired: true,
+    draftOnly: true,
+    publicOutputAllowed: false,
+    noAutoPublish: true,
+    noAutoCreateRound: true,
+    noAutoGraphWrite: true,
+    noAutoMerge: true,
+    error: null,
+  };
 }
