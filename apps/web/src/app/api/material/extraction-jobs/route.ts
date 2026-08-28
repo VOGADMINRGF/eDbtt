@@ -9,16 +9,15 @@ import {
   type MaterialGraphContextItem,
   type MaterialGraphTopicItem,
 } from "@/features/material/materialGraphFirstContext";
+import { getMaterialFullText } from "@/features/material/materialFullTextStore";
+import { generateMaterialStructuredDrafts } from "@/features/material/materialStructuredDrafts";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function readStringList(params: URLSearchParams, key: string) {
-  return params
-    .getAll(key)
-    .map((value) => value.trim())
-    .filter(Boolean);
+  return params.getAll(key).map((value) => value.trim()).filter(Boolean);
 }
 
 async function readGraphFirstRuntime(req: NextRequest) {
@@ -62,17 +61,13 @@ export async function GET(req: NextRequest) {
   const limit = Number(params.get("limit") ?? 24);
   const organizationIds = readStringList(params, "organizationId");
   const regionIds = readStringList(params, "regionId");
-
   const readModel = await buildMaterialExtractionJobReadModel({
     organizationIds,
     regionIds,
     limit: Number.isFinite(limit) ? limit : 24,
   });
 
-  return NextResponse.json({
-    ok: true,
-    readModel,
-  });
+  return NextResponse.json({ ok: true, readModel });
 }
 
 type Body = {
@@ -114,17 +109,22 @@ export async function POST(req: NextRequest) {
       contextItems: graphRuntime.contextItems,
       topics: graphRuntime.topics,
     });
+    const fullText = await getMaterialFullText(materialId);
+    const structuredDrafts = await generateMaterialStructuredDrafts({
+      text: fullText,
+      graph: graphFirst,
+    });
 
     return NextResponse.json({
       ok: true,
       job: created.job,
       persistence: created.persistence,
-      graphFirst: {
-        ...graphFirst,
-        blockers: graphRuntime.blockers,
-      },
+      graphFirst: { ...graphFirst, blockers: graphRuntime.blockers },
+      structuredDrafts,
       message:
-        "Extraktionsjob wurde review-first registriert und gegen vorhandenes eDebatte-Wissen geprüft. Es wurde weder automatisch veröffentlicht, gemergt noch in den Graph geschrieben.",
+        structuredDrafts.status === "generated"
+          ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
+          : "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft. Strukturierte KI-Drafts konnten noch nicht produktiv erzeugt werden; es wurde nichts automatisch veröffentlicht, gemergt oder angelegt.",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "material_extraction_job_failed";
