@@ -15,7 +15,9 @@ export type MaterialEconomicsLedgerEntry = {
   status: MaterialStructuredDraftResult["status"];
   characterCount: number;
   internalAnalysisUnits: number;
-  commercialCredits: number;
+  commercialCreditsQuoted: number;
+  commercialCreditsCharged: 0;
+  chargeState: "not_charged";
   reusedExistingKnowledge: boolean;
   reuseSourceAssetId: string | null;
   estimatedProviderCostEur: number | null;
@@ -60,7 +62,9 @@ export async function appendMaterialEconomicsLedger(input: {
     status: input.drafts.status,
     characterCount: input.economics.characterCount,
     internalAnalysisUnits: input.economics.internalAnalysisUnits,
-    commercialCredits: input.economics.commercialCredits,
+    commercialCreditsQuoted: input.economics.commercialCredits,
+    commercialCreditsCharged: 0,
+    chargeState: "not_charged",
     reusedExistingKnowledge: input.reusedExistingKnowledge,
     reuseSourceAssetId: String(input.reuseSourceAssetId ?? "").trim() || null,
     estimatedProviderCostEur:
