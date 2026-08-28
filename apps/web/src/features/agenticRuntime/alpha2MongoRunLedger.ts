@@ -274,6 +274,8 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
         runId: run.runId,
         idempotencyKey: run.idempotencyKey,
         taskId: run.taskId,
+        rootRunId: run.rootRunId,
+        parentRunId: run.parentRunId,
         version: input.expectedVersion,
         ...(input.lease
           ? activeLeaseFilter(input.lease.owner)

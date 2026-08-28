@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   Alpha2RunRecordSchema,
+  Alpha2SafeTraceArtifactRefSchema,
+  Alpha2SafeTraceStepRefSchema,
   appendAlpha2Checkpoint,
   consumeAlpha2HumanGateApproval,
   consumeAlpha2HumanResumeApproval,
@@ -182,14 +184,26 @@ function checkpointStatus(outcome: Alpha2WorkerOutcome): Alpha2RunStatus {
   }
 }
 
+function canonicalOutcomeRefs(outcome: Alpha2WorkerOutcome) {
+  return {
+    safeTraceStepRefs: (outcome.safeTraceStepRefs ?? []).map((reference) =>
+      Alpha2SafeTraceStepRefSchema.parse(reference),
+    ),
+    artifactRefs: (outcome.artifactRefs ?? []).map((reference) =>
+      Alpha2SafeTraceArtifactRefSchema.parse(reference),
+    ),
+  };
+}
+
 function alpha2OutcomeIdentity(outcome: Alpha2WorkerOutcome) {
+  const references = canonicalOutcomeRefs(outcome);
   const base = {
     type: outcome.type,
     checkpointId: outcome.checkpointId,
     cursor: outcome.cursor ?? null,
     evidenceRefs: outcome.evidenceRefs ?? [],
-    safeTraceStepRefs: outcome.safeTraceStepRefs ?? [],
-    artifactRefs: outcome.artifactRefs ?? [],
+    safeTraceStepRefs: references.safeTraceStepRefs,
+    artifactRefs: references.artifactRefs,
   };
   const identity =
     outcome.type === "waiting"
@@ -476,7 +490,7 @@ async function moveToRunning(input: {
   }
 
   if (run.status === "running" && !input.approvedResume) {
-    const errorCode =
+    const terminalErrorCode =
       run.attempt >= run.budget.maxAttempts
         ? "alpha2_attempt_budget_exhausted"
         : "alpha2_abandoned_running_step";
@@ -485,14 +499,14 @@ async function moveToRunning(input: {
       checkpointId,
       createdAt: input.now,
       status: "failed",
-      errorCode,
+      errorCode: "alpha2_abandoned_running_step",
       evidenceRefs: [],
       safeTraceStepRefs: [],
       artifactRefs: [],
     });
     run = transitionAlpha2Run(run, "failed", {
       now: input.now,
-      errorCode,
+      errorCode: terminalErrorCode,
       resumeAt: run.attempt < run.budget.maxAttempts ? input.now : undefined,
     });
     current = await save(
@@ -619,6 +633,7 @@ function persistedOutcomeMatches(
   current: Alpha2VersionedRun,
   outcome: Alpha2WorkerOutcome,
 ) {
+  const references = canonicalOutcomeRefs(outcome);
   if (persisted.version !== current.version + 1) return false;
   if (persisted.run.status !== checkpointStatus(outcome)) return false;
   const checkpoint = persisted.run.checkpoints.find(
@@ -628,8 +643,8 @@ function persistedOutcomeMatches(
   if (checkpoint.outcomeIdentity !== alpha2OutcomeIdentity(outcome)) return false;
   if (checkpoint.cursor !== outcome.cursor) return false;
   if (!sameJsonValue(checkpoint.evidenceRefs, outcome.evidenceRefs ?? [])) return false;
-  if (!sameJsonValue(checkpoint.safeTraceStepRefs, outcome.safeTraceStepRefs ?? [])) return false;
-  if (!sameJsonValue(checkpoint.artifactRefs, outcome.artifactRefs ?? [])) return false;
+  if (!sameJsonValue(checkpoint.safeTraceStepRefs, references.safeTraceStepRefs)) return false;
+  if (!sameJsonValue(checkpoint.artifactRefs, references.artifactRefs)) return false;
 
   switch (outcome.type) {
     case "completed":

@@ -1726,7 +1726,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.run.checkpoints.at(-1)).toMatchObject({
       checkpointId: expect.stringMatching(/^abandoned_attempt_v\d+$/),
       status: "failed",
-      errorCode: "alpha2_attempt_budget_exhausted",
+      errorCode: "alpha2_abandoned_running_step",
     });
     expect(result.run.attempt).toBe(1);
     expect(executions).toBe(0);
@@ -2214,6 +2214,76 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
         now: "2026-08-23T20:00:01.000Z",
       }),
     ).rejects.toThrow("alpha2_checkpoint_id_conflict");
+  });
+
+  it("accepts canonical reference objects regardless of property insertion order", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-canonical-outcome-refs"));
+
+    const first = await runAlpha2DurableStep({
+      runId: "run-canonical-outcome-refs",
+      workerId: "worker-canonical-refs-a",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "waiting",
+            checkpointId: "cp-canonical-refs",
+            resumeAfterMs: 0,
+            safeTraceStepRefs: [
+              { stepId: "alpha2:canonical-refs", roleId: "governance_compliance" },
+            ],
+            artifactRefs: [
+              {
+                id: "alpha2:canonical-refs:output",
+                type: "review_handoff",
+                label: "Canonical outcome references",
+                reviewState: "review_required",
+              },
+            ],
+          };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    expect(first.state).toBe("executed");
+    if (first.state !== "executed") throw new Error("unexpected state");
+    const outcomeIdentity = first.run.checkpoints[0]?.outcomeIdentity;
+
+    const second = await runAlpha2DurableStep({
+      runId: "run-canonical-outcome-refs",
+      workerId: "worker-canonical-refs-b",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "waiting",
+            checkpointId: "cp-canonical-refs",
+            resumeAfterMs: 0,
+            safeTraceStepRefs: [
+              { roleId: "governance_compliance", stepId: "alpha2:canonical-refs" },
+            ],
+            artifactRefs: [
+              {
+                reviewState: "review_required",
+                label: "Canonical outcome references",
+                type: "review_handoff",
+                id: "alpha2:canonical-refs:output",
+              },
+            ],
+          };
+        },
+      },
+      now: "2026-08-23T20:00:01.000Z",
+    });
+
+    expect(second.state).toBe("executed");
+    if (second.state !== "executed") throw new Error("unexpected state");
+    expect(second.run.checkpoints).toHaveLength(1);
+    expect(second.run.checkpoints[0]?.outcomeIdentity).toBe(outcomeIdentity);
   });
 
   it("awaits an in-flight recovery scan before scheduler shutdown completes", async () => {

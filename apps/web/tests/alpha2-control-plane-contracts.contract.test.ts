@@ -265,6 +265,32 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
         taskId: "ALPHA2-PERSISTENT-RUN-LEDGER-01",
       }),
     ).toThrow("alpha2_ledger_idempotency_conflict");
+
+    const child = createAlpha2RunRecord({
+      runId: "immutable-child",
+      parentRunId: "immutable-parent",
+      rootRunId: "immutable-root",
+      idempotencyKey: "immutable-lineage-key",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+    expect(() =>
+      assertAlpha2LedgerIdentity(child, {
+        ...child,
+        rootRunId: "different-root",
+      }),
+    ).toThrow("alpha2_ledger_lineage_conflict");
+    expect(() =>
+      assertAlpha2LedgerIdentity(child, {
+        ...child,
+        parentRunId: "different-parent",
+      }),
+    ).toThrow("alpha2_ledger_lineage_conflict");
+    expect(() => assertAlpha2LedgerIdentity(child, { ...child })).not.toThrow();
   });
 
   it("never auto-executes human-sovereignty actions and retains evidence", () => {

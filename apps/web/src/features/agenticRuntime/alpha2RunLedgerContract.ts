@@ -76,4 +76,10 @@ export function assertAlpha2LedgerIdentity(existing: Alpha2RunRecord, incoming: 
   if (existing.runId !== incoming.runId || existing.taskId !== incoming.taskId) {
     throw new Error("alpha2_ledger_idempotency_conflict");
   }
+  if (
+    existing.rootRunId !== incoming.rootRunId ||
+    existing.parentRunId !== incoming.parentRunId
+  ) {
+    throw new Error("alpha2_ledger_lineage_conflict");
+  }
 }
