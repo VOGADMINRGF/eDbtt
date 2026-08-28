@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
     const structuredDrafts = await generateMaterialStructuredDrafts({
       text: fullText,
       graph: graphFirst,
+      approveCost,
     });
     const reviewSession = await createMaterialDocumentReviewSession({
       job: created.job,
@@ -121,6 +122,10 @@ export async function POST(req: NextRequest) {
       graphFirst,
       drafts: structuredDrafts,
     });
+
+    const volumeApprovalRequired =
+      structuredDrafts.status === "blocked" &&
+      structuredDrafts.error === "material_analysis_volume_approval_required";
 
     return NextResponse.json({
       ok: true,
@@ -136,8 +141,9 @@ export async function POST(req: NextRequest) {
             selectedCount: 0,
           }
         : null,
-      message:
-        structuredDrafts.status === "generated"
+      message: volumeApprovalRequired
+        ? `Das Dokument wurde vollständig gelesen und benötigt voraussichtlich ${structuredDrafts.analysisUsage.estimatedAnalysisUnits} Voxy-Analyse-Einheiten. Die kostenrelevante KI-Strukturierung startet erst nach ausdrücklicher Freigabe.`
+        : structuredDrafts.status === "generated"
           ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
           : "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft. Strukturierte KI-Drafts konnten noch nicht produktiv erzeugt werden; es wurde nichts automatisch veröffentlicht, gemergt oder angelegt.",
     });
