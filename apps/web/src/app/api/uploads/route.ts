@@ -2,11 +2,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildMaterialIntakeContract, type MaterialIntakeInputItem } from "@/features/material/materialIntakeContract";
 import { createMaterialIntakeRecords } from "@/features/material/materialIntakeRepository";
+import { extractUploadedFileText } from "@/features/material/materialUploadedFileText";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function materialItemFromFile(file: File, index: number): MaterialIntakeInputItem {
+async function materialItemFromFile(file: File, index: number): Promise<MaterialIntakeInputItem> {
+  const extraction = await extractUploadedFileText(file);
   return {
     id: `upload-${index + 1}`,
     kind: "upload_document",
@@ -15,11 +17,11 @@ function materialItemFromFile(file: File, index: number): MaterialIntakeInputIte
     uploadId: `upload-${index + 1}`,
     mimeType: file.type || null,
     fileName: file.name || null,
-    text: null,
+    text: extraction.text,
     pageRef: null,
     timestampRef: null,
-    extractedBy: null,
-    extractionStatus: "none",
+    extractedBy: extraction.extractedBy,
+    extractionStatus: extraction.status,
   };
 }
 
@@ -94,7 +96,7 @@ async function resolveMaterialUploadWorkflow(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const fd = await req.formData();
   const files = fd.getAll("files").filter((entry): entry is File => entry instanceof File);
-  const materialItems = files.map(materialItemFromFile);
+  const materialItems = await Promise.all(files.map(materialItemFromFile));
   const workflow = await resolveMaterialUploadWorkflow(req);
   const registry = await createMaterialIntakeRecords({
     items: materialItems.map((item, index) => ({
@@ -111,16 +113,37 @@ export async function POST(req: NextRequest) {
     productionTruth: registry.persistence.productionTruth,
     storageMode: registry.persistence.productionTruth ? "persistent_metadata_store" : "local_pending",
   });
+  const directExtractionCount = materialItems.filter((item) => item.extractionStatus === "full").length;
+  const externalExtractionPendingCount = materialItems.filter(
+    (item) => item.extractionStatus === "none" && /(?:\.pdf|\.docx?|application\/pdf|wordprocessingml)/i.test(`${item.fileName ?? ""} ${item.mimeType ?? ""}`),
+  ).length;
+
   return NextResponse.json({
     ok: true,
     storageMode: registry.persistence.productionTruth ? "persistent_metadata_store" : "local_pending",
     productionTruth: registry.persistence.productionTruth,
     rawObjectStorageProductionTruth: false,
     scanProviderConfigured: false,
-    extractionProviderConfigured: false,
+    extractionProviderConfigured: directExtractionCount > 0,
+    extractionCapabilities: {
+      directText: directExtractionCount,
+      externalPending: externalExtractionPendingCount,
+      supportedDirectly: ["txt", "md", "csv", "tsv", "json", "xml", "html"],
+      requiresExternalProvider: ["pdf", "doc", "docx"],
+    },
     message:
-      "Upload-Metadaten wurden angenommen und reviewpflichtig registriert. Es wurde kein Dateispeicher, kein Malware-Scan, keine Extraktion, keine KI-Recherche und keine Veröffentlichung automatisch gestartet.",
-    files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+      externalExtractionPendingCount > 0
+        ? "Textbasierte Uploads wurden serverseitig extrahiert. PDF/DOCX bleiben reviewpflichtig und warten auf einen produktiven Extraktionsprovider. Es wurde nichts automatisch veröffentlicht."
+        : directExtractionCount > 0
+          ? "Textbasierte Uploads wurden serverseitig extrahiert und reviewpflichtig registriert. Es wurde nichts automatisch veröffentlicht."
+          : "Upload-Metadaten wurden angenommen und reviewpflichtig registriert. Für dieses Dateiformat wurde keine automatische Extraktion gestartet.",
+    files: files.map((f, index) => ({
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      extractionStatus: materialItems[index]?.extractionStatus ?? "none",
+      extractedBy: materialItems[index]?.extractedBy ?? null,
+    })),
     requestScope: workflow.scopeSummary,
     materialIntake,
     materialRegistry: {
