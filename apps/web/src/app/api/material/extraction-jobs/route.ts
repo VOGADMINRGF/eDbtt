@@ -11,6 +11,7 @@ import {
 } from "@/features/material/materialGraphFirstContext";
 import { getMaterialFullText } from "@/features/material/materialFullTextStore";
 import { generateMaterialStructuredDrafts } from "@/features/material/materialStructuredDrafts";
+import { createMaterialDocumentReviewSession } from "@/features/material/materialDocumentReviewStore";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export const runtime = "nodejs";
@@ -114,6 +115,12 @@ export async function POST(req: NextRequest) {
       text: fullText,
       graph: graphFirst,
     });
+    const reviewSession = await createMaterialDocumentReviewSession({
+      job: created.job,
+      actorId: gate.actor.userId,
+      graphFirst,
+      drafts: structuredDrafts,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -121,6 +128,14 @@ export async function POST(req: NextRequest) {
       persistence: created.persistence,
       graphFirst: { ...graphFirst, blockers: graphRuntime.blockers },
       structuredDrafts,
+      reviewSession: reviewSession
+        ? {
+            id: reviewSession.id,
+            status: reviewSession.status,
+            href: `/admin/material/review/${reviewSession.id}`,
+            selectedCount: 0,
+          }
+        : null,
       message:
         structuredDrafts.status === "generated"
           ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."

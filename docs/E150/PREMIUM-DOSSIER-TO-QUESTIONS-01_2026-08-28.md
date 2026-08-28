@@ -38,7 +38,9 @@ Sobald die DoD unten erfüllt ist, kann `künftig` entfallen.
 
 Der P0-Parserpfad verwendet serverseitig `pdf-parse` für PDF und `mammoth` für DOCX. Er begrenzt Dateigröße, PDF-Seiten und Volltextlänge, plausibilisiert MIME-Typ, Endung und Binärsignatur und liefert stabile Fehlergründe ohne Rohmaterial in Responses oder öffentliche Stores zu schreiben. Der bestehende Material-Intake führt lokale Dokumentextraktion als eigenen Zustand; Herkunft und Format bleiben am privaten Volltext nachvollziehbar.
 
-P1 bleibt davon getrennt: Provider-Ausgaben müssen strikt validierte AI-Drafts sein. Auswahl, Bearbeitung und jede vorbereitete Create-/Runden-Persistenz brauchen eine explizite menschliche Bestätigung; Graph-Matches bleiben Hinweise und erzeugen weder Merge noch Graph-Write.
+P1 verwendet die bestehende `material_grounding`-Providerreihenfolge und akzeptiert ausschließlich strikt validiertes JSON. Fragen benötigen echte Dokumentanker; als Dokumentinhalt deklarierte Optionen müssen wörtlich im privaten Volltext vorkommen. Zusätzliche Optionen sind sichtbar als KI-Vorschlag markiert. Bei fehlendem oder ungültigem Provider-Output bleibt der Flow kontrolliert degradiert und erzeugt keine Fake-Drafts.
+
+Eine eigene Review-Ansicht zeigt reale Graph-Matches, Gap-Analyse und Empfehlung, bezeichnet diese aber ausdrücklich nicht als Entscheidung. Alle Fragen, Optionen, Weiterführungsarten und Auswahlen sind vor der Bestätigung editierbar. Nichts ist vorausgewählt. Erst eine explizite Bestätigung persistiert die ausgewählten Vorschläge über den bestehenden Create-Saved-Workstate-Store als private beziehungsweise organisationsinterne `question_candidate`-Arbeitsstände. Dabei entstehen keine Runde, keine Veröffentlichung, kein Graph-Write und kein Merge.
 
 ## Definition of Done
 

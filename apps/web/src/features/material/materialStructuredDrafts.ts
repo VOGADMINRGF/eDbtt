@@ -1,69 +1,143 @@
+import { z } from "zod";
 import { callMistral } from "@features/ai/providers/mistral";
 import { callAnthropic } from "@features/ai/providers/anthropic";
+import { LANE_ROUTING_POLICY } from "@/features/ai/providerRoleRouting";
 import type { MaterialGraphFirstContext } from "@/features/material/materialGraphFirstContext";
 
 export type MaterialStructuredQuestionDraft = {
+  id: string;
   theme: string;
-  question: string;
-  options: string[];
+  text: string;
   rationale: string;
-  sourceGrounding: string[];
-  aiSuggestedOptions: string[];
+  sourceAnchors: string[];
   reviewState: "draft";
+};
+
+export type MaterialStructuredOptionDraft = {
+  questionRef: string;
+  text: string;
+  source: "document" | "ai_suggestion";
+  needsReview: true;
 };
 
 export type MaterialStructuredDraftResult = {
   provider: "mistral" | "anthropic" | "none";
   status: "generated" | "blocked" | "failed";
   themes: string[];
+  decisionPoints: string[];
   questions: MaterialStructuredQuestionDraft[];
-  openPoints: string[];
+  options: MaterialStructuredOptionDraft[];
+  claimsOrSourceHints: Array<{ text: string; sourceAnchors: string[] }>;
+  uncertainties: string[];
+  provenance: string[];
   reviewRequired: true;
+  draftOnly: true;
+  publicOutputAllowed: false;
   noAutoPublish: true;
   noAutoCreateRound: true;
+  noAutoGraphWrite: true;
+  noAutoMerge: true;
   error: string | null;
 };
 
-type ProviderPayload = {
-  themes?: unknown;
-  questions?: unknown;
-  openPoints?: unknown;
-};
+const shortText = z.string().trim().min(1).max(800);
+const ProviderPayloadSchema = z
+  .object({
+    themes: z.array(shortText.max(160)).max(16),
+    decisionPoints: z.array(shortText).max(20),
+    questions: z
+      .array(
+        z
+          .object({
+            id: z.string().trim().regex(/^q-[a-z0-9-]{1,48}$/),
+            theme: shortText.max(160),
+            text: shortText.max(500).refine((value) => value.endsWith("?"), "question_mark_required"),
+            rationale: shortText,
+            sourceAnchors: z.array(shortText).min(1).max(8),
+          })
+          .strict(),
+      )
+      .max(20),
+    options: z
+      .array(
+        z
+          .object({
+            questionRef: z.string().trim().regex(/^q-[a-z0-9-]{1,48}$/),
+            text: shortText.max(300),
+            source: z.enum(["document", "ai_suggestion"]),
+            needsReview: z.literal(true),
+          })
+          .strict(),
+      )
+      .max(120),
+    claimsOrSourceHints: z
+      .array(
+        z
+          .object({
+            text: shortText,
+            sourceAnchors: z.array(shortText).min(1).max(8),
+          })
+          .strict(),
+      )
+      .max(24),
+    uncertainties: z.array(shortText).max(20),
+  })
+  .strict();
 
-function strings(value: unknown, max = 12) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => String(entry ?? "").trim())
-    .filter(Boolean)
-    .slice(0, max);
+type ParsedDrafts = Omit<
+  MaterialStructuredDraftResult,
+  | "provider"
+  | "status"
+  | "reviewRequired"
+  | "draftOnly"
+  | "publicOutputAllowed"
+  | "noAutoPublish"
+  | "noAutoCreateRound"
+  | "noAutoGraphWrite"
+  | "noAutoMerge"
+  | "error"
+>;
+
+function normalizeForGrounding(value: string) {
+  return value.toLocaleLowerCase("de-DE").replace(/\s+/g, " ").trim();
 }
 
-function parsePayload(text: string): Omit<MaterialStructuredDraftResult, "provider" | "status" | "reviewRequired" | "noAutoPublish" | "noAutoCreateRound" | "error"> {
-  const raw = JSON.parse(text) as ProviderPayload;
-  const questions = Array.isArray(raw.questions)
-    ? raw.questions
-        .map((entry): MaterialStructuredQuestionDraft | null => {
-          if (!entry || typeof entry !== "object") return null;
-          const item = entry as Record<string, unknown>;
-          const question = String(item.question ?? "").trim();
-          if (!question) return null;
-          return {
-            theme: String(item.theme ?? "").trim() || "Allgemein",
-            question,
-            options: strings(item.options, 8),
-            rationale: String(item.rationale ?? "").trim(),
-            sourceGrounding: strings(item.sourceGrounding, 8),
-            aiSuggestedOptions: strings(item.aiSuggestedOptions, 8),
-            reviewState: "draft",
-          };
-        })
-        .filter((entry): entry is MaterialStructuredQuestionDraft => Boolean(entry))
-        .slice(0, 20)
-    : [];
+function groundedInDocument(anchor: string, documentText: string) {
+  const normalizedAnchor = normalizeForGrounding(anchor);
+  return normalizedAnchor.length >= 4 && normalizeForGrounding(documentText).includes(normalizedAnchor);
+}
+
+export function parseMaterialStructuredDraftPayload(input: {
+  providerText: string;
+  documentText: string;
+  graphProvenance?: string[];
+}): ParsedDrafts {
+  const raw = ProviderPayloadSchema.parse(JSON.parse(input.providerText));
+  const questions = raw.questions
+    .filter((question) => question.sourceAnchors.every((anchor) => groundedInDocument(anchor, input.documentText)))
+    .map((question) => ({ ...question, reviewState: "draft" as const }));
+  const questionIds = new Set(questions.map((question) => question.id));
+  const options = raw.options.filter(
+    (option) =>
+      questionIds.has(option.questionRef) &&
+      (option.source === "ai_suggestion" || groundedInDocument(option.text, input.documentText)),
+  );
+  const claimsOrSourceHints = raw.claimsOrSourceHints.filter((hint) =>
+    hint.sourceAnchors.every((anchor) => groundedInDocument(anchor, input.documentText)),
+  );
+
+  if (questions.length === 0 && raw.themes.length === 0) {
+    throw new Error("empty_structured_output");
+  }
+
   return {
-    themes: strings(raw.themes, 16),
+    themes: raw.themes,
+    decisionPoints: raw.decisionPoints,
     questions,
-    openPoints: strings(raw.openPoints, 16),
+    options,
+    claimsOrSourceHints,
+    uncertainties: raw.uncertainties,
+    provenance: Array.from(new Set(["material_full_text", ...(input.graphProvenance ?? [])])),
   };
 }
 
@@ -76,7 +150,7 @@ function promptFor(input: { text: string; graph: MaterialGraphFirstContext }) {
     coverageSummary: input.graph.coverageSummary,
     gapSummary: input.graph.gapSummary,
   };
-  return `Du strukturierst ein privates, reviewpflichtiges Dokument für eDebatte. Erzeuge KEINE Veröffentlichung und entscheide NICHT über Wahrheit. Faktenbehauptungen dürfen nicht als Abstimmungsfrage formuliert werden. Ziel sind echte Entscheidungs-, Priorisierungs-, Bewertungs- oder Erfahrungsfragen. Bestehendes eDebatte-Wissen soll bevorzugt wiederverwendet, weitergeführt oder ergänzt werden; neue Fragen nur für echte Lücken. Zusätzliche Antwortoptionen, die nicht wörtlich aus dem Dokument stammen, müssen ausschließlich im Feld aiSuggestedOptions stehen. sourceGrounding enthält kurze, konkrete Textanker aus dem Dokument, keine erfundenen Quellen.
+  return `Du strukturierst ein privates Dokument für einen menschlichen eDebatte-Review. Du veröffentlichst nichts, entscheidest nicht über Wahrheit und erzeugst keine Runde. Faktenbehauptungen sind Quellenhinweise, niemals Abstimmungsfragen. Fragen betreffen nur Entscheidungen, Prioritäten, Bewertungen oder Erfahrungen. Bestehendes eDebatte-Wissen wird zuerst wiederverwendet, weitergeführt oder ergänzt; neue Fragen nur für echte Lücken. Dokumentoptionen müssen wörtlich im Dokument vorkommen. Ergänzende Optionen erhalten source="ai_suggestion" und dürfen nicht als Dokumentinhalt erscheinen. Jeder sourceAnchor muss ein kurzes wörtliches Zitat aus dem Dokument sein. Keine Quellen, Gegenpositionen oder Mehrheiten erfinden.
 
 Graph-Kontext:
 ${JSON.stringify(graphSummary)}
@@ -84,9 +158,32 @@ ${JSON.stringify(graphSummary)}
 Dokument:
 ${input.text.slice(0, 120_000)}
 
-Antworte ausschließlich als JSON mit exakt dieser Struktur:
-{"themes":["..."],"questions":[{"theme":"...","question":"...?","options":["nur im Dokument gestützte Optionen"],"rationale":"warum diese Frage entscheidungsrelevant ist","sourceGrounding":["kurzer Textanker"],"aiSuggestedOptions":["klar als KI-Vorschlag getrennte zusätzliche Option"]}],"openPoints":["...:"]}
-Maximal 20 Fragen. Vermeide Dubletten und banale Überschriften-zu-Frage-Konvertierung.`;
+Antworte ausschließlich als valides JSON ohne Markdown und exakt mit diesen Feldern:
+{"themes":["..."],"decisionPoints":["..."],"questions":[{"id":"q-kurze-id","theme":"...","text":"...?","rationale":"...","sourceAnchors":["wörtlicher Textanker"]}],"options":[{"questionRef":"q-kurze-id","text":"...","source":"document","needsReview":true}],"claimsOrSourceHints":[{"text":"...","sourceAnchors":["wörtlicher Textanker"]}],"uncertainties":["..."]}
+Für source ist ausschließlich "document" oder "ai_suggestion" zulässig.
+Maximal 20 Fragen. Jede Frage und Option bleibt ein KI-Entwurf für menschliche Auswahl und Bearbeitung.`;
+}
+
+function emptyResult(status: "blocked" | "failed", error: string | null): MaterialStructuredDraftResult {
+  return {
+    provider: "none",
+    status,
+    themes: [],
+    decisionPoints: [],
+    questions: [],
+    options: [],
+    claimsOrSourceHints: [],
+    uncertainties: [],
+    provenance: [],
+    reviewRequired: true,
+    draftOnly: true,
+    publicOutputAllowed: false,
+    noAutoPublish: true,
+    noAutoCreateRound: true,
+    noAutoGraphWrite: true,
+    noAutoMerge: true,
+    error,
+  };
 }
 
 export async function generateMaterialStructuredDrafts(input: {
@@ -94,42 +191,37 @@ export async function generateMaterialStructuredDrafts(input: {
   graph: MaterialGraphFirstContext;
 }): Promise<MaterialStructuredDraftResult> {
   const text = String(input.text ?? "").trim();
-  if (!text) {
-    return {
-      provider: "none",
-      status: "blocked",
-      themes: [],
-      questions: [],
-      openPoints: [],
-      reviewRequired: true,
-      noAutoPublish: true,
-      noAutoCreateRound: true,
-      error: "material_full_text_missing",
-    };
-  }
+  if (!text) return emptyResult("blocked", "material_full_text_missing");
 
   const prompt = promptFor({ text, graph: input.graph });
-  const attempts: Array<["mistral" | "anthropic", () => Promise<{ text: string }>]> = [
-    ["mistral", () => callMistral({ prompt, maxOutputTokens: 4_000 })],
-    ["anthropic", () => callAnthropic({ prompt, maxOutputTokens: 4_000 })],
-  ];
+  const materialRouting = LANE_ROUTING_POLICY.find((entry) => entry.lane === "material_grounding");
+  const providerOrder = materialRouting?.primaryAnalyzeCandidates ?? [];
+  const providers = {
+    mistral: () => callMistral({ prompt, maxOutputTokens: 4_000 }),
+    anthropic: () => callAnthropic({ prompt, maxOutputTokens: 4_000 }),
+  } as const;
 
   let lastError: string | null = null;
-  for (const [provider, run] of attempts) {
+  for (const provider of providerOrder) {
+    if (provider !== "mistral" && provider !== "anthropic") continue;
     try {
-      const result = await run();
-      const parsed = parsePayload(result.text);
-      if (parsed.questions.length === 0 && parsed.themes.length === 0) {
-        lastError = `${provider}:empty_structured_output`;
-        continue;
-      }
+      const result = await providers[provider]();
+      const parsed = parseMaterialStructuredDraftPayload({
+        providerText: result.text,
+        documentText: text,
+        graphProvenance: input.graph.provenance,
+      });
       return {
         provider,
         status: "generated",
         ...parsed,
         reviewRequired: true,
+        draftOnly: true,
+        publicOutputAllowed: false,
         noAutoPublish: true,
         noAutoCreateRound: true,
+        noAutoGraphWrite: true,
+        noAutoMerge: true,
         error: null,
       };
     } catch (error) {
@@ -137,15 +229,5 @@ export async function generateMaterialStructuredDrafts(input: {
     }
   }
 
-  return {
-    provider: "none",
-    status: "failed",
-    themes: [],
-    questions: [],
-    openPoints: [],
-    reviewRequired: true,
-    noAutoPublish: true,
-    noAutoCreateRound: true,
-    error: lastError,
-  };
+  return emptyResult("failed", lastError ?? "material_grounding_provider_unavailable");
 }
