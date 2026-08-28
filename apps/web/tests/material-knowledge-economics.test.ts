@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import { estimateMaterialEconomics } from "@/features/material/materialKnowledgeEconomics";
 
 describe("material knowledge economics", () => {
-  it("separates reuse value from provider analysis units", () => {
+  it("prices reuse independently from a full source re-analysis", () => {
     const estimate = estimateMaterialEconomics({
       operation: "reuse_existing_material",
-      characterCount: 240_000,
+      characterCount: 12_000,
     });
-    expect(estimate.internalAnalysisUnits).toBe(0);
+    expect(estimate.internalAnalysisUnits).toBe(1);
     expect(estimate.commercialCredits).toBe(1);
+    expect(estimate.requiresExplicitApproval).toBe(false);
     expect(estimate.pricingPublished).toBe(false);
     expect(estimate.checkoutAvailable).toBe(false);
   });
