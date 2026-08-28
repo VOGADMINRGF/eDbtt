@@ -208,7 +208,9 @@ export async function POST(req: NextRequest) {
             id: economicsLedger.id,
             operation: economicsLedger.operation,
             internalAnalysisUnits: economicsLedger.internalAnalysisUnits,
-            commercialCredits: economicsLedger.commercialCredits,
+            commercialCreditsQuoted: economicsLedger.commercialCreditsQuoted,
+            commercialCreditsCharged: economicsLedger.commercialCreditsCharged,
+            chargeState: economicsLedger.chargeState,
             reusedExistingKnowledge: economicsLedger.reusedExistingKnowledge,
           }
         : null,
