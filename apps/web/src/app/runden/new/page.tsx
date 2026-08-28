@@ -46,13 +46,13 @@ export default async function RundenManualCreatePage(props: { searchParams?: Sea
     <section className="public-canvas vog-page-stage min-h-screen">
       <main className="public-shell vog-main-shell min-h-screen space-y-6">
         {conversionMode ? (
-          <div className="mx-auto flex w-full max-w-[78rem] items-end justify-between gap-5 border-b border-[rgb(var(--border))] pb-5">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Deine Abstimmung</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-[rgb(var(--fg))] md:text-4xl">Fast fertig.</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">Frage und Antworten stehen. Ändere nur noch etwas, wenn du wirklich möchtest.</p>
+          <div className="mx-auto w-full max-w-[78rem] border-b border-[rgb(var(--border))] pb-5">
+            <Link href="/runden/new?gtm=1" className="text-sm font-bold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">← Zur einfachen Ansicht</Link>
+            <div className="mt-5 max-w-3xl">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Optionale Einstellungen</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-[rgb(var(--fg))] md:text-4xl">Nur ändern, was du wirklich brauchst.</h1>
+              <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">Deine Frage und Antworten stehen bereits. Alles darunter ist Zusatz: Sichtbarkeit, Prüfung, KI-Unterstützung oder spätere Weiterbearbeitung. Für eine einfache Abstimmung musst du hier nichts neu erfinden.</p>
             </div>
-            <Link href="/?from=create" className="text-sm font-bold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">Zur Startseite</Link>
           </div>
         ) : (
           <>
