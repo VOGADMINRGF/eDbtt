@@ -12,6 +12,11 @@ import {
 import { getMaterialFullText } from "@/features/material/materialFullTextStore";
 import { generateMaterialStructuredDrafts } from "@/features/material/materialStructuredDrafts";
 import { createMaterialDocumentReviewSession } from "@/features/material/materialDocumentReviewStore";
+import {
+  getReusableMaterialKnowledgeAsset,
+  persistMaterialKnowledgeAsset,
+} from "@/features/material/materialKnowledgeAssetStore";
+import { estimateMaterialEconomics } from "@/features/material/materialKnowledgeEconomics";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export const runtime = "nodejs";
@@ -111,11 +116,36 @@ export async function POST(req: NextRequest) {
       topics: graphRuntime.topics,
     });
     const fullText = await getMaterialFullText(materialId);
-    const structuredDrafts = await generateMaterialStructuredDrafts({
-      text: fullText,
-      graph: graphFirst,
-      approveCost,
+    const reusableAsset = fullText ? await getReusableMaterialKnowledgeAsset(fullText) : null;
+    const hasExistingTopicContext =
+      graphFirst.matchedTopicIds.length > 0 ||
+      graphFirst.matchedDossierIds.length > 0 ||
+      graphFirst.matchedRoundIds.length > 0;
+    const economics = estimateMaterialEconomics({
+      operation: reusableAsset
+        ? "reuse_existing_material"
+        : hasExistingTopicContext
+          ? "extend_existing_topic"
+          : "ingest_new_material",
+      characterCount: fullText?.length ?? 0,
     });
+
+    const structuredDrafts = reusableAsset
+      ? reusableAsset.structuredDrafts
+      : await generateMaterialStructuredDrafts({
+          text: fullText,
+          graph: graphFirst,
+          approveCost,
+        });
+
+    if (!reusableAsset && fullText && structuredDrafts.status === "generated") {
+      await persistMaterialKnowledgeAsset({
+        materialId,
+        text: fullText,
+        structuredDrafts,
+      });
+    }
+
     const reviewSession = await createMaterialDocumentReviewSession({
       job: created.job,
       actorId: gate.actor.userId,
@@ -132,6 +162,15 @@ export async function POST(req: NextRequest) {
       job: created.job,
       persistence: created.persistence,
       graphFirst: { ...graphFirst, blockers: graphRuntime.blockers },
+      knowledgeReuse: reusableAsset
+        ? {
+            reused: true,
+            assetId: reusableAsset.id,
+            sourceMaterialId: reusableAsset.materialId,
+            contentFingerprint: reusableAsset.contentFingerprint,
+          }
+        : { reused: false },
+      economics,
       structuredDrafts,
       reviewSession: reviewSession
         ? {
@@ -141,11 +180,13 @@ export async function POST(req: NextRequest) {
             selectedCount: 0,
           }
         : null,
-      message: volumeApprovalRequired
-        ? `Das Dokument wurde vollständig gelesen und benötigt voraussichtlich ${structuredDrafts.analysisUsage.estimatedAnalysisUnits} Voxy-Analyse-Einheiten. Die kostenrelevante KI-Strukturierung startet erst nach ausdrücklicher Freigabe.`
-        : structuredDrafts.status === "generated"
-          ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
-          : "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft. Strukturierte KI-Drafts konnten noch nicht produktiv erzeugt werden; es wurde nichts automatisch veröffentlicht, gemergt oder angelegt.",
+      message: reusableAsset
+        ? "Dieses Material war eDebatte bereits bekannt. Die vorhandene, quellengebundene Materialstruktur wurde wiederverwendet; eine erneute Vollanalyse war nicht nötig. Die neue Voxy-Arbeit bleibt als eigenständige kommerzielle Leistung messbar."
+        : volumeApprovalRequired
+          ? `Das Dokument wurde vollständig gelesen und benötigt voraussichtlich ${structuredDrafts.analysisUsage.estimatedAnalysisUnits} interne Analyse-Einheiten. Die kostenrelevante KI-Strukturierung startet erst nach ausdrücklicher Freigabe.`
+          : structuredDrafts.status === "generated"
+            ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Die Materialstruktur wurde für spätere Wiederverwendung gespeichert. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
+            : "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft. Strukturierte KI-Drafts konnten noch nicht produktiv erzeugt werden; es wurde nichts automatisch veröffentlicht, gemergt oder angelegt.",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "material_extraction_job_failed";
