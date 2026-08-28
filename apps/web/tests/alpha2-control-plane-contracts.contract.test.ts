@@ -11,6 +11,7 @@ import {
   isAlpha2AutomaticActionAllowed,
   resolveAlpha2ActionGate,
 } from "@/features/agenticRuntime/alpha2RiskGateContract";
+import { assertAlpha2LedgerIdentity } from "@/features/agenticRuntime/alpha2RunLedgerContract";
 
 const NOW = "2026-08-23T21:00:00.000Z";
 const EVIDENCE = ["task:ALPHA2-RUN-CONTRACT-01"];
@@ -179,10 +180,17 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
     const duplicate = appendAlpha2Checkpoint(checkpointed, {
       checkpointId: "cp-1",
       createdAt: "2026-08-23T21:06:00.000Z",
-      cursor: "ignored_duplicate",
-      evidenceRefs: [],
-      safeTraceStepRefs: [],
-      artifactRefs: [],
+      cursor: "contract_written",
+      evidenceRefs: ["commit:example"],
+      safeTraceStepRefs: [{ stepId: "alpha2:contract-write", roleId: "governance_compliance" }],
+      artifactRefs: [
+        {
+          id: "alpha2:contract-write:output",
+          type: "review_handoff",
+          label: "Alpha2 contract review handoff",
+          reviewState: "review_required",
+        },
+      ],
     });
     expect(linked.childRunIds).toEqual(["slice-1"]);
     expect(checkpointed.checkpoints).toHaveLength(1);
@@ -192,6 +200,16 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       reviewState: "review_required",
     });
     expect(duplicate.checkpoints).toHaveLength(1);
+    expect(() =>
+      appendAlpha2Checkpoint(checkpointed, {
+        checkpointId: "cp-1",
+        createdAt: "2026-08-23T21:06:00.000Z",
+        cursor: "different_outcome",
+        evidenceRefs: [],
+        safeTraceStepRefs: [],
+        artifactRefs: [],
+      }),
+    ).toThrow("alpha2_checkpoint_id_conflict");
   });
 
   it("requires the canonical root ID for every non-root child", () => {
@@ -221,6 +239,32 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       now: NOW,
     });
     expect(grandchild.rootRunId).toBe("mission-1");
+  });
+
+  it("rejects changes to immutable ledger identity", () => {
+    const run = createAlpha2RunRecord({
+      runId: "immutable-run",
+      idempotencyKey: "immutable-idempotency-key",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+
+    expect(() =>
+      assertAlpha2LedgerIdentity(run, {
+        ...run,
+        idempotencyKey: "changed-idempotency-key",
+      }),
+    ).toThrow("alpha2_ledger_idempotency_key_mismatch");
+    expect(() =>
+      assertAlpha2LedgerIdentity(run, {
+        ...run,
+        taskId: "ALPHA2-PERSISTENT-RUN-LEDGER-01",
+      }),
+    ).toThrow("alpha2_ledger_idempotency_conflict");
   });
 
   it("never auto-executes human-sovereignty actions and retains evidence", () => {

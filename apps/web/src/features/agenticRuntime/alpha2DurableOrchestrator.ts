@@ -506,6 +506,10 @@ async function persistOutcome(input: {
     createdAt: input.now,
     status: checkpointStatus(input.outcome),
     cursor: input.outcome.cursor,
+    errorCode:
+      input.outcome.type === "failed"
+        ? normalizeAlpha2ErrorCode(input.outcome.errorCode, "alpha2_run_failed")
+        : undefined,
     evidenceRefs: input.outcome.evidenceRefs ?? [],
     safeTraceStepRefs: input.outcome.safeTraceStepRefs ?? [],
     artifactRefs: input.outcome.artifactRefs ?? [],
@@ -632,6 +636,19 @@ async function persistOutcomeWithRetry(input: {
   const maxAttempts = Math.max(1, Math.min(input.maxAttempts ?? 3, 5));
   let lastError: unknown;
 
+  const readForReconciliation = async () => {
+    let lastReadError: unknown;
+    for (let readAttempt = 1; readAttempt <= maxAttempts; readAttempt += 1) {
+      try {
+        return await input.ledger.getByRunId(input.current.run.runId);
+      } catch (readError: unknown) {
+        lastReadError = readError;
+        if (!isRetryableOutcomePersistenceError(readError)) throw readError;
+      }
+    }
+    throw lastReadError ?? new Error("alpha2_outcome_reconciliation_read_failed");
+  };
+
   for (let persistenceAttempt = 1; persistenceAttempt <= maxAttempts; persistenceAttempt += 1) {
     try {
       return await persistOutcome(input);
@@ -639,9 +656,7 @@ async function persistOutcomeWithRetry(input: {
       lastError = error;
       if (!isRetryableOutcomePersistenceError(error)) throw error;
 
-      const observed = await input.ledger
-        .getByRunId(input.current.run.runId)
-        .catch(() => null);
+      const observed = await readForReconciliation();
       if (observed && persistedOutcomeMatches(observed, input.current, input.outcome)) {
         return observed;
       }

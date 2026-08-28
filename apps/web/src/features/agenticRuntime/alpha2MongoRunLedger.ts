@@ -182,6 +182,13 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
   }): Promise<Alpha2VersionedRun> {
     const run = Alpha2RunRecordSchema.parse(input.run);
     const Model = await Alpha2LedgerModel();
+    const existing = await Model.findOne({ runId: run.runId });
+    if (!existing) {
+      throw new Error(
+        input.lease ? "alpha2_ledger_lease_lost" : "alpha2_ledger_version_conflict",
+      );
+    }
+    assertAlpha2LedgerIdentity(toVersionedRun(existing).run, run);
     const resumeAfterMs =
       input.resumeAfterMs === undefined
         ? undefined
@@ -265,6 +272,8 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     const updated = await Model.findOneAndUpdate(
       {
         runId: run.runId,
+        idempotencyKey: run.idempotencyKey,
+        taskId: run.taskId,
         version: input.expectedVersion,
         ...(input.lease
           ? activeLeaseFilter(input.lease.owner)

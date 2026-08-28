@@ -82,7 +82,7 @@ describe("Alpha-Foxtrott 2 human-gate immutability", () => {
     });
 
     expect(gated.attempt).toBe(0);
-    expect(gated.humanGate.resumeMode).toBeUndefined();
+    expect(gated.humanGate.resumeMode).toBe("start_new_attempt");
 
     expect(() =>
       transitionAlpha2Run(gated, "running", {

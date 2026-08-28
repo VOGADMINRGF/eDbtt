@@ -1389,7 +1389,9 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       dispatcher,
       executor: {
         execute() {
-          throw Object.assign(new Error("sync failure"), { code: "sync_executor_failure" });
+          throw Object.assign(new Error("sync failure"), {
+            code: "alpha2_sync_executor_failure",
+          });
         },
       },
       now: "2026-08-23T20:00:00.000Z",
@@ -1398,7 +1400,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.state).toBe("executed");
     if (result.state !== "executed") throw new Error("unexpected state");
     expect(result.run.status).toBe("failed");
-    expect(result.run.lastErrorCode).toBe("sync_executor_failure");
+    expect(result.run.lastErrorCode).toBe("alpha2_sync_executor_failure");
     expect(result.run.resumeAt).toBe("2026-08-23T20:00:30.000Z");
   });
 
@@ -2065,7 +2067,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.run.checkpoints.at(-1)?.createdAt).toBe(ledger.serverNow);
   });
 
-  it("preserves the authoritative timestamp of an existing checkpoint id", async () => {
+  it("rejects a reused checkpoint id with a different outcome", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
     ledger.serverNow = "2026-08-23T20:00:00.000Z";
@@ -2088,23 +2090,29 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(first.run.checkpoints[0]?.createdAt).toBe("2026-08-23T20:00:00.000Z");
 
     ledger.serverNow = "2026-08-23T20:01:00.000Z";
-    const second = await runAlpha2DurableStep({
-      runId: "run-duplicate-checkpoint",
-      workerId: "worker-checkpoint",
-      ledger,
-      dispatcher,
-      executor: {
-        async execute() {
-          return { type: "completed", checkpointId: "cp-repeat" };
+    await expect(
+      runAlpha2DurableStep({
+        runId: "run-duplicate-checkpoint",
+        workerId: "worker-checkpoint",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            return { type: "completed", checkpointId: "cp-repeat" };
+          },
         },
-      },
-      now: "2026-08-23T20:01:00.000Z",
-    });
+        now: "2026-08-23T20:01:00.000Z",
+      }),
+    ).rejects.toThrow("alpha2_checkpoint_id_conflict");
 
-    expect(second.state).toBe("executed");
-    if (second.state !== "executed") throw new Error("unexpected state");
-    expect(second.run.checkpoints).toHaveLength(1);
-    expect(second.run.checkpoints[0]?.createdAt).toBe("2026-08-23T20:00:00.000Z");
+    const persisted = await ledger.getByRunId("run-duplicate-checkpoint");
+    expect(persisted?.run.status).toBe("running");
+    expect(persisted?.run.checkpoints).toHaveLength(1);
+    expect(persisted?.run.checkpoints[0]).toMatchObject({
+      checkpointId: "cp-repeat",
+      status: "waiting",
+      createdAt: "2026-08-23T20:00:00.000Z",
+    });
   });
 
   it("awaits an in-flight recovery scan before scheduler shutdown completes", async () => {

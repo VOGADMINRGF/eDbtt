@@ -14,6 +14,8 @@ import {
   type Alpha2VersionedRun,
 } from "@/features/agenticRuntime/alpha2RunLedgerContract";
 import {
+  Alpha2RunRecordSchema,
+  appendAlpha2Checkpoint,
   createAlpha2RunRecord,
   transitionAlpha2Run,
   type Alpha2RunRecord,
@@ -36,6 +38,8 @@ class PersistenceLedger implements Alpha2RunLedger {
   conflictWithLaterCompletedWrite = false;
   ambiguousForeignCompletedWrite = false;
   ambiguousFailedWrite = false;
+  reconciliationReadFailuresAfterAmbiguousWrite = 0;
+  private transientReconciliationReadFailures = 0;
 
   seed(run: Alpha2RunRecord) {
     this.record = { run, version: 0, lease: null };
@@ -48,6 +52,12 @@ class PersistenceLedger implements Alpha2RunLedger {
   }
 
   async getByRunId(runId: string) {
+    if (this.transientReconciliationReadFailures > 0) {
+      this.transientReconciliationReadFailures -= 1;
+      const error = new Error("simulated transient reconciliation read");
+      error.name = "MongoNetworkError";
+      throw error;
+    }
     return this.record?.run.runId === runId ? this.record : null;
   }
 
@@ -86,6 +96,8 @@ class PersistenceLedger implements Alpha2RunLedger {
         version: current.version + 1,
         lease: current.lease,
       };
+      this.transientReconciliationReadFailures =
+        this.reconciliationReadFailuresAfterAmbiguousWrite;
       const error = new Error("simulated ambiguous failed mongo write");
       error.name = "MongoNetworkError";
       throw error;
@@ -433,6 +445,50 @@ describe("Alpha2 outcome persistence hardening", () => {
     expect(JSON.stringify(result.run)).not.toContain(unsafeCode);
   });
 
+  it("rejects unsafe error codes at checkpoint and durable record schema boundaries", () => {
+    const run = testRun("run-unsafe-schema-code");
+    const unsafeCode = "sk-proj-AbCdEf0123456789";
+
+    expect(() =>
+      appendAlpha2Checkpoint(run, {
+        checkpointId: "unsafe-schema-code",
+        createdAt: NOW,
+        status: "failed",
+        errorCode: unsafeCode,
+        evidenceRefs: [],
+        safeTraceStepRefs: [],
+        artifactRefs: [],
+      }),
+    ).toThrow();
+    expect(() =>
+      Alpha2RunRecordSchema.parse({
+        ...run,
+        lastErrorCode: unsafeCode,
+      }),
+    ).toThrow();
+    expect(() =>
+      Alpha2RunRecordSchema.parse({
+        ...run,
+        checkpoints: [
+          {
+            checkpointId: "unsafe-direct-record-code",
+            createdAt: NOW,
+            status: "failed",
+            errorCode: unsafeCode,
+            evidenceRefs: [],
+            safeTraceStepRefs: [],
+            artifactRefs: [],
+          },
+        ],
+      }),
+    ).toThrow();
+
+    expect(
+      Alpha2RunRecordSchema.parse({ ...run, lastErrorCode: "alpha2_provider_timeout" })
+        .lastErrorCode,
+    ).toBe("alpha2_provider_timeout");
+  });
+
   it("reconciles an ambiguous failed write against the normalized durable error code", async () => {
     const ledger = new PersistenceLedger();
     const dispatcher = new NoopDispatcher();
@@ -467,6 +523,41 @@ describe("Alpha2 outcome persistence hardening", () => {
     expect(result.run.lastErrorCode).toBe("alpha2_run_failed");
     expect(result.run.checkpoints.at(-1)?.errorCode).toBe("alpha2_run_failed");
     expect(JSON.stringify(result.run)).not.toContain(unsafeCode);
+    expect(dispatcher.jobs).toHaveLength(1);
+    expect(dispatcher.jobs[0]?.reason).toBe("retry");
+  });
+
+  it("retries a transient reconciliation read after an ambiguous committed write", async () => {
+    const ledger = new PersistenceLedger();
+    const dispatcher = new NoopDispatcher();
+    ledger.seed(testRun("run-ambiguous-read-retry", 2));
+    ledger.ambiguousFailedWrite = true;
+    ledger.reconciliationReadFailuresAfterAmbiguousWrite = 1;
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-ambiguous-read-retry",
+      workerId: "worker-ambiguous-read-retry",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return {
+            type: "failed",
+            checkpointId: "ambiguous-read-retry",
+            errorCode: "alpha2_provider_timeout",
+            retryable: true,
+            retryAfterMs: 0,
+          };
+        },
+      },
+      currentHeadSha: HEAD,
+      authorization: authorization(),
+      now: NOW,
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.lastErrorCode).toBe("alpha2_provider_timeout");
     expect(dispatcher.jobs).toHaveLength(1);
     expect(dispatcher.jobs[0]?.reason).toBe("retry");
   });

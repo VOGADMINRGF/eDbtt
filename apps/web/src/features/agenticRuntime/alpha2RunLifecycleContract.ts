@@ -68,13 +68,12 @@ const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
   "expired",
 ]);
 const SAFE_STRUCTURED_ERROR_CODE = /^alpha2_[a-z0-9]+(?:_[a-z0-9]+)*$/;
-const SAFE_LEGACY_STRUCTURED_ERROR_CODES = new Set(["sync_executor_failure"]);
+const Alpha2ErrorCodeSchema = z.string().max(128).regex(SAFE_STRUCTURED_ERROR_CODE);
 
 export function normalizeAlpha2ErrorCode(errorCode: unknown, fallback = "alpha2_run_failed") {
   return typeof errorCode === "string" &&
     errorCode.length <= 128 &&
-    (SAFE_STRUCTURED_ERROR_CODE.test(errorCode) ||
-      SAFE_LEGACY_STRUCTURED_ERROR_CODES.has(errorCode))
+    SAFE_STRUCTURED_ERROR_CODE.test(errorCode)
     ? errorCode
     : fallback;
 }
@@ -147,7 +146,7 @@ export const Alpha2CheckpointSchema = z
     createdAt: z.string().datetime(),
     status: Alpha2RunStatusSchema,
     cursor: z.string().min(1).optional(),
-    errorCode: z.string().min(1).optional(),
+    errorCode: Alpha2ErrorCodeSchema.optional(),
     evidenceRefs: z.array(z.string().min(1)).default([]),
     safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).default([]),
     artifactRefs: z.array(Alpha2SafeTraceArtifactRefSchema).default([]),
@@ -183,7 +182,7 @@ export const Alpha2RunRecordSchema = z
     evidenceRefs: z.array(z.string().min(1)).default([]),
     safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).default([]),
     artifactRefs: z.array(Alpha2SafeTraceArtifactRefSchema).default([]),
-    lastErrorCode: z.string().min(1).optional(),
+    lastErrorCode: Alpha2ErrorCodeSchema.optional(),
   })
   .strict()
   .superRefine((run, ctx) => {
@@ -541,7 +540,19 @@ export function appendAlpha2Checkpoint(
   run: Alpha2RunRecord,
   checkpoint: Omit<Alpha2Checkpoint, "status"> & { status?: Alpha2RunStatus },
 ): Alpha2RunRecord {
-  if (run.checkpoints.some((entry) => entry.checkpointId === checkpoint.checkpointId)) {
+  const candidate = Alpha2CheckpointSchema.parse({
+    ...checkpoint,
+    status: checkpoint.status ?? run.status,
+  });
+  const existing = run.checkpoints.find(
+    (entry) => entry.checkpointId === candidate.checkpointId,
+  );
+  if (existing) {
+    const { createdAt: _existingCreatedAt, ...existingIdentity } = existing;
+    const { createdAt: _candidateCreatedAt, ...candidateIdentity } = candidate;
+    if (JSON.stringify(existingIdentity) !== JSON.stringify(candidateIdentity)) {
+      throw new Error("alpha2_checkpoint_id_conflict");
+    }
     return run;
   }
 
@@ -550,10 +561,7 @@ export function appendAlpha2Checkpoint(
     updatedAt: checkpoint.createdAt,
     checkpoints: [
       ...run.checkpoints,
-      {
-        ...checkpoint,
-        status: checkpoint.status ?? run.status,
-      },
+      candidate,
     ],
   });
 }
