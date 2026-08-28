@@ -13,6 +13,7 @@ import { getMaterialFullText } from "@/features/material/materialFullTextStore";
 import { generateSemanticallySegmentedMaterialDrafts } from "@/features/material/materialSemanticStructuredDrafts";
 import { createMaterialDocumentReviewSession } from "@/features/material/materialDocumentReviewStore";
 import {
+  buildMaterialKnowledgeReuseText,
   getReusableMaterialKnowledgeAsset,
   persistMaterialKnowledgeAsset,
 } from "@/features/material/materialKnowledgeAssetStore";
@@ -123,6 +124,7 @@ export async function POST(req: NextRequest) {
     });
     const fullText = await getMaterialFullText(materialId);
     const reusableAsset = fullText ? await getReusableMaterialKnowledgeAsset(fullText) : null;
+    const reuseText = reusableAsset ? buildMaterialKnowledgeReuseText(reusableAsset) : null;
     const hasExistingTopicContext =
       graphFirst.matchedTopicIds.length > 0 ||
       graphFirst.matchedDossierIds.length > 0 ||
@@ -133,11 +135,15 @@ export async function POST(req: NextRequest) {
         : hasExistingTopicContext
           ? "extend_existing_topic"
           : "ingest_new_material",
-      characterCount: fullText?.length ?? 0,
+      characterCount: reusableAsset ? reuseText?.length ?? 0 : fullText?.length ?? 0,
     });
 
     const structuredDrafts = reusableAsset
-      ? reusableAsset.structuredDrafts
+      ? await generateSemanticallySegmentedMaterialDrafts({
+          text: reuseText,
+          graph: graphFirst,
+          approveCost: true,
+        })
       : await generateSemanticallySegmentedMaterialDrafts({
           text: fullText,
           graph: graphFirst,
@@ -194,6 +200,8 @@ export async function POST(req: NextRequest) {
             reused: true,
             assetId: reusableAsset.id,
             sourceMaterialId: reusableAsset.materialId,
+            sourceCharacterCount: reusableAsset.characterCount,
+            reuseCharacterCount: reuseText?.length ?? 0,
             contentFingerprint: reusableAsset.contentFingerprint,
             identity: reusableAsset.identity,
           }
@@ -224,11 +232,11 @@ export async function POST(req: NextRequest) {
           }
         : null,
       message: reusableAsset
-        ? "Dieses Material war eDebatte bereits bekannt. Die vorhandene, quellengebundene Materialstruktur wurde wiederverwendet; eine erneute Vollanalyse war nicht nötig. Die neue Voxy-Arbeit bleibt als eigenständige Professional-Layer-Leistung messbar."
+        ? "Dieses Material war eDebatte bereits bekannt. Für die neue Ausarbeitung wurde nur die kompakte, quellengebundene Wissensprojektion verwendet; das Ursprungsdokument wurde nicht erneut vollständig analysiert. Die neue Voxy-Arbeit bleibt als eigenständige Professional-Layer-Leistung messbar."
         : volumeApprovalRequired
           ? `Das Dokument wurde vollständig gelesen und benötigt voraussichtlich ${structuredDrafts.analysisUsage.estimatedAnalysisUnits} interne Analyse-Einheiten. Die kostenrelevante KI-Strukturierung startet erst nach ausdrücklicher Freigabe.`
           : structuredDrafts.status === "generated"
-            ? "Extraktionsjob wurde semantisch nach Abschnitten analysiert und gegen vorhandenes eDebatte-Wissen geprüft. Reviewpflichtige Themen-, Frage- und Antwort-Drafts sowie die versionierte Materialstruktur wurden vorbereitet. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
+            ? "Extraktionsjob wurde semantisch nach Abschnitten analysiert und gegen vorhandenes eDebatte-Wissen geprüft. Reviewpflichtige Fragen bleiben getrennte Arbeitsentwürfe; als dauerhaftes Materialwissen werden nur Themen, Entscheidungs-/Prüfpunkte, Quellenhinweise, Unsicherheiten und Provenienz gespeichert. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
             : "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft. Strukturierte KI-Drafts konnten noch nicht produktiv erzeugt werden; es wurde nichts automatisch veröffentlicht, gemergt oder angelegt.",
     });
   } catch (error) {
