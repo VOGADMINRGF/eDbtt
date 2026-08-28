@@ -1096,6 +1096,58 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     ]);
   });
 
+  it("keeps a repeated retryable failure checkpoint stable at the attempt limit", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(
+      Alpha2RunRecordSchema.parse({
+        ...run("run-retry-checkpoint-at-limit"),
+        budget: { maxAttempts: 2 },
+      }),
+    );
+    const executor: Alpha2WorkerExecutor = {
+      async execute() {
+        return {
+          type: "failed",
+          checkpointId: "cp-retry-at-limit",
+          errorCode: "alpha2_transient_failure",
+          retryable: true,
+          retryAfterMs: 1_000,
+        };
+      },
+    };
+
+    const first = await runAlpha2DurableStep({
+      runId: "run-retry-checkpoint-at-limit",
+      workerId: "worker-a",
+      ledger,
+      dispatcher,
+      executor,
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    expect(first.state).toBe("executed");
+
+    const finalAttempt = await runAlpha2DurableStep({
+      runId: "run-retry-checkpoint-at-limit",
+      workerId: "worker-b",
+      ledger,
+      dispatcher,
+      executor,
+      now: "2026-08-23T20:00:01.000Z",
+    });
+
+    expect(finalAttempt.state).toBe("executed");
+    if (finalAttempt.state !== "executed") throw new Error("unexpected state");
+    expect(finalAttempt.run).toMatchObject({
+      status: "failed",
+      attempt: 2,
+      lastErrorCode: "alpha2_transient_failure",
+    });
+    expect(finalAttempt.run.resumeAt).toBeUndefined();
+    expect(finalAttempt.run.checkpoints).toHaveLength(1);
+    expect(dispatcher.jobs).toHaveLength(1);
+  });
+
   it("derives a persisted resume deadline from authoritative ledger time", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();

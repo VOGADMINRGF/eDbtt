@@ -182,7 +182,7 @@ function checkpointStatus(outcome: Alpha2WorkerOutcome): Alpha2RunStatus {
   }
 }
 
-function alpha2OutcomeIdentity(outcome: Alpha2WorkerOutcome, run: Alpha2RunRecord) {
+function alpha2OutcomeIdentity(outcome: Alpha2WorkerOutcome) {
   const base = {
     type: outcome.type,
     checkpointId: outcome.checkpointId,
@@ -201,10 +201,9 @@ function alpha2OutcomeIdentity(outcome: Alpha2WorkerOutcome, run: Alpha2RunRecor
               ...base,
               errorCode: normalizeAlpha2ErrorCode(outcome.errorCode, "alpha2_run_failed"),
               retryable: outcome.retryable,
-              retryAfterMs:
-                outcome.retryable && run.attempt < run.budget.maxAttempts
-                  ? Math.max(0, Math.floor(outcome.retryAfterMs ?? 30_000))
-                  : null,
+              retryAfterMs: outcome.retryable
+                ? Math.max(0, Math.floor(outcome.retryAfterMs ?? 30_000))
+                : null,
             }
           : base;
   return `alpha2_outcome_${createHash("sha256").update(JSON.stringify(identity)).digest("hex")}`;
@@ -554,7 +553,7 @@ async function persistOutcome(input: {
       input.outcome.type === "failed"
         ? normalizeAlpha2ErrorCode(input.outcome.errorCode, "alpha2_run_failed")
         : undefined,
-    outcomeIdentity: alpha2OutcomeIdentity(input.outcome, input.current.run),
+    outcomeIdentity: alpha2OutcomeIdentity(input.outcome),
     evidenceRefs: input.outcome.evidenceRefs ?? [],
     safeTraceStepRefs: input.outcome.safeTraceStepRefs ?? [],
     artifactRefs: input.outcome.artifactRefs ?? [],
@@ -626,7 +625,7 @@ function persistedOutcomeMatches(
     (entry) => entry.checkpointId === outcome.checkpointId,
   );
   if (!checkpoint || checkpoint.status !== checkpointStatus(outcome)) return false;
-  if (checkpoint.outcomeIdentity !== alpha2OutcomeIdentity(outcome, current.run)) return false;
+  if (checkpoint.outcomeIdentity !== alpha2OutcomeIdentity(outcome)) return false;
   if (checkpoint.cursor !== outcome.cursor) return false;
   if (!sameJsonValue(checkpoint.evidenceRefs, outcome.evidenceRefs ?? [])) return false;
   if (!sameJsonValue(checkpoint.safeTraceStepRefs, outcome.safeTraceStepRefs ?? [])) return false;
