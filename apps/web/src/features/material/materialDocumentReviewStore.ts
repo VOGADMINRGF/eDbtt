@@ -31,7 +31,7 @@ export type MaterialDocumentReviewSession = {
   actorId: string;
   organizationId: string | null;
   status: "awaiting_review" | "prepared";
-  provider: "mistral" | "anthropic";
+  provider: "mistral" | "anthropic" | "mixed";
   graphFirst: MaterialGraphFirstContext;
   themes: string[];
   decisionPoints: string[];
