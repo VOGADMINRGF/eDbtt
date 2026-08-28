@@ -10,7 +10,7 @@ import {
   type MaterialGraphTopicItem,
 } from "@/features/material/materialGraphFirstContext";
 import { getMaterialFullText } from "@/features/material/materialFullTextStore";
-import { generateMaterialStructuredDrafts } from "@/features/material/materialStructuredDrafts";
+import { generateSemanticallySegmentedMaterialDrafts } from "@/features/material/materialSemanticStructuredDrafts";
 import { createMaterialDocumentReviewSession } from "@/features/material/materialDocumentReviewStore";
 import {
   getReusableMaterialKnowledgeAsset,
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 
     const structuredDrafts = reusableAsset
       ? reusableAsset.structuredDrafts
-      : await generateMaterialStructuredDrafts({
+      : await generateSemanticallySegmentedMaterialDrafts({
           text: fullText,
           graph: graphFirst,
           approveCost,
@@ -226,7 +226,7 @@ export async function POST(req: NextRequest) {
         : volumeApprovalRequired
           ? `Das Dokument wurde vollständig gelesen und benötigt voraussichtlich ${structuredDrafts.analysisUsage.estimatedAnalysisUnits} interne Analyse-Einheiten. Die kostenrelevante KI-Strukturierung startet erst nach ausdrücklicher Freigabe.`
           : structuredDrafts.status === "generated"
-            ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Die versionierte Materialstruktur wurde für spätere Wiederverwendung gespeichert. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
+            ? "Extraktionsjob wurde semantisch nach Abschnitten analysiert und gegen vorhandenes eDebatte-Wissen geprüft. Reviewpflichtige Themen-, Frage- und Antwort-Drafts sowie die versionierte Materialstruktur wurden vorbereitet. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
             : "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft. Strukturierte KI-Drafts konnten noch nicht produktiv erzeugt werden; es wurde nichts automatisch veröffentlicht, gemergt oder angelegt.",
     });
   } catch (error) {
