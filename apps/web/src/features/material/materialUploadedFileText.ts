@@ -51,7 +51,7 @@ export function requiresExternalDocumentExtraction(file: Pick<File, "name" | "ty
 
 export async function extractUploadedFileText(file: File): Promise<UploadedFileTextExtraction> {
   if (isDirectTextUpload(file)) {
-    const text = (await file.text()).replace(/\u0000/g, "").trim();
+    const text = (await file.text()).split("\u0000").join("").trim();
     return {
       status: text ? "full" : "none",
       text: text || null,
