@@ -147,6 +147,7 @@ export const Alpha2CheckpointSchema = z
     status: Alpha2RunStatusSchema,
     cursor: z.string().min(1).optional(),
     errorCode: Alpha2ErrorCodeSchema.optional(),
+    outcomeIdentity: z.string().regex(/^alpha2_outcome_[a-f0-9]{64}$/).optional(),
     evidenceRefs: z.array(z.string().min(1)).default([]),
     safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).default([]),
     artifactRefs: z.array(Alpha2SafeTraceArtifactRefSchema).default([]),

@@ -1623,6 +1623,15 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     if (result.state !== "executed") throw new Error("unexpected state");
     expect(result.run.attempt).toBe(2);
     expect(result.run.status).toBe("completed");
+    expect(result.run.checkpoints).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          checkpointId: expect.stringMatching(/^abandoned_attempt_v\d+$/),
+          status: "failed",
+          errorCode: "alpha2_abandoned_running_step",
+        }),
+      ]),
+    );
   });
 
   it("fails closed when an abandoned running step exhausted its attempt budget", async () => {
@@ -1662,6 +1671,11 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     if (result.state !== "attempts_exhausted") throw new Error("unexpected state");
     expect(result.run.status).toBe("failed");
     expect(result.run.lastErrorCode).toBe("alpha2_attempt_budget_exhausted");
+    expect(result.run.checkpoints.at(-1)).toMatchObject({
+      checkpointId: expect.stringMatching(/^abandoned_attempt_v\d+$/),
+      status: "failed",
+      errorCode: "alpha2_attempt_budget_exhausted",
+    });
     expect(result.run.attempt).toBe(1);
     expect(executions).toBe(0);
   });
@@ -2113,6 +2127,41 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       status: "waiting",
       createdAt: "2026-08-23T20:00:00.000Z",
     });
+  });
+
+  it("rejects a reused waiting checkpoint id with a different resume delay", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-duplicate-wait-delay"));
+
+    const first = await runAlpha2DurableStep({
+      runId: "run-duplicate-wait-delay",
+      workerId: "worker-wait-delay-a",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "waiting", checkpointId: "cp-wait-delay", resumeAfterMs: 1_000 };
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    expect(first.state).toBe("executed");
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: "run-duplicate-wait-delay",
+        workerId: "worker-wait-delay-b",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            return { type: "waiting", checkpointId: "cp-wait-delay", resumeAfterMs: 2_000 };
+          },
+        },
+        now: "2026-08-23T20:00:01.000Z",
+      }),
+    ).rejects.toThrow("alpha2_checkpoint_id_conflict");
   });
 
   it("awaits an in-flight recovery scan before scheduler shutdown completes", async () => {

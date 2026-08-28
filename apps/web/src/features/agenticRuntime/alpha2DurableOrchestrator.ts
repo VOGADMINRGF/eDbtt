@@ -182,6 +182,34 @@ function checkpointStatus(outcome: Alpha2WorkerOutcome): Alpha2RunStatus {
   }
 }
 
+function alpha2OutcomeIdentity(outcome: Alpha2WorkerOutcome, run: Alpha2RunRecord) {
+  const base = {
+    type: outcome.type,
+    checkpointId: outcome.checkpointId,
+    cursor: outcome.cursor ?? null,
+    evidenceRefs: outcome.evidenceRefs ?? [],
+    safeTraceStepRefs: outcome.safeTraceStepRefs ?? [],
+    artifactRefs: outcome.artifactRefs ?? [],
+  };
+  const identity =
+    outcome.type === "waiting"
+      ? { ...base, resumeAfterMs: Math.max(0, Math.floor(outcome.resumeAfterMs)) }
+      : outcome.type === "human_gate"
+        ? { ...base, reason: outcome.reason }
+        : outcome.type === "failed"
+          ? {
+              ...base,
+              errorCode: normalizeAlpha2ErrorCode(outcome.errorCode, "alpha2_run_failed"),
+              retryable: outcome.retryable,
+              retryAfterMs:
+                outcome.retryable && run.attempt < run.budget.maxAttempts
+                  ? Math.max(0, Math.floor(outcome.retryAfterMs ?? 30_000))
+                  : null,
+            }
+          : base;
+  return `alpha2_outcome_${createHash("sha256").update(JSON.stringify(identity)).digest("hex")}`;
+}
+
 async function save(
   ledger: Alpha2RunLedger,
   current: Alpha2VersionedRun,
@@ -449,18 +477,34 @@ async function moveToRunning(input: {
   }
 
   if (run.status === "running" && !input.approvedResume) {
+    const errorCode =
+      run.attempt >= run.budget.maxAttempts
+        ? "alpha2_attempt_budget_exhausted"
+        : "alpha2_abandoned_running_step";
+    const checkpointId = `abandoned_attempt_v${current.version}`;
+    run = appendAlpha2Checkpoint(run, {
+      checkpointId,
+      createdAt: input.now,
+      status: "failed",
+      errorCode,
+      evidenceRefs: [],
+      safeTraceStepRefs: [],
+      artifactRefs: [],
+    });
     run = transitionAlpha2Run(run, "failed", {
       now: input.now,
-      errorCode:
-        run.attempt >= run.budget.maxAttempts
-          ? "alpha2_attempt_budget_exhausted"
-          : "alpha2_abandoned_running_step",
+      errorCode,
       resumeAt: run.attempt < run.budget.maxAttempts ? input.now : undefined,
     });
-    current = await save(input.ledger, current, run, {
-      owner: input.leaseOwner,
-      now: input.now,
-    });
+    current = await save(
+      input.ledger,
+      current,
+      run,
+      { owner: input.leaseOwner, now: input.now },
+      undefined,
+      undefined,
+      checkpointId,
+    );
     if (run.attempt >= run.budget.maxAttempts) {
       return { exhausted: true as const, current };
     }
@@ -510,6 +554,7 @@ async function persistOutcome(input: {
       input.outcome.type === "failed"
         ? normalizeAlpha2ErrorCode(input.outcome.errorCode, "alpha2_run_failed")
         : undefined,
+    outcomeIdentity: alpha2OutcomeIdentity(input.outcome, input.current.run),
     evidenceRefs: input.outcome.evidenceRefs ?? [],
     safeTraceStepRefs: input.outcome.safeTraceStepRefs ?? [],
     artifactRefs: input.outcome.artifactRefs ?? [],
@@ -581,6 +626,7 @@ function persistedOutcomeMatches(
     (entry) => entry.checkpointId === outcome.checkpointId,
   );
   if (!checkpoint || checkpoint.status !== checkpointStatus(outcome)) return false;
+  if (checkpoint.outcomeIdentity !== alpha2OutcomeIdentity(outcome, current.run)) return false;
   if (checkpoint.cursor !== outcome.cursor) return false;
   if (!sameJsonValue(checkpoint.evidenceRefs, outcome.evidenceRefs ?? [])) return false;
   if (!sameJsonValue(checkpoint.safeTraceStepRefs, outcome.safeTraceStepRefs ?? [])) return false;
