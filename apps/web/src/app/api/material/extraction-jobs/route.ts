@@ -17,6 +17,7 @@ import {
   persistMaterialKnowledgeAsset,
 } from "@/features/material/materialKnowledgeAssetStore";
 import { estimateMaterialEconomics } from "@/features/material/materialKnowledgeEconomics";
+import { appendMaterialEconomicsLedger } from "@/features/material/materialEconomicsLedger";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export const runtime = "nodejs";
@@ -82,6 +83,11 @@ type Body = {
   dossierId?: string;
   anlassraumId?: string;
   approveCost?: boolean;
+  publisher?: string;
+  documentType?: string;
+  publishedAt?: string;
+  versionLabel?: string;
+  sourceRef?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -138,13 +144,34 @@ export async function POST(req: NextRequest) {
           approveCost,
         });
 
+    let knowledgeAsset = reusableAsset;
     if (!reusableAsset && fullText && structuredDrafts.status === "generated") {
-      await persistMaterialKnowledgeAsset({
+      knowledgeAsset = await persistMaterialKnowledgeAsset({
         materialId,
         text: fullText,
         structuredDrafts,
+        identity: {
+          title: created.job.materialLabel,
+          publisher: String(body.publisher ?? "").trim() || null,
+          documentType: String(body.documentType ?? created.job.sourceType).trim() || created.job.sourceType,
+          publishedAt: String(body.publishedAt ?? "").trim() || null,
+          versionLabel: String(body.versionLabel ?? "").trim() || null,
+          sourceRef: String(body.sourceRef ?? materialId).trim() || materialId,
+          sourceFormat: created.job.sourceType,
+          reviewState: "needs_review",
+        },
       });
     }
+
+    const economicsLedger = await appendMaterialEconomicsLedger({
+      materialId,
+      actorId: gate.actor.userId,
+      organizationId: created.job.organizationId,
+      economics,
+      drafts: structuredDrafts,
+      reusedExistingKnowledge: Boolean(reusableAsset),
+      reuseSourceAssetId: reusableAsset?.id ?? null,
+    });
 
     const reviewSession = await createMaterialDocumentReviewSession({
       job: created.job,
@@ -168,9 +195,23 @@ export async function POST(req: NextRequest) {
             assetId: reusableAsset.id,
             sourceMaterialId: reusableAsset.materialId,
             contentFingerprint: reusableAsset.contentFingerprint,
+            identity: reusableAsset.identity,
           }
-        : { reused: false },
+        : {
+            reused: false,
+            assetId: knowledgeAsset?.id ?? null,
+            identity: knowledgeAsset?.identity ?? null,
+          },
       economics,
+      economicsLedger: economicsLedger
+        ? {
+            id: economicsLedger.id,
+            operation: economicsLedger.operation,
+            internalAnalysisUnits: economicsLedger.internalAnalysisUnits,
+            commercialCredits: economicsLedger.commercialCredits,
+            reusedExistingKnowledge: economicsLedger.reusedExistingKnowledge,
+          }
+        : null,
       structuredDrafts,
       reviewSession: reviewSession
         ? {
@@ -181,11 +222,11 @@ export async function POST(req: NextRequest) {
           }
         : null,
       message: reusableAsset
-        ? "Dieses Material war eDebatte bereits bekannt. Die vorhandene, quellengebundene Materialstruktur wurde wiederverwendet; eine erneute Vollanalyse war nicht nötig. Die neue Voxy-Arbeit bleibt als eigenständige kommerzielle Leistung messbar."
+        ? "Dieses Material war eDebatte bereits bekannt. Die vorhandene, quellengebundene Materialstruktur wurde wiederverwendet; eine erneute Vollanalyse war nicht nötig. Die neue Voxy-Arbeit bleibt als eigenständige Professional-Layer-Leistung messbar."
         : volumeApprovalRequired
           ? `Das Dokument wurde vollständig gelesen und benötigt voraussichtlich ${structuredDrafts.analysisUsage.estimatedAnalysisUnits} interne Analyse-Einheiten. Die kostenrelevante KI-Strukturierung startet erst nach ausdrücklicher Freigabe.`
           : structuredDrafts.status === "generated"
-            ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Die Materialstruktur wurde für spätere Wiederverwendung gespeichert. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
+            ? "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft und daraus wurden reviewpflichtige Themen-, Frage- und Antwort-Drafts erzeugt. Die versionierte Materialstruktur wurde für spätere Wiederverwendung gespeichert. Es wurde nichts automatisch veröffentlicht, gemergt, als Runde angelegt oder in den Graph geschrieben."
             : "Extraktionsjob wurde gegen vorhandenes eDebatte-Wissen geprüft. Strukturierte KI-Drafts konnten noch nicht produktiv erzeugt werden; es wurde nichts automatisch veröffentlicht, gemergt oder angelegt.",
     });
   } catch (error) {
