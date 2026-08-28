@@ -27,13 +27,13 @@ export function estimateMaterialEconomics(input: {
     return {
       operation: input.operation,
       characterCount,
-      internalAnalysisUnits: 0,
+      internalAnalysisUnits: 1,
       commercialCredits: 1,
       requiresExplicitApproval: false,
       pricingPublished: false,
       checkoutAvailable: false,
       explanation:
-        "Vorhandenes Materialwissen wird wiederverwendet. Dadurch entsteht keine erneute Vollanalyse, die darauf basierende Voxy-Arbeit bleibt jedoch eine eigenständige kommerzielle Leistung.",
+        "Vorhandenes Materialwissen ersetzt die erneute Vollanalyse. Für die konkrete neue Voxy-Ausarbeitung wird nur ein kompakter Retrieval-/Arbeitslauf kalkuliert; die Professional-Layer-Leistung bleibt eigenständig abrechenbar.",
     };
   }
 
