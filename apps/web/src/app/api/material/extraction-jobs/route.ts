@@ -4,6 +4,11 @@ import {
   createMaterialExtractionJob,
   type MaterialExtractionMode,
 } from "@/features/material/materialExtractionJobs";
+import {
+  buildMaterialGraphFirstContext,
+  type MaterialGraphContextItem,
+  type MaterialGraphTopicItem,
+} from "@/features/material/materialGraphFirstContext";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export const runtime = "nodejs";
@@ -14,6 +19,39 @@ function readStringList(params: URLSearchParams, key: string) {
     .getAll(key)
     .map((value) => value.trim())
     .filter(Boolean);
+}
+
+async function readGraphFirstRuntime(req: NextRequest) {
+  const contextUrl = new URL("/api/create/context?limit=80", req.nextUrl.origin);
+  const topicsUrl = new URL("/api/topics", req.nextUrl.origin);
+  const cookie = req.headers.get("cookie") ?? "";
+  const headers = cookie ? { cookie } : undefined;
+
+  const [contextResult, topicsResult] = await Promise.allSettled([
+    fetch(contextUrl, { cache: "no-store", headers }).then(async (response) => {
+      if (!response.ok) throw new Error("context_route_unavailable");
+      return (await response.json()) as { items?: MaterialGraphContextItem[] };
+    }),
+    fetch(topicsUrl, { cache: "no-store", headers }).then(async (response) => {
+      if (!response.ok) throw new Error("topics_route_unavailable");
+      return (await response.json()) as { topics?: MaterialGraphTopicItem[] };
+    }),
+  ]);
+
+  return {
+    contextItems:
+      contextResult.status === "fulfilled" && Array.isArray(contextResult.value.items)
+        ? contextResult.value.items
+        : [],
+    topics:
+      topicsResult.status === "fulfilled" && Array.isArray(topicsResult.value.topics)
+        ? topicsResult.value.topics
+        : [],
+    blockers: [
+      ...(contextResult.status === "rejected" ? ["context_route_unavailable"] : []),
+      ...(topicsResult.status === "rejected" ? ["topics_route_unavailable"] : []),
+    ],
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -70,12 +108,23 @@ export async function POST(req: NextRequest) {
       approveCost,
     });
 
+    const graphRuntime = await readGraphFirstRuntime(req);
+    const graphFirst = buildMaterialGraphFirstContext({
+      job: created.job,
+      contextItems: graphRuntime.contextItems,
+      topics: graphRuntime.topics,
+    });
+
     return NextResponse.json({
       ok: true,
       job: created.job,
       persistence: created.persistence,
+      graphFirst: {
+        ...graphFirst,
+        blockers: graphRuntime.blockers,
+      },
       message:
-        "Extraktionsjob wurde review-first registriert. Es wurde weder automatisch veröffentlicht noch ein externer Kosten- oder DeepSearch-Pfad still gestartet.",
+        "Extraktionsjob wurde review-first registriert und gegen vorhandenes eDebatte-Wissen geprüft. Es wurde weder automatisch veröffentlicht, gemergt noch in den Graph geschrieben.",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "material_extraction_job_failed";
