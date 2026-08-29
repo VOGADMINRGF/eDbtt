@@ -18,25 +18,26 @@ vi.mock("next/image", () => ({
 }));
 
 describe("landing information architecture contract", () => {
-  it("keeps the homepage focused on a complete ballot-to-create journey", () => {
+  it("keeps the homepage focused on participation first and depth on demand", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Abstimmen. Verstehen. Gemeinsam weiterkommen.");
-    expect(html).toContain("Direkt ausprobieren");
-    expect(html).toContain("Passt zu eurer Gruppe");
-    expect(html).toContain("In drei Schritten");
-    expect(html).toContain("Mit einer passenden Vorlage starten");
-    expect(html).toContain("Mehr als ein Prozentwert");
-    expect(html).toContain("Klein anfangen. Ohne erfundene Hürden.");
-    expect(html).toContain("Menschen entscheiden.");
-    expect(html).toContain("Welche Frage möchtet ihr morgen gemeinsam klären?");
-    expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage"');
+    expect(html).toContain("Eine Frage. Viele Perspektiven. Ein klareres Bild.");
+    expect(html).toContain("Mitmachen");
+    expect(html).toContain("Etwas starten");
+    expect(html).toContain("Schnell deine Meinung abgeben");
+    expect(html).toContain("Eine eigene Frage öffnen");
+    expect(html).toContain("1 Frage · direkt ausprobieren");
+    expect(html).toContain("Jetzt beginnt der Unterschied");
+    expect(html).toContain("Nicht nur Antworten sammeln");
+    expect(html).toContain("Einfach anfangen. Tiefe entsteht erst, wenn du sie brauchst.");
+    expect(html).toContain("Du bestimmst, was passiert.");
+    expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage-intent"');
     expect(html).toContain('href="/swipes"');
 
     expect(html).not.toContain("Review Queue");
     expect(html).not.toContain("Runtime-basiert");
     expect(html).not.toContain("Orchestrator");
-    expect(html).not.toContain("Dossier");
     expect(html).not.toContain("Anlassraum");
+    expect(html).not.toContain("Analysefortschritt");
   });
 });
