@@ -8,8 +8,8 @@ import { buildFreeBallotStartHref } from "@features/pricing/goToMarketPackaging"
 
 const CHOICES = [
   { id: "equipment", de: "Ausstattung verbessern", en: "Improve equipment" },
-  { id: "event", de: "Gemeinsames Event", en: "Community event" },
-  { id: "members", de: "Neue Mitglieder gewinnen", en: "Attract new members" },
+  { id: "project", de: "Gemeinsames Projekt starten", en: "Start a shared project" },
+  { id: "reach", de: "Mehr Menschen erreichen", en: "Reach more people" },
 ] as const;
 
 export function HomeBallotExperience() {
@@ -75,7 +75,7 @@ export function HomeBallotExperience() {
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-xl text-white" aria-hidden="true">↑</div>
         <div>
           <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Premium</span><span className="text-xs font-semibold text-[color:var(--muted)]">{language === "de" ? "Dossier statt Frage für Frage" : "Dossier instead of question by question"}</span></div>
-          <p className="mt-1 text-sm leading-6 text-[color:var(--foreground)]">{language === "de" ? "Geplant: Parteiprogramm, Studie, Vereins- oder Unternehmensunterlagen hochladen – eDebatte bereitet daraus mehrere Fragen und mögliche Antworten zur Prüfung vor. Du entscheidest, was davon verwendet wird." : "Planned: upload a party programme, study, club or company documents – eDebatte prepares multiple questions and possible answers for review. You decide what is used."}</p>
+          <p className="mt-1 text-sm leading-6 text-[color:var(--foreground)]">{language === "de" ? "Geplant: Parteiprogramm, Studie, Vereins-, Verbands- oder Unternehmensunterlagen hochladen – eDebatte bereitet daraus mehrere Fragen und mögliche Antworten zur Prüfung vor. Du entscheidest, was davon verwendet wird." : "Planned: upload a party programme, study, association or company documents – eDebatte prepares multiple questions and possible answers for review. You decide what is used."}</p>
         </div>
       </section>
     </div>
