@@ -3,10 +3,10 @@ import type { SwipeItem, SwipeScopeLevel } from "@/features/swipes/types";
 export type SwipeDiscoverySegment = "mine" | "saved" | "region" | "all";
 
 export const SWIPE_DISCOVERY_SEGMENTS: ReadonlyArray<{ id: SwipeDiscoverySegment; label: string }> = [
-  { id: "mine", label: "Meine Themen" },
+  { id: "mine", label: "Für dich" },
+  { id: "region", label: "Vor Ort" },
+  { id: "all", label: "Entdecken" },
   { id: "saved", label: "Gespeichert" },
-  { id: "region", label: "In meinem Umfeld" },
-  { id: "all", label: "Alle Themen" },
 ];
 
 const DEFAULT_REGION_LEVELS: readonly SwipeScopeLevel[] = ["Kommune", "Land"];
@@ -88,11 +88,7 @@ export function prioritizeSwipeItemsForCreateSeed(params: {
   const claim = (params.claim ?? "").trim();
   const topic = (params.topic ?? "").trim();
   if (!claim && !topic) {
-    return {
-      items: [...params.items],
-      claimMatchCount: 0,
-      topicMatchCount: 0,
-    };
+    return { items: [...params.items], claimMatchCount: 0, topicMatchCount: 0 };
   }
 
   const claimMatched: SwipeItem[] = [];
@@ -104,13 +100,8 @@ export function prioritizeSwipeItemsForCreateSeed(params: {
     }
     if (topic && hasTopicTextMatch(item, topic)) {
       topicMatched.push(item);
-      continue;
     }
   }
 
-  return {
-    items: [...claimMatched, ...topicMatched],
-    claimMatchCount: claimMatched.length,
-    topicMatchCount: topicMatched.length,
-  };
+  return { items: [...claimMatched, ...topicMatched], claimMatchCount: claimMatched.length, topicMatchCount: topicMatched.length };
 }
