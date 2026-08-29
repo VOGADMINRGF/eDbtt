@@ -13,21 +13,19 @@ vi.mock("@/context/LocaleContext", () => ({
 describe("homepage ballot experience", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("shows an immediate honest outcome and creator CTA for the product example", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ items: [{ id: "seed-example", title: "Seed" }] }),
-    }));
+  it("shows the user's own position before offering deeper context and a creator CTA", async () => {
     const user = userEvent.setup();
 
     render(<HomeBallotExperience />);
-    await user.click(screen.getByRole("button", { name: "Betroffene hören" }));
+    await user.click(screen.getByRole("button", { name: "Mehr Menschen erreichen" }));
 
-    expect(screen.getByText(/Deine Position:/).textContent).toContain("Betroffene hören");
-    expect(screen.getByText(/kein erfundenes Gruppenergebnis/)).not.toBeNull();
+    expect(screen.getByText(/Deine Position:/).textContent).toContain("Mehr Menschen erreichen");
+    expect(screen.getByText(/Eine klassische Umfrage würde jetzt zählen/)).not.toBeNull();
     expect(screen.queryByText(/%/)).toBeNull();
+    expect(screen.getByText("eigene Antwort", { exact: false })).not.toBeNull();
+    expect(screen.getByText("Quelle / Erfahrung", { exact: false })).not.toBeNull();
     expect(
-      screen.getByRole("link", { name: "Eigene Abstimmung kostenlos starten" }).getAttribute("href"),
+      screen.getByRole("link", { name: "Eigene Frage starten →" }).getAttribute("href"),
     ).toBe("/runden/new?gtm=1&source=homepage-ballot");
   });
 });
