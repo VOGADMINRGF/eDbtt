@@ -791,6 +791,10 @@ function startLeaseHeartbeat(input: {
   leaseMs: number;
   expectedGeneration: () => number;
   expectedHumanGateState: () => Alpha2RunRecord["humanGate"]["state"];
+  expectedPendingMutation: () => {
+    generation: number;
+    humanGateState: Alpha2RunRecord["humanGate"]["state"];
+  } | null;
   onLost?: (reason: string) => void;
 }) {
   let lost = false;
@@ -816,10 +820,17 @@ function startLeaseHeartbeat(input: {
           markLost();
           return null;
         }
+        const pendingMutation = input.expectedPendingMutation();
+        const matchesCommittedGeneration =
+          renewed.version === input.expectedGeneration() &&
+          renewed.run.humanGate.state === input.expectedHumanGateState();
+        const matchesPendingMutation =
+          pendingMutation !== null &&
+          renewed.version === pendingMutation.generation &&
+          renewed.run.humanGate.state === pendingMutation.humanGateState;
         if (
-          renewed.version !== input.expectedGeneration() ||
           renewed.run.status !== "running" ||
-          renewed.run.humanGate.state !== input.expectedHumanGateState()
+          (!matchesCommittedGeneration && !matchesPendingMutation)
         ) {
           markLost("alpha2_execution_fence_invalid");
           return null;
@@ -1142,6 +1153,10 @@ export async function runAlpha2DurableStep(input: {
     const executionController = new AbortController();
     let executionGeneration = start.current.version;
     let executionHumanGateState = start.current.run.humanGate.state;
+    let pendingExecutionMutation: {
+      generation: number;
+      humanGateState: Alpha2RunRecord["humanGate"]["state"];
+    } | null = null;
     const heartbeat = startLeaseHeartbeat({
       ledger: input.ledger,
       runId: input.runId,
@@ -1149,6 +1164,7 @@ export async function runAlpha2DurableStep(input: {
       leaseMs,
       expectedGeneration: () => executionGeneration,
       expectedHumanGateState: () => executionHumanGateState,
+      expectedPendingMutation: () => pendingExecutionMutation,
       onLost: (reason) => executionController.abort(reason),
     });
     const executionFence: Alpha2ExecutionFence = {
@@ -1179,6 +1195,37 @@ export async function runAlpha2DurableStep(input: {
         await this.assertActive();
         return result;
       },
+    };
+    const persistExecutionMutation = async (
+      current: Alpha2VersionedRun,
+      next: Alpha2RunRecord,
+      now: string,
+      initializeWallClock?: { maxWallClockMs?: number },
+    ) => {
+      const expectedGeneration = current.version + 1;
+      pendingExecutionMutation = {
+        generation: expectedGeneration,
+        humanGateState: next.humanGate.state,
+      };
+      try {
+        const persisted = await save(
+          input.ledger,
+          current,
+          next,
+          { owner: leaseOwner, now },
+          undefined,
+          initializeWallClock,
+        );
+        if (persisted.version !== expectedGeneration) {
+          throw new Error("alpha2_execution_fence_invalid");
+        }
+        executionGeneration = persisted.version;
+        executionHumanGateState = persisted.run.humanGate.state;
+        executionFence.generation = persisted.version;
+        return persisted;
+      } finally {
+        pendingExecutionMutation = null;
+      }
     };
     try {
       let executionCurrent = start.current;
@@ -1216,19 +1263,14 @@ export async function runAlpha2DurableStep(input: {
               now: executionNow,
             })
           : consumeAlpha2HumanResumeApproval(executionCurrent.run, { now: executionNow });
-        executionCurrent = await save(
-          input.ledger,
+        executionCurrent = await persistExecutionMutation(
           executionCurrent,
           consumed,
-          { owner: leaseOwner, now: executionNow },
-          undefined,
+          executionNow,
           chargeApprovedAttempt
             ? { maxWallClockMs: consumed.budget.maxWallClockMs }
             : undefined,
         );
-        executionFence.generation = executionCurrent.version;
-        executionGeneration = executionCurrent.version;
-        executionHumanGateState = executionCurrent.run.humanGate.state;
         executionNow = await executionFence.assertActive();
         freshGateDecision = executionGateDecision(executionCurrent.run, authorization, {
           currentHeadSha: input.currentHeadSha,
@@ -1262,19 +1304,16 @@ export async function runAlpha2DurableStep(input: {
         const entered = markAlpha2ExecutorEntered(executionCurrent.run, {
           now: executionNow,
         });
-        executionCurrent = await save(
-          input.ledger,
+        executionCurrent = await persistExecutionMutation(
           executionCurrent,
           entered,
-          { owner: leaseOwner, now: executionNow },
+          executionNow,
         );
       } catch (error: unknown) {
         executionController.abort("alpha2_executor_entry_persistence_failed");
         throw error;
       }
-      executionFence.generation = executionCurrent.version;
-      executionGeneration = executionCurrent.version;
-      executionNow = executionCurrent.run.updatedAt;
+      executionNow = await executionFence.assertActive();
 
       const outcome = await executeWithinWallClockBudget({
         run: executionCurrent.run,

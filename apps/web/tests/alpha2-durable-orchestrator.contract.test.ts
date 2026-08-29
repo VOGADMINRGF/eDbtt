@@ -39,6 +39,8 @@ class FakeLedger implements Alpha2RunLedger {
   throwAfterPreExecutorMarkerWrite = false;
   throwOnExecutorEntryWrite = false;
   executorEntryWrites = 0;
+  onExecutorEntryPersisted: (() => void) | undefined;
+  executorEntryReturnBarrier: Promise<void> | undefined;
 
   seed(run: Alpha2RunRecord) {
     this.records.set(run.runId, { run, version: 0, lease: null });
@@ -133,7 +135,11 @@ class FakeLedger implements Alpha2RunLedger {
       lease: current.lease,
     } satisfies Alpha2VersionedRun;
     this.records.set(input.run.runId, next);
-    if (entersExecutor) this.executorEntryWrites += 1;
+    if (entersExecutor) {
+      this.executorEntryWrites += 1;
+      this.onExecutorEntryPersisted?.();
+      await this.executorEntryReturnBarrier;
+    }
     if (this.throwAfterPreExecutorMarkerWrite && run.preExecutorResumeMode) {
       this.throwAfterPreExecutorMarkerWrite = false;
       throw new Error("simulated_process_crash_after_resume_consumption");
@@ -980,6 +986,57 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
 
     expect(result.state).toBe("executed");
     expect(entryWritesAtSynchronousStart).toBe(1);
+  });
+
+  it("accepts its own durable entry generation when heartbeat renewal overlaps the CAS", async () => {
+    vi.useFakeTimers();
+    try {
+      const ledger = new FakeLedger();
+      const dispatcher = new FakeDispatcher();
+      ledger.seed(run("run-entry-heartbeat-overlap"));
+      let releaseEntryCas!: () => void;
+      ledger.executorEntryReturnBarrier = new Promise<void>((resolve) => {
+        releaseEntryCas = resolve;
+      });
+      let markEntryPersisted!: () => void;
+      const entryPersisted = new Promise<void>((resolve) => {
+        markEntryPersisted = resolve;
+      });
+      ledger.onExecutorEntryPersisted = markEntryPersisted;
+      let executorStarts = 0;
+      let signalAbortedAtStart = false;
+
+      const execution = runAlpha2DurableStep({
+        runId: "run-entry-heartbeat-overlap",
+        workerId: "worker-entry-heartbeat-overlap",
+        ledger,
+        dispatcher,
+        executor: {
+          execute({ signal }) {
+            executorStarts += 1;
+            signalAbortedAtStart = signal.aborted;
+            return Promise.resolve({
+              type: "completed" as const,
+              checkpointId: "cp-entry-heartbeat-overlap",
+            });
+          },
+        },
+        leaseMs: 10_000,
+        now: "2026-08-23T20:00:00.000Z",
+      });
+
+      await entryPersisted;
+      await vi.advanceTimersByTimeAsync(4_000);
+      releaseEntryCas();
+
+      const result = await execution;
+      expect(result.state).toBe("executed");
+      expect(executorStarts).toBe(1);
+      expect(signalAbortedAtStart).toBe(false);
+      expect(ledger.executorEntryWrites).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("consumes a resolved runtime-block approval without recharging its active attempt", async () => {

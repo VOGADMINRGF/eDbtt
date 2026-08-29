@@ -128,6 +128,40 @@ function serverLeaseExpiry(leaseMs: number) {
   };
 }
 
+function assertWallClockCasBoundary(
+  existing: Alpha2RunRecord,
+  incoming: Alpha2RunRecord,
+  initializeWallClock?: { maxWallClockMs?: number },
+) {
+  if (initializeWallClock) {
+    const consumesApprovedFirstAttempt =
+      existing.status === "running" &&
+      existing.humanGate.state === "approved" &&
+      existing.humanGate.resumeMode === "start_new_attempt" &&
+      incoming.status === "running" &&
+      incoming.humanGate.state === "not_required" &&
+      incoming.preExecutorResumeMode === "start_new_attempt" &&
+      incoming.attempt === existing.attempt + 1;
+    if (existing.startedAt !== undefined && !consumesApprovedFirstAttempt) {
+      throw new Error("alpha2_started_at_is_immutable");
+    }
+    if (existing.wallClockDeadlineAt !== undefined) {
+      throw new Error("alpha2_wall_clock_deadline_is_immutable");
+    }
+    if (incoming.wallClockDeadlineAt !== undefined) {
+      throw new Error("alpha2_wall_clock_deadline_must_be_server_owned");
+    }
+    return;
+  }
+
+  if (existing.startedAt !== incoming.startedAt) {
+    throw new Error("alpha2_started_at_is_immutable");
+  }
+  if (existing.wallClockDeadlineAt !== incoming.wallClockDeadlineAt) {
+    throw new Error("alpha2_wall_clock_deadline_is_immutable");
+  }
+}
+
 export class Alpha2MongoRunLedger implements Alpha2RunLedger {
   async createOrGet(run: Alpha2RunRecord): Promise<Alpha2RunLedgerCreateResult> {
     const validated = Alpha2RunRecordSchema.parse(run);
@@ -192,6 +226,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     const existingRun = toVersionedRun(existing).run;
     assertAlpha2LedgerIdentity(existingRun, run);
     assertAlpha2RunEvolution(existingRun, run);
+    assertWallClockCasBoundary(existingRun, run, input.initializeWallClock);
     const resumeAfterMs =
       input.resumeAfterMs === undefined
         ? undefined

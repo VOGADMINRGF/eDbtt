@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Alpha2RunRecordSchema,
   appendAlpha2Checkpoint,
+  consumeAlpha2HumanResumeApproval,
   createAlpha2RunRecord,
   transitionAlpha2Run,
   type Alpha2RunRecord,
@@ -155,5 +156,164 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
     expect(persisted.run.budget).toEqual(running.budget);
     expect(persisted.run.route).toEqual(running.route);
     expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("rejects direct CAS changes to startedAt and wallClockDeadlineAt", async () => {
+    const queued = policyRun();
+    const running = Alpha2RunRecordSchema.parse({
+      ...transitionAlpha2Run(queued, "running", {
+        now: "2026-08-23T20:01:00.000Z",
+      }),
+      wallClockDeadlineAt: "2026-08-23T20:02:00.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(running, 1));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({
+        run: Alpha2RunRecordSchema.parse({
+          ...running,
+          startedAt: "2026-08-23T20:01:30.000Z",
+        }),
+        expectedVersion: 1,
+      }),
+    ).rejects.toThrow("alpha2_started_at_is_immutable");
+
+    await expect(
+      ledger.compareAndSwap({
+        run: Alpha2RunRecordSchema.parse({
+          ...running,
+          wallClockDeadlineAt: "2026-08-23T20:03:00.000Z",
+        }),
+        expectedVersion: 1,
+      }),
+    ).rejects.toThrow("alpha2_wall_clock_deadline_is_immutable");
+
+    expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("allows unchanged wall-clock values through a normal lifecycle CAS", async () => {
+    const queued = policyRun();
+    const running = Alpha2RunRecordSchema.parse({
+      ...transitionAlpha2Run(queued, "running", {
+        now: "2026-08-23T20:01:00.000Z",
+      }),
+      wallClockDeadlineAt: "2026-08-23T20:02:00.000Z",
+    });
+    const checkpointed = appendAlpha2Checkpoint(running, {
+      checkpointId: "cp-wall-clock-values-unchanged",
+      createdAt: "2026-08-23T20:01:30.000Z",
+      status: "completed",
+      evidenceRefs: [],
+      safeTraceStepRefs: [],
+      artifactRefs: [],
+    });
+    const completed = transitionAlpha2Run(checkpointed, "completed", {
+      now: "2026-08-23T20:01:30.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(running, 1));
+    mongoHarness.setUpdated(mongoDocument(completed, 2));
+    const ledger = new Alpha2MongoRunLedger();
+
+    const persisted = await ledger.compareAndSwap({
+      run: completed,
+      expectedVersion: 1,
+      stampCheckpointId: "cp-wall-clock-values-unchanged",
+    });
+
+    expect(persisted.run.startedAt).toBe(running.startedAt);
+    expect(persisted.run.wallClockDeadlineAt).toBe(running.wallClockDeadlineAt);
+    expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("initializes wall-clock timestamps only through the server-owned transition", async () => {
+    const queued = policyRun();
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+    });
+    const serverOwned = Alpha2RunRecordSchema.parse({
+      ...running,
+      startedAt: "2026-08-23T20:01:05.000Z",
+      wallClockDeadlineAt: "2026-08-23T20:02:05.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(queued, 0));
+    mongoHarness.setUpdated(mongoDocument(serverOwned, 1));
+    const ledger = new Alpha2MongoRunLedger();
+
+    const persisted = await ledger.compareAndSwap({
+      run: running,
+      expectedVersion: 0,
+      initializeWallClock: { maxWallClockMs: 60_000 },
+    });
+
+    expect(persisted.run.startedAt).toBe("2026-08-23T20:01:05.000Z");
+    expect(persisted.run.wallClockDeadlineAt).toBe("2026-08-23T20:02:05.000Z");
+    expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("preserves the approved first-attempt lifecycle while deriving its budget server-side", async () => {
+    const queued = policyRun();
+    const gated = transitionAlpha2Run(queued, "human_gate", {
+      now: "2026-08-23T20:00:30.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "initial_approval_required",
+        resumeMode: "start_new_attempt",
+      },
+    });
+    const approved = transitionAlpha2Run(gated, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: gated.humanGate.reason,
+        resumeMode: "start_new_attempt",
+        decisionRef: "human:approved-first-attempt",
+        decidedAt: "2026-08-23T20:01:00.000Z",
+      },
+    });
+    const consumed = consumeAlpha2HumanResumeApproval(approved, {
+      now: "2026-08-23T20:01:05.000Z",
+    });
+    const serverOwned = Alpha2RunRecordSchema.parse({
+      ...consumed,
+      startedAt: "2026-08-23T20:01:10.000Z",
+      wallClockDeadlineAt: "2026-08-23T20:02:10.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(approved, 1));
+    mongoHarness.setUpdated(mongoDocument(serverOwned, 2));
+    const ledger = new Alpha2MongoRunLedger();
+
+    const persisted = await ledger.compareAndSwap({
+      run: consumed,
+      expectedVersion: 1,
+      initializeWallClock: { maxWallClockMs: 60_000 },
+    });
+
+    expect(persisted.run.attempt).toBe(1);
+    expect(persisted.run.humanGate.state).toBe("not_required");
+    expect(persisted.run.startedAt).toBe("2026-08-23T20:01:10.000Z");
+    expect(persisted.run.wallClockDeadlineAt).toBe("2026-08-23T20:02:10.000Z");
+    expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("does not allow a started run to rebase or extend its wall-clock budget", async () => {
+    const queued = policyRun();
+    const running = Alpha2RunRecordSchema.parse({
+      ...transitionAlpha2Run(queued, "running", {
+        now: "2026-08-23T20:01:00.000Z",
+      }),
+      wallClockDeadlineAt: "2026-08-23T20:02:00.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(running, 1));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({
+        run: running,
+        expectedVersion: 1,
+        initializeWallClock: { maxWallClockMs: 120_000 },
+      }),
+    ).rejects.toThrow("alpha2_started_at_is_immutable");
+    expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
   });
 });
