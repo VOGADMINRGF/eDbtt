@@ -9,21 +9,21 @@ type LandingStartProps = {
 
 const DEFAULT_START_EXPERIENCE: StartExperienceModel = {
   familiarity: "unknown_visitor",
-  eyebrow: "Aktuelle Themen · Quellen · Beteiligung",
-  title: "Verstehen, was sich verändert. Mitreden, wo es zählt.",
+  eyebrow: "Mitmachen oder etwas starten",
+  title: "Was möchtest du tun?",
   description:
-    "eDebatte bündelt aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten zu nachvollziehbaren Themenständen – von deiner Region bis zur Welt.",
-  helperText: "Entwicklungen entdecken, mitwirken oder einen eigenen Beitrag prüfen lassen.",
+    "Wenn du über einen Link oder QR-Code kommst, landest du direkt bei der passenden Frage. Ohne konkreten Kontext kannst du laufende Themen entdecken, etwas beitragen oder selbst eine Frage starten.",
+  helperText: "Abstimmen, ergänzen, eine Quelle beitragen oder eine eigene Frage öffnen.",
   trustText:
-    "Nichts wird automatisch veröffentlicht. Quellen, Prüfstatus und Beteiligung bleiben nachvollziehbar.",
+    "Nichts wird automatisch veröffentlicht. Du siehst, worum es geht, was noch offen ist und was du als Nächstes tun kannst.",
   showExtendedOrientation: false,
   workspaceHref: null,
   workspaceLabel: null,
   quickActionCenter: {
     eyebrow: "Neu hier?",
-    title: "Entdecke, was sich verändert und wo du mitwirken kannst.",
+    title: "Mitmachen oder selbst etwas starten.",
     description:
-      "Die Startseite führt direkt zu aktuellen Entwicklungen, Dossiers, Beteiligung und deinem eigenen Beitrag.",
+      "Entdecke laufende Fragen, ergänze etwas, wo noch etwas fehlt, oder öffne eine eigene Frage für andere.",
     primaryActions: [],
     secondaryActions: [],
   },
