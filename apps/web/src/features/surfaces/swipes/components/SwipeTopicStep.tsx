@@ -69,7 +69,7 @@ export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: Swip
   const opacity = Math.max(0.86, 1 - Math.abs(dragX) / 620);
 
   return (
-    <article ref={cardRef} className={`relative min-h-[480px] overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-5 shadow-[0_24px_60px_rgba(2,6,23,0.2)] backdrop-blur touch-pan-y will-change-transform ${swipePreview === "agree" ? "ring-2 ring-emerald-300/70" : swipePreview === "disagree" ? "ring-2 ring-rose-300/70" : ""}`}
+    <article ref={cardRef} id="swipe-card" className={`relative min-h-[480px] overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-5 shadow-[0_24px_60px_rgba(2,6,23,0.2)] backdrop-blur touch-pan-y will-change-transform ${swipePreview === "agree" ? "ring-2 ring-emerald-300/70" : swipePreview === "disagree" ? "ring-2 ring-rose-300/70" : ""}`}
       style={{ transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${rotate}deg)`, opacity, transition: isDragging ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease, box-shadow 220ms ease" }}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={(event) => finishPointer(event)} onPointerCancel={(event) => finishPointer(event, true)}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(100%_120%_at_0%_0%,rgba(56,189,248,0.1),rgba(15,23,42,0)_45%),radial-gradient(90%_110%_at_100%_100%,rgba(16,185,129,0.08),rgba(15,23,42,0)_40%)]" />
@@ -92,7 +92,7 @@ export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: Swip
       <div className="relative mt-3 flex justify-center">
         <button type="button" onClick={() => onVote("neutral")} className="text-xs font-semibold text-[rgb(var(--muted))] underline-offset-4 hover:underline">Noch offen / weiß ich nicht</button>
       </div>
-      <p className="relative mt-5 text-center text-xs text-[rgb(var(--muted))]">Wischen: links Nein · rechts Ja · nach oben bzw. „Mehr erfahren“ für Hintergründe.</p>
+      <p className="relative mt-5 text-center text-xs text-[rgb(var(--muted))]">Wischen: links Nein · rechts Ja · „Mehr erfahren“ für Hintergründe.</p>
 
       {onQuickFollowup ? <div className="relative mt-5 flex flex-wrap justify-center gap-2 border-t border-[rgb(var(--border))] pt-4 text-xs">
         <button type="button" onClick={() => onQuickFollowup("variants")} className="vog-chip" data-swipe-no-drag>Andere Möglichkeiten</button>
