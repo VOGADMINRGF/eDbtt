@@ -95,7 +95,6 @@ export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: Swip
       <p className="relative mt-5 text-center text-xs text-[rgb(var(--muted))]">Wischen: links Nein · rechts Ja · „Mehr erfahren“ für Hintergründe.</p>
 
       {onQuickFollowup ? <div className="relative mt-5 flex flex-wrap justify-center gap-2 border-t border-[rgb(var(--border))] pt-4 text-xs">
-        <button type="button" onClick={() => onQuickFollowup("variants")} className="vog-chip" data-swipe-no-drag>Andere Möglichkeiten</button>
         <button type="button" onClick={() => onQuickFollowup("later")} className="vog-chip" data-swipe-no-drag>Für später speichern</button>
       </div> : null}
     </article>
