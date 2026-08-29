@@ -27,9 +27,9 @@ const actions = [
     title_en: "Take part",
     body_de: "Position wählen, einen Vorschlag ergänzen oder auf eine offene Frage antworten.",
     body_en: "Choose a position, add a proposal or answer an open question.",
-    cta_de: "Zu aktuellen Themen",
-    cta_en: "See current topics",
-    href: "/runden",
+    cta_de: "Jetzt mitmachen",
+    cta_en: "Take part now",
+    href: "/swipes",
   },
   {
     id: "contribute",
@@ -91,8 +91,8 @@ const deeperCards = [
     body_de: "Offene Punkte bleiben sichtbar. Daraus kann eine weitere Frage, eine Ergänzung oder ein neuer gemeinsamer Schritt entstehen.",
     body_en: "Open points remain visible. They can lead to another question, an addition or a new shared next step.",
     href: "/runden",
-    cta_de: "Aktuelle Beteiligung ansehen",
-    cta_en: "See current participation",
+    cta_de: "Laufende Fragen ansehen",
+    cta_en: "See current questions",
   },
 ];
 
