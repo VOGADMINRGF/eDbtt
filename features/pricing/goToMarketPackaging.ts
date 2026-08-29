@@ -53,18 +53,18 @@ export type GoToMarketTemplate = {
 export const GO_TO_MARKET_TEMPLATES: readonly GoToMarketTemplate[] = [
   {
     id: "member-priorities",
-    title: { de: "Prioritäten im Verein", en: "Club priorities" },
+    title: { de: "Prioritäten gemeinsam klären", en: "Set priorities together" },
     description: {
-      de: "Gemeinsam klären, was als Nächstes wichtig ist.",
+      de: "Gemeinsam herausfinden, was als Nächstes wichtig ist.",
       en: "Decide together what matters next.",
     },
     question: {
-      de: "Welches Thema soll unser Verein als Nächstes angehen?",
-      en: "Which topic should our club tackle next?",
+      de: "Welches Thema sollten wir als Nächstes angehen?",
+      en: "Which topic should we tackle next?",
     },
     options: {
-      de: ["Mitglieder gewinnen", "Angebote verbessern", "Gemeinschaft stärken"],
-      en: ["Attract members", "Improve activities", "Strengthen community"],
+      de: ["Menschen erreichen", "Angebot verbessern", "Zusammenarbeit stärken"],
+      en: ["Reach more people", "Improve the offer", "Strengthen collaboration"],
     },
   },
   {
@@ -79,8 +79,8 @@ export const GO_TO_MARKET_TEMPLATES: readonly GoToMarketTemplate[] = [
       en: "Which project idea should we pursue first?",
     },
     options: {
-      de: ["Nachbarschaftsaktion", "Informationsabend", "Gemeinsame Kampagne"],
-      en: ["Neighbourhood action", "Information evening", "Joint campaign"],
+      de: ["Lokale Aktion", "Informationsformat", "Gemeinsames Projekt"],
+      en: ["Local action", "Information format", "Joint project"],
     },
   },
   {
@@ -107,8 +107,8 @@ export const GO_TO_MARKET_TEMPLATES: readonly GoToMarketTemplate[] = [
       en: "Understand positions before a decision is made.",
     },
     question: {
-      de: "Wie steht unsere Gruppe zu diesem Vorschlag?",
-      en: "How does our group feel about this proposal?",
+      de: "Wie stehen die Beteiligten zu diesem Vorschlag?",
+      en: "How do participants feel about this proposal?",
     },
     options: {
       de: ["Dafür", "Noch offen", "Dagegen"],
@@ -123,8 +123,8 @@ export const GO_TO_MARKET_TEMPLATES: readonly GoToMarketTemplate[] = [
       en: "Prepare a shared activity together.",
     },
     question: {
-      de: "Welcher Vorschlag eignet sich am besten für unsere nächste Veranstaltung?",
-      en: "Which proposal works best for our next event?",
+      de: "Welcher Vorschlag eignet sich am besten für die nächste Veranstaltung?",
+      en: "Which proposal works best for the next event?",
     },
     options: {
       de: ["Workshop", "Offenes Treffen", "Aktionstag"],
