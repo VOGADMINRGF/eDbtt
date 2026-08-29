@@ -19,8 +19,8 @@ const infoLinks = [
 
 const platformLinks = [
   { href: "/swipes", label: "Mitmachen" },
-  { href: "/statements", label: "Etwas beitragen" },
-  { href: "/stream", label: "Live begleiten" },
+  { href: "/runden/new?gtm=1", label: "Etwas starten" },
+  { href: "/themen", label: "Themen entdecken" },
   { href: "/reports", label: "Ergebnisse ansehen" },
 ];
 
