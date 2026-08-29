@@ -39,7 +39,7 @@ const actions = [
     body_en: "Add a source, experience, correction or perspective when you can help.",
     cta_de: "Beitrag starten",
     cta_en: "Start a contribution",
-    href: "/create?intent=contribute",
+    href: "/create?mode=source&intent=contribution&entryIntent=content_companion&entryMode=direct",
   },
   {
     id: "start",
