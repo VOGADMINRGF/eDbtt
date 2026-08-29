@@ -69,7 +69,7 @@ export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: Swip
   const opacity = Math.max(0.86, 1 - Math.abs(dragX) / 620);
 
   return (
-    <article ref={cardRef} id="swipe-card" className={`relative min-h-[480px] overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-5 shadow-[0_24px_60px_rgba(2,6,23,0.2)] backdrop-blur touch-pan-y will-change-transform ${swipePreview === "agree" ? "ring-2 ring-emerald-300/70" : swipePreview === "disagree" ? "ring-2 ring-rose-300/70" : ""}`}
+    <article ref={cardRef} id="swipe-card" data-fast-swipe-followup="optional" className={`relative min-h-[480px] overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-5 shadow-[0_24px_60px_rgba(2,6,23,0.2)] backdrop-blur touch-pan-y will-change-transform ${swipePreview === "agree" ? "ring-2 ring-emerald-300/70" : swipePreview === "disagree" ? "ring-2 ring-rose-300/70" : ""}`}
       style={{ transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${rotate}deg)`, opacity, transition: isDragging ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease, box-shadow 220ms ease" }}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={(event) => finishPointer(event)} onPointerCancel={(event) => finishPointer(event, true)}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(100%_120%_at_0%_0%,rgba(56,189,248,0.1),rgba(15,23,42,0)_45%),radial-gradient(90%_110%_at_100%_100%,rgba(16,185,129,0.08),rgba(15,23,42,0)_40%)]" />
