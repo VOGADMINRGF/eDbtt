@@ -7,9 +7,9 @@ import { buildHomeStructuredData, buildPublicPageMetadata } from "@/lib/seo/publ
 
 /* page-contract: delegated-h1 */
 
-const HOME_TITLE = "eDebatte – Kostenlos Abstimmungen starten und gemeinsam entscheiden";
+const HOME_TITLE = "eDebatte – Mitmachen oder eine eigene Frage starten";
 const HOME_DESCRIPTION =
-  "Starte kostenlos eine Abstimmung, sammle Positionen und mache sichtbar, was eure Gruppe gemeinsam weiterbringt.";
+  "Stimme mit ab, ergänze Perspektiven, Quellen oder offene Fragen – oder starte selbst kostenlos eine Frage für andere.";
 
 const HOME_STRUCTURED_DATA = JSON.stringify(buildHomeStructuredData());
 
