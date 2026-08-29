@@ -861,6 +861,7 @@ async function executeWithinWallClockBudget(input: {
   now: string;
   controller: AbortController;
   fence: Alpha2ExecutionFence;
+  onExecutorEntered?: () => Promise<void>;
 }): Promise<Alpha2WorkerOutcome> {
   const validateOutcome = (outcome: unknown): Alpha2WorkerOutcome => {
     const parsed = Alpha2WorkerOutcomeSchema.safeParse(outcome);
@@ -895,16 +896,26 @@ async function executeWithinWallClockBudget(input: {
     };
   }
 
-  const execution = Promise.resolve()
-    .then(() =>
-      input.executor.execute({
-        run: input.run,
-        workerId: input.workerId,
-        signal: input.controller.signal,
-        fence: input.fence,
-      }),
-    )
-    .catch((error: unknown) => executorFailure(input.run, error));
+  const deadlineMs =
+    remainingMs === undefined ? undefined : globalThis.performance.now() + remainingMs;
+  let invocation: ReturnType<Alpha2WorkerExecutor["execute"]> | undefined;
+  let invocationError: unknown;
+  let invocationThrew = false;
+  try {
+    invocation = input.executor.execute({
+      run: input.run,
+      workerId: input.workerId,
+      signal: input.controller.signal,
+      fence: input.fence,
+    });
+  } catch (error: unknown) {
+    invocationThrew = true;
+    invocationError = error;
+  }
+  const execution = invocationThrew
+    ? Promise.resolve(executorFailure(input.run, invocationError))
+    : Promise.resolve(invocation).catch((error: unknown) => executorFailure(input.run, error));
+  await input.onExecutorEntered?.();
   if (remainingMs === undefined) return validateOutcome(await execution);
 
   const timeoutOutcome: Alpha2WorkerOutcome = {
@@ -914,7 +925,6 @@ async function executeWithinWallClockBudget(input: {
     retryable: false,
   };
   const maxTimerDelayMs = 2_147_483_647;
-  const deadlineMs = globalThis.performance.now() + remainingMs;
   let timedOut = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<Alpha2WorkerOutcome>((resolve) => {
@@ -1220,20 +1230,6 @@ export async function runAlpha2DurableStep(input: {
         }
       }
 
-      if (executionCurrent.run.preExecutorResumeMode) {
-        const entered = markAlpha2ExecutorEntered(executionCurrent.run, {
-          now: executionNow,
-        });
-        executionCurrent = await save(
-          input.ledger,
-          executionCurrent,
-          entered,
-          { owner: leaseOwner, now: executionNow },
-        );
-        executionFence.generation = executionCurrent.version;
-        executionNow = executionCurrent.run.updatedAt;
-      }
-
       const outcome = await executeWithinWallClockBudget({
         run: executionCurrent.run,
         workerId: input.workerId,
@@ -1241,6 +1237,26 @@ export async function runAlpha2DurableStep(input: {
         now: executionNow,
         controller: executionController,
         fence: executionFence,
+        onExecutorEntered: async () => {
+          if (!executionCurrent.run.preExecutorResumeMode) return;
+          try {
+            executionNow = await executionFence.assertActive();
+            const entered = markAlpha2ExecutorEntered(executionCurrent.run, {
+              now: executionNow,
+            });
+            executionCurrent = await save(
+              input.ledger,
+              executionCurrent,
+              entered,
+              { owner: leaseOwner, now: executionNow },
+            );
+          } catch (error: unknown) {
+            executionController.abort("alpha2_executor_entry_persistence_failed");
+            throw error;
+          }
+          executionFence.generation = executionCurrent.version;
+          executionNow = executionCurrent.run.updatedAt;
+        },
       });
       const outcomeAt = await heartbeat.assertActive();
       const persisted = await persistOutcomeWithRetry({

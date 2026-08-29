@@ -718,14 +718,16 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     });
 
     let executions = 0;
+    let markerAtExecutorEntry: string | undefined;
     const recovered = await runAlpha2DurableStep({
       runId: gated.runId,
       workerId: "worker-pre-entry-recovery",
       ledger,
       dispatcher,
       executor: {
-        async execute() {
+        async execute({ run }) {
           executions += 1;
+          markerAtExecutorEntry = run.preExecutorResumeMode;
           return { type: "completed", checkpointId: "cp-pre-entry-recovered" };
         },
       },
@@ -733,6 +735,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     });
 
     expect(executions).toBe(1);
+    expect(markerAtExecutorEntry).toBe("start_new_attempt");
     expect(recovered.state).toBe("executed");
     if (recovered.state !== "executed") throw new Error("unexpected state");
     expect(recovered.run.attempt).toBe(1);

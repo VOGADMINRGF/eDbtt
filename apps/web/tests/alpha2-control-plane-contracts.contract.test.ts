@@ -133,6 +133,51 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
     );
   });
 
+  it("accepts only an audited human decision when review resumes running", () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-reviewed",
+      idempotencyKey: "reviewed-key",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+    const reviewed = transitionAlpha2Run(queued, "review", {
+      now: "2026-08-23T21:01:00.000Z",
+    });
+    expect(() =>
+      transitionAlpha2Run(reviewed, "running", {
+        now: "2026-08-23T21:02:00.000Z",
+        humanGate: { state: "approved", decisionRef: "decision:review-approved" },
+      }),
+    ).toThrow("alpha2_review_exit_requires_audited_approval");
+
+    const unauditedBypass = Alpha2RunRecordSchema.parse({
+      ...reviewed,
+      status: "running",
+      humanGate: {
+        state: "approved",
+        resumeMode: "start_new_attempt",
+        decisionRef: "decision:review-approved",
+      },
+    });
+    expect(() => assertAlpha2RunEvolution(reviewed, unauditedBypass)).toThrow(
+      "alpha2_review_exit_requires_audited_approval",
+    );
+
+    const approved = transitionAlpha2Run(reviewed, "running", {
+      now: "2026-08-23T21:02:00.000Z",
+      humanGate: {
+        state: "approved",
+        decisionRef: "decision:review-approved",
+        decidedAt: "2026-08-23T21:02:00.000Z",
+      },
+    });
+    expect(() => assertAlpha2RunEvolution(reviewed, approved)).not.toThrow();
+  });
+
   it("prevents a rejected human gate from resuming through an indirect retry path", () => {
     const queued = createAlpha2RunRecord({
       runId: "run-rejected-retry",
@@ -383,5 +428,133 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
         evidenceRefs: EVIDENCE,
       }),
     ).toBe(false);
+  });
+
+  it("enforces immutable audit-history prefixes while accepting valid appends", () => {
+    const created = createAlpha2RunRecord({
+      runId: "run-audit-prefix",
+      idempotencyKey: "audit-prefix-key",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+    const existing = Alpha2RunRecordSchema.parse({
+      ...created,
+      checkpoints: [
+        {
+          checkpointId: "cp-audit-1",
+          createdAt: "2026-08-23T21:01:00.000Z",
+          status: "queued",
+          cursor: "first",
+        },
+        {
+          checkpointId: "cp-audit-2",
+          createdAt: "2026-08-23T21:02:00.000Z",
+          status: "queued",
+          cursor: "second",
+        },
+      ],
+      evidenceRefs: ["evidence:first", "evidence:second"],
+      safeTraceStepRefs: [
+        { stepId: "trace:first", roleId: "governance_compliance" },
+      ],
+      artifactRefs: [
+        {
+          id: "artifact:first",
+          type: "review_handoff",
+          label: "First audit artifact",
+          reviewState: "present",
+        },
+      ],
+    });
+
+    expect(() =>
+      assertAlpha2RunEvolution(
+        existing,
+        Alpha2RunRecordSchema.parse({
+          ...existing,
+          checkpoints: existing.checkpoints.slice(1),
+        }),
+      ),
+    ).toThrow("alpha2_checkpoint_history_conflict");
+    expect(() =>
+      assertAlpha2RunEvolution(
+        existing,
+        Alpha2RunRecordSchema.parse({
+          ...existing,
+          checkpoints: [
+            { ...existing.checkpoints[0], cursor: "rewritten" },
+            existing.checkpoints[1],
+          ],
+        }),
+      ),
+    ).toThrow("alpha2_checkpoint_history_conflict");
+    expect(() =>
+      assertAlpha2RunEvolution(
+        existing,
+        Alpha2RunRecordSchema.parse({
+          ...existing,
+          checkpoints: [...existing.checkpoints].reverse(),
+        }),
+      ),
+    ).toThrow("alpha2_checkpoint_history_conflict");
+    expect(() =>
+      assertAlpha2RunEvolution(
+        existing,
+        Alpha2RunRecordSchema.parse({
+          ...existing,
+          evidenceRefs: existing.evidenceRefs.slice(1),
+        }),
+      ),
+    ).toThrow("alpha2_evidence_history_conflict");
+    expect(() =>
+      assertAlpha2RunEvolution(
+        existing,
+        Alpha2RunRecordSchema.parse({
+          ...existing,
+          safeTraceStepRefs: [{ stepId: "trace:rewritten", roleId: "research_source" }],
+        }),
+      ),
+    ).toThrow("alpha2_safe_trace_history_conflict");
+    expect(() =>
+      assertAlpha2RunEvolution(
+        existing,
+        Alpha2RunRecordSchema.parse({
+          ...existing,
+          artifactRefs: [{ ...existing.artifactRefs[0], label: "Rewritten artifact" }],
+        }),
+      ),
+    ).toThrow("alpha2_artifact_history_conflict");
+
+    const appended = Alpha2RunRecordSchema.parse({
+      ...existing,
+      checkpoints: [
+        ...existing.checkpoints,
+        {
+          checkpointId: "cp-audit-3",
+          createdAt: "2026-08-23T21:03:00.000Z",
+          status: "queued",
+          cursor: "third",
+        },
+      ],
+      evidenceRefs: [...existing.evidenceRefs, "evidence:third"],
+      safeTraceStepRefs: [
+        ...existing.safeTraceStepRefs,
+        { stepId: "trace:second", roleId: "governance_compliance" },
+      ],
+      artifactRefs: [
+        ...existing.artifactRefs,
+        {
+          id: "artifact:second",
+          type: "review_handoff",
+          label: "Second audit artifact",
+          reviewState: "review_required",
+        },
+      ],
+    });
+    expect(() => assertAlpha2RunEvolution(existing, appended)).not.toThrow();
   });
 });

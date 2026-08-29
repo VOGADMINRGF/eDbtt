@@ -516,8 +516,13 @@ export function transitionAlpha2Run(
     }
   }
 
-  if (run.status === "review" && to === "running" && nextHumanGate.state !== "approved") {
-    throw new Error("alpha2_review_exit_requires_approval");
+  if (run.status === "review" && to === "running") {
+    if (nextHumanGate.state !== "approved") {
+      throw new Error("alpha2_review_exit_requires_approval");
+    }
+    if (!nextHumanGate.decisionRef || !nextHumanGate.decidedAt) {
+      throw new Error("alpha2_review_exit_requires_audited_approval");
+    }
   }
 
   if (run.status === "human_gate" && !DECIDED_HUMAN_GATE_STATES.has(nextHumanGate.state)) {
@@ -565,6 +570,19 @@ function sameLifecycleValue(left: unknown, right: unknown) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function assertAppendOnlyPrefix(
+  existing: readonly unknown[],
+  incoming: readonly unknown[],
+  errorCode: string,
+) {
+  if (
+    incoming.length < existing.length ||
+    existing.some((value, index) => !sameLifecycleValue(value, incoming[index]))
+  ) {
+    throw new Error(errorCode);
+  }
+}
+
 function historyAppendsCurrentGate(existing: Alpha2RunRecord, incoming: Alpha2RunRecord) {
   return (
     incoming.humanGateHistory.length === existing.humanGateHistory.length + 1 &&
@@ -583,14 +601,79 @@ export function assertAlpha2RunEvolution(
     assertAlpha2RunTransition(existing.status, incoming.status);
   }
 
+  assertAppendOnlyPrefix(
+    existing.checkpoints,
+    incoming.checkpoints,
+    "alpha2_checkpoint_history_conflict",
+  );
+  if (
+    new Set(incoming.checkpoints.map((checkpoint) => checkpoint.checkpointId)).size !==
+    incoming.checkpoints.length
+  ) {
+    throw new Error("alpha2_checkpoint_id_conflict");
+  }
+  assertAppendOnlyPrefix(
+    existing.evidenceRefs,
+    incoming.evidenceRefs,
+    "alpha2_evidence_history_conflict",
+  );
+  assertAppendOnlyPrefix(
+    existing.safeTraceStepRefs,
+    incoming.safeTraceStepRefs,
+    "alpha2_safe_trace_history_conflict",
+  );
+  assertAppendOnlyPrefix(
+    existing.artifactRefs,
+    incoming.artifactRefs,
+    "alpha2_artifact_history_conflict",
+  );
+  assertAppendOnlyPrefix(
+    existing.humanGateHistory,
+    incoming.humanGateHistory,
+    "alpha2_human_gate_history_conflict",
+  );
+
   const gateUnchanged = sameLifecycleValue(existing.humanGate, incoming.humanGate);
   const historyUnchanged = sameLifecycleValue(
     existing.humanGateHistory,
     incoming.humanGateHistory,
   );
   const archivesCurrentGate = historyAppendsCurrentGate(existing, incoming);
+  const expectedReviewResumeMode =
+    existing.humanGate.resumeMode ??
+    (existing.attempt === 0 ? "start_new_attempt" : "resume_attempt");
+  const addsAuditedReviewApproval =
+    existing.status === "review" &&
+    incoming.status === "running" &&
+    existing.humanGate.state === "not_required" &&
+    incoming.humanGate.state === "approved" &&
+    incoming.humanGate.resumeMode === expectedReviewResumeMode &&
+    Boolean(incoming.humanGate.decisionRef) &&
+    Boolean(incoming.humanGate.decidedAt) &&
+    historyUnchanged;
+  const retainsAuditedReviewApproval =
+    existing.status === "review" &&
+    incoming.status === "running" &&
+    existing.humanGate.state === "approved" &&
+    gateUnchanged &&
+    historyUnchanged &&
+    Boolean(incoming.humanGate.decisionRef) &&
+    Boolean(incoming.humanGate.decidedAt);
+  const auditedReviewExit =
+    addsAuditedReviewApproval || retainsAuditedReviewApproval;
 
-  if (existing.humanGate.state === "pending") {
+  if (
+    existing.status === "review" &&
+    incoming.status === "running" &&
+    !auditedReviewExit
+  ) {
+    throw new Error("alpha2_review_exit_requires_audited_approval");
+  }
+
+  if (addsAuditedReviewApproval) {
+    // An audited human decision is the only valid not_required -> approved
+    // mutation and remains durable until the approval is consumed.
+  } else if (existing.humanGate.state === "pending") {
     if (incoming.humanGate.state === "pending") {
       if (!gateUnchanged || !historyUnchanged) {
         throw new Error("alpha2_pending_human_gate_is_immutable");
@@ -651,13 +734,6 @@ export function assertAlpha2RunEvolution(
     throw new Error("alpha2_human_gate_exit_requires_approval");
   }
   if (
-    existing.status === "review" &&
-    incoming.status === "running" &&
-    incoming.humanGate.state !== "approved"
-  ) {
-    throw new Error("alpha2_review_exit_requires_approval");
-  }
-  if (
     incoming.status === "running" &&
     !["not_required", "approved"].includes(incoming.humanGate.state)
   ) {
@@ -711,7 +787,13 @@ export function assertAlpha2RunEvolution(
       historyUnchanged;
     const replacesResumeWithGate =
       incoming.status === "human_gate" && incoming.humanGate.state === "pending";
-    if (!executorEntry && !replacesResumeWithGate) {
+    const persistsPreExecutorFailure =
+      incoming.status === "failed" &&
+      Boolean(incoming.lastErrorCode) &&
+      incoming.checkpoints.length > existing.checkpoints.length &&
+      incoming.checkpoints.at(-1)?.status === "failed" &&
+      incoming.checkpoints.at(-1)?.errorCode === incoming.lastErrorCode;
+    if (!executorEntry && !replacesResumeWithGate && !persistsPreExecutorFailure) {
       throw new Error("alpha2_pre_executor_resume_marker_invalid");
     }
   }
