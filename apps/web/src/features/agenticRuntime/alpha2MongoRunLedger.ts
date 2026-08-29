@@ -2,6 +2,7 @@ import type { Model } from "mongoose";
 import { mongo, mongoose } from "@core/db/mongoose";
 import {
   Alpha2RunRecordSchema,
+  assertAlpha2RunEvolution,
   type Alpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 import {
@@ -188,7 +189,9 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
         input.lease ? "alpha2_ledger_lease_lost" : "alpha2_ledger_version_conflict",
       );
     }
-    assertAlpha2LedgerIdentity(toVersionedRun(existing).run, run);
+    const existingRun = toVersionedRun(existing).run;
+    assertAlpha2LedgerIdentity(existingRun, run);
+    assertAlpha2RunEvolution(existingRun, run);
     const resumeAfterMs =
       input.resumeAfterMs === undefined
         ? undefined

@@ -46,6 +46,10 @@ export const ALPHA2_GATE_RESUME_MODES = [
   "resume_attempt",
   "recover_abandoned_attempt",
 ] as const;
+export const ALPHA2_PRE_EXECUTOR_RESUME_MODES = [
+  "start_new_attempt",
+  "resume_attempt",
+] as const;
 
 export type Alpha2RunStatus = (typeof ALPHA2_RUN_STATUSES)[number];
 export type Alpha2RunKind = (typeof ALPHA2_RUN_KINDS)[number];
@@ -61,6 +65,7 @@ const Alpha2RiskClassSchema = z.enum(ALPHA2_RISK_CLASSES);
 const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
 const Alpha2GateResumeModeSchema = z.enum(ALPHA2_GATE_RESUME_MODES);
+const Alpha2PreExecutorResumeModeSchema = z.enum(ALPHA2_PRE_EXECUTOR_RESUME_MODES);
 const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
 const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
   "approved",
@@ -179,6 +184,7 @@ export const Alpha2RunRecordSchema = z
     finishedAt: z.string().datetime().optional(),
     resumeAt: z.string().datetime().optional(),
     attempt: z.number().int().min(0),
+    preExecutorResumeMode: Alpha2PreExecutorResumeModeSchema.optional(),
     checkpoints: z.array(Alpha2CheckpointSchema).default([]),
     evidenceRefs: z.array(z.string().min(1)).default([]),
     safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).default([]),
@@ -219,6 +225,15 @@ export const Alpha2RunRecordSchema = z
     }
     if (run.attempt > run.budget.maxAttempts) {
       ctx.addIssue({ code: "custom", message: "alpha2_attempt_exceeds_budget" });
+    }
+    if (run.preExecutorResumeMode && run.status !== "running") {
+      ctx.addIssue({ code: "custom", message: "alpha2_pre_executor_resume_requires_running" });
+    }
+    if (run.preExecutorResumeMode && run.humanGate.state !== "not_required") {
+      ctx.addIssue({
+        code: "custom",
+        message: "alpha2_pre_executor_resume_requires_consumed_gate",
+      });
     }
   });
 
@@ -355,6 +370,7 @@ export function transitionAlpha2RunToNewHumanGate(
     status: "human_gate",
     updatedAt: now,
     resumeAt: undefined,
+    preExecutorResumeMode: undefined,
     humanGate: {
       state: "pending",
       reason: input.reason,
@@ -379,7 +395,8 @@ export function consumeAlpha2HumanGateApproval(
     throw new Error("alpha2_human_gate_approval_mismatch");
   }
   const now = input.now ?? new Date().toISOString();
-  const attempt = run.attempt + (run.humanGate.resumeMode === "start_new_attempt" ? 1 : 0);
+  const resumeMode = run.humanGate.resumeMode;
+  const attempt = run.attempt + (resumeMode === "start_new_attempt" ? 1 : 0);
   if (attempt > run.budget.maxAttempts) {
     throw new Error("alpha2_attempt_budget_exhausted");
   }
@@ -387,6 +404,10 @@ export function consumeAlpha2HumanGateApproval(
     ...run,
     updatedAt: now,
     attempt,
+    preExecutorResumeMode:
+      resumeMode === "start_new_attempt" || resumeMode === "resume_attempt"
+        ? resumeMode
+        : undefined,
     humanGate: { state: "not_required" },
     humanGateHistory: [...run.humanGateHistory, run.humanGate],
   });
@@ -405,7 +426,8 @@ export function consumeAlpha2HumanResumeApproval(
     throw new Error("alpha2_human_resume_approval_mismatch");
   }
   const now = input.now ?? new Date().toISOString();
-  const attempt = run.attempt + (run.humanGate.resumeMode === "start_new_attempt" ? 1 : 0);
+  const resumeMode = run.humanGate.resumeMode as (typeof ALPHA2_PRE_EXECUTOR_RESUME_MODES)[number];
+  const attempt = run.attempt + (resumeMode === "start_new_attempt" ? 1 : 0);
   if (attempt > run.budget.maxAttempts) {
     throw new Error("alpha2_attempt_budget_exhausted");
   }
@@ -413,6 +435,7 @@ export function consumeAlpha2HumanResumeApproval(
     ...run,
     updatedAt: now,
     attempt,
+    preExecutorResumeMode: resumeMode,
     humanGate: { state: "not_required" },
     humanGateHistory: [...run.humanGateHistory, run.humanGate],
   });
@@ -529,12 +552,183 @@ export function transitionAlpha2Run(
     finishedAt: ["completed", "cancelled"].includes(to) ? now : undefined,
     resumeAt: preservesResumeAt ? input.resumeAt : undefined,
     attempt: to === "running" && run.status === "queued" ? run.attempt + 1 : run.attempt,
+    preExecutorResumeMode: to === "running" ? run.preExecutorResumeMode : undefined,
     humanGate: nextHumanGate,
     checkpoints,
     lastErrorCode: normalizedErrorCode,
   } satisfies Alpha2RunRecord;
 
   return Alpha2RunRecordSchema.parse(next);
+}
+
+function sameLifecycleValue(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function historyAppendsCurrentGate(existing: Alpha2RunRecord, incoming: Alpha2RunRecord) {
+  return (
+    incoming.humanGateHistory.length === existing.humanGateHistory.length + 1 &&
+    existing.humanGateHistory.every((gate, index) =>
+      sameLifecycleValue(gate, incoming.humanGateHistory[index]),
+    ) &&
+    sameLifecycleValue(incoming.humanGateHistory.at(-1), existing.humanGate)
+  );
+}
+
+export function assertAlpha2RunEvolution(
+  existing: Alpha2RunRecord,
+  incoming: Alpha2RunRecord,
+) {
+  if (existing.status !== incoming.status) {
+    assertAlpha2RunTransition(existing.status, incoming.status);
+  }
+
+  const gateUnchanged = sameLifecycleValue(existing.humanGate, incoming.humanGate);
+  const historyUnchanged = sameLifecycleValue(
+    existing.humanGateHistory,
+    incoming.humanGateHistory,
+  );
+  const archivesCurrentGate = historyAppendsCurrentGate(existing, incoming);
+
+  if (existing.humanGate.state === "pending") {
+    if (incoming.humanGate.state === "pending") {
+      if (!gateUnchanged || !historyUnchanged) {
+        throw new Error("alpha2_pending_human_gate_is_immutable");
+      }
+    } else {
+      if (!DECIDED_HUMAN_GATE_STATES.has(incoming.humanGate.state)) {
+        throw new Error("alpha2_human_gate_exit_requires_decision");
+      }
+      if (
+        existing.humanGate.gateRef &&
+        incoming.humanGate.gateRef !== existing.humanGate.gateRef
+      ) {
+        throw new Error("alpha2_human_gate_approval_ref_mismatch");
+      }
+      if (
+        existing.humanGate.resumeMode &&
+        incoming.humanGate.resumeMode !== existing.humanGate.resumeMode
+      ) {
+        throw new Error("alpha2_human_gate_resume_mode_mismatch");
+      }
+      if (!historyUnchanged) {
+        throw new Error("alpha2_human_gate_history_conflict");
+      }
+    }
+  } else if (DECIDED_HUMAN_GATE_STATES.has(existing.humanGate.state)) {
+    if (gateUnchanged) {
+      if (!historyUnchanged) throw new Error("alpha2_human_gate_history_conflict");
+    } else if (incoming.humanGate.state === "not_required") {
+      if (
+        existing.status !== "running" ||
+        existing.humanGate.state !== "approved" ||
+        !archivesCurrentGate
+      ) {
+        throw new Error("alpha2_human_gate_decision_is_immutable");
+      }
+    } else if (incoming.humanGate.state === "pending") {
+      if (incoming.status !== "human_gate" || !archivesCurrentGate) {
+        throw new Error("alpha2_human_gate_decision_is_immutable");
+      }
+    } else {
+      throw new Error("alpha2_human_gate_decision_is_immutable");
+    }
+  } else if (gateUnchanged) {
+    if (!historyUnchanged) throw new Error("alpha2_human_gate_history_conflict");
+  } else if (incoming.humanGate.state === "pending") {
+    if (incoming.status !== "human_gate" || !historyUnchanged) {
+      throw new Error("alpha2_human_gate_evolution_invalid");
+    }
+  } else {
+    throw new Error("alpha2_human_gate_evolution_invalid");
+  }
+
+  if (
+    existing.status === "human_gate" &&
+    ["running", "review"].includes(incoming.status) &&
+    incoming.humanGate.state !== "approved"
+  ) {
+    throw new Error("alpha2_human_gate_exit_requires_approval");
+  }
+  if (
+    existing.status === "review" &&
+    incoming.status === "running" &&
+    incoming.humanGate.state !== "approved"
+  ) {
+    throw new Error("alpha2_review_exit_requires_approval");
+  }
+  if (
+    incoming.status === "running" &&
+    !["not_required", "approved"].includes(incoming.humanGate.state)
+  ) {
+    throw new Error("alpha2_execution_blocked_by_human_gate_decision");
+  }
+
+  const consumedStartApproval =
+    existing.status === "running" &&
+    existing.humanGate.state === "approved" &&
+    incoming.humanGate.state === "not_required" &&
+    existing.humanGate.resumeMode === "start_new_attempt";
+  const expectedAttempt =
+    existing.status === "queued" && incoming.status === "running"
+      ? existing.attempt + 1
+      : consumedStartApproval
+        ? existing.attempt + 1
+        : existing.attempt;
+  if (incoming.attempt !== expectedAttempt) {
+    throw new Error("alpha2_run_attempt_evolution_invalid");
+  }
+
+  const consumesApprovedResume =
+    existing.status === "running" &&
+    existing.humanGate.state === "approved" &&
+    incoming.humanGate.state === "not_required";
+  if (
+    consumesApprovedResume &&
+    ["start_new_attempt", "resume_attempt"].includes(existing.humanGate.resumeMode ?? "") &&
+    incoming.preExecutorResumeMode !== existing.humanGate.resumeMode
+  ) {
+    throw new Error("alpha2_pre_executor_resume_marker_required");
+  }
+
+  if (incoming.preExecutorResumeMode) {
+    const markerUnchanged =
+      incoming.preExecutorResumeMode === existing.preExecutorResumeMode;
+    const consumedApprovedResume =
+      existing.status === "running" &&
+      existing.humanGate.state === "approved" &&
+      incoming.humanGate.state === "not_required" &&
+      incoming.preExecutorResumeMode === existing.humanGate.resumeMode &&
+      archivesCurrentGate;
+    if (!markerUnchanged && !consumedApprovedResume) {
+      throw new Error("alpha2_pre_executor_resume_marker_invalid");
+    }
+  } else if (existing.preExecutorResumeMode) {
+    const executorEntry =
+      incoming.status === "running" &&
+      incoming.humanGate.state === "not_required" &&
+      gateUnchanged &&
+      historyUnchanged;
+    const replacesResumeWithGate =
+      incoming.status === "human_gate" && incoming.humanGate.state === "pending";
+    if (!executorEntry && !replacesResumeWithGate) {
+      throw new Error("alpha2_pre_executor_resume_marker_invalid");
+    }
+  }
+}
+
+export function markAlpha2ExecutorEntered(
+  run: Alpha2RunRecord,
+  input: { now?: string } = {},
+) {
+  if (run.status !== "running" || !run.preExecutorResumeMode) {
+    throw new Error("alpha2_pre_executor_resume_marker_missing");
+  }
+  return Alpha2RunRecordSchema.parse({
+    ...run,
+    updatedAt: input.now ?? new Date().toISOString(),
+    preExecutorResumeMode: undefined,
+  });
 }
 
 export function appendAlpha2Checkpoint(

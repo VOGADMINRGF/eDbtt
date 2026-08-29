@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  Alpha2RunRecordSchema,
   appendAlpha2Checkpoint,
+  assertAlpha2RunEvolution,
   createAlpha2RunRecord,
   isAlpha2RunTransitionAllowed,
   linkAlpha2ChildRun,
@@ -111,6 +113,24 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       status: "running",
       humanGate: { state: "approved", decisionRef: "decision:approved" },
     });
+    expect(() => assertAlpha2RunEvolution(gated, approved)).not.toThrow();
+    const bypass = Alpha2RunRecordSchema.parse({
+      ...gated,
+      status: "queued",
+      humanGate: { state: "not_required" },
+    });
+    expect(() => assertAlpha2RunEvolution(gated, bypass)).toThrow(
+      "alpha2_invalid_run_transition:human_gate->queued",
+    );
+    const decisionBypass = Alpha2RunRecordSchema.parse({
+      ...gated,
+      status: "failed",
+      humanGate: { state: "not_required" },
+      lastErrorCode: "alpha2_direct_cas_bypass",
+    });
+    expect(() => assertAlpha2RunEvolution(gated, decisionBypass)).toThrow(
+      "alpha2_human_gate_exit_requires_decision",
+    );
   });
 
   it("prevents a rejected human gate from resuming through an indirect retry path", () => {

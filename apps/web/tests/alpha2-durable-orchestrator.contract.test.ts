@@ -22,6 +22,7 @@ import {
 } from "@/features/agenticRuntime/alpha2RunLedgerContract";
 import {
   Alpha2RunRecordSchema,
+  assertAlpha2RunEvolution,
   createAlpha2RunRecord,
   transitionAlpha2Run,
   type Alpha2RunRecord,
@@ -35,6 +36,7 @@ class FakeLedger implements Alpha2RunLedger {
   listRecoverableBarrier: Promise<void> | undefined;
   listRecoverableError: Error | undefined;
   onListRecoverable: (() => void) | undefined;
+  throwAfterPreExecutorMarkerWrite = false;
 
   seed(run: Alpha2RunRecord) {
     this.records.set(run.runId, { run, version: 0, lease: null });
@@ -84,6 +86,7 @@ class FakeLedger implements Alpha2RunLedger {
     ) {
       throw new Error("alpha2_ledger_lease_lost");
     }
+    assertAlpha2RunEvolution(current.run, input.run);
     const authoritativeNow = this.serverNow ?? input.lease?.now ?? input.run.updatedAt;
     const checkpoints = input.stampCheckpointId
       ? input.run.checkpoints.map((checkpoint) =>
@@ -122,6 +125,10 @@ class FakeLedger implements Alpha2RunLedger {
       lease: current.lease,
     } satisfies Alpha2VersionedRun;
     this.records.set(input.run.runId, next);
+    if (this.throwAfterPreExecutorMarkerWrite && run.preExecutorResumeMode) {
+      this.throwAfterPreExecutorMarkerWrite = false;
+      throw new Error("simulated_process_crash_after_resume_consumption");
+    }
     if (this.serverNowAfterNextCompareAndSwap) {
       this.serverNow = this.serverNowAfterNextCompareAndSwap;
       this.serverNowAfterNextCompareAndSwap = undefined;
@@ -502,6 +509,108 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     );
   });
 
+  it("keeps action gate references stable across canonical evidence ordering", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(
+      createAlpha2RunRecord({
+        runId: "run-canonical-action-gate",
+        idempotencyKey: "idem-run-canonical-action-gate",
+        taskId: "ALPHA2-TEST-01",
+        kind: "engineering_slice",
+        primaryRole: "governance_compliance",
+        riskClass: "orange",
+        route: { mode: "automatic", capabilityClass: "test" },
+        budget: { maxAttempts: 1 },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    );
+    const authorization = {
+      observedHeadSha: "1111111111111111111111111111111111111111",
+      observedAt: "2026-08-23T20:00:00.000Z",
+      openTasksText: AUTHORIZED_OPENTASKS,
+      ownership: {
+        branch: "feat/alpha2-test",
+        prNumber: 637,
+        exactHead: true,
+        ciState: "success" as const,
+        unresolvedReviewThreads: 0,
+      },
+      action: {
+        actionKind: "read_only" as const,
+        riskClass: "orange" as const,
+        confidence: "high" as const,
+        reversible: true,
+        evidenceRefs: ["evidence:b", "evidence:a", "evidence:a"],
+      },
+    };
+
+    const blocked = await runAlpha2DurableStepInternal({
+      runId: "run-canonical-action-gate",
+      workerId: "worker-canonical-gate-a",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          throw new Error("must not execute");
+        },
+      },
+      currentHeadSha: authorization.observedHeadSha,
+      authorization,
+      now: authorization.observedAt,
+    });
+    expect(blocked.state).toBe("execution_blocked");
+    if (blocked.state !== "execution_blocked") throw new Error("unexpected state");
+    const gateRef = blocked.run.humanGate.gateRef;
+
+    const approved = transitionAlpha2Run(blocked.run, "running", {
+      now: "2026-08-23T20:00:01.000Z",
+      humanGate: {
+        state: "approved",
+        reason: blocked.run.humanGate.reason,
+        gateRef,
+        resumeMode: blocked.run.humanGate.resumeMode,
+        decisionRef: "human:canonical-action-gate",
+        decidedAt: "2026-08-23T20:00:01.000Z",
+      },
+    });
+    ledger.seed(approved);
+    let executions = 0;
+
+    const executed = await runAlpha2DurableStepInternal({
+      runId: "run-canonical-action-gate",
+      workerId: "worker-canonical-gate-b",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executions += 1;
+          return { type: "completed", checkpointId: "cp-canonical-action-gate" };
+        },
+      },
+      currentHeadSha: authorization.observedHeadSha,
+      authorization: {
+        ...authorization,
+        observedAt: "2026-08-23T20:00:01.000Z",
+        action: {
+          evidenceRefs: ["evidence:a", "evidence:b"],
+          reversible: true,
+          confidence: "high",
+          riskClass: "orange",
+          actionKind: "read_only",
+        },
+      },
+      now: "2026-08-23T20:00:01.000Z",
+    });
+
+    expect(executions).toBe(1);
+    expect(executed.state).toBe("executed");
+    if (executed.state !== "executed") throw new Error("unexpected state");
+    expect(executed.run.humanGateHistory).toContainEqual(
+      expect.objectContaining({ gateRef }),
+    );
+  });
+
   it("charges the first attempt after approving an initial human gate", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
@@ -552,6 +661,86 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(executed.run.humanGate.state).toBe("not_required");
     expect(executed.run.humanGateHistory).toContainEqual(
       expect.objectContaining({ decisionRef: "human:initial-gate-approved" }),
+    );
+  });
+
+  it("recovers an approved resume crash before executor entry without charging abandonment", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const gated = createAlpha2RunRecord({
+      runId: "run-pre-executor-resume-crash",
+      idempotencyKey: "idem-run-pre-executor-resume-crash",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      humanGate: {
+        state: "pending",
+        reason: "initial_human_approval_required",
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const approved = transitionAlpha2Run(gated, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: gated.humanGate.reason,
+        decisionRef: "human:pre-executor-resume-approved",
+        decidedAt: "2026-08-23T20:01:00.000Z",
+      },
+    });
+    ledger.seed(approved);
+    ledger.throwAfterPreExecutorMarkerWrite = true;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: gated.runId,
+        workerId: "worker-pre-entry-crash",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            throw new Error("must not execute before simulated crash");
+          },
+        },
+        now: "2026-08-23T20:01:00.000Z",
+      }),
+    ).rejects.toThrow("simulated_process_crash_after_resume_consumption");
+
+    const crashed = await ledger.getByRunId(gated.runId);
+    expect(crashed?.run).toMatchObject({
+      status: "running",
+      attempt: 1,
+      preExecutorResumeMode: "start_new_attempt",
+      humanGate: { state: "not_required" },
+    });
+
+    let executions = 0;
+    const recovered = await runAlpha2DurableStep({
+      runId: gated.runId,
+      workerId: "worker-pre-entry-recovery",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executions += 1;
+          return { type: "completed", checkpointId: "cp-pre-entry-recovered" };
+        },
+      },
+      now: "2026-08-23T20:02:00.000Z",
+    });
+
+    expect(executions).toBe(1);
+    expect(recovered.state).toBe("executed");
+    if (recovered.state !== "executed") throw new Error("unexpected state");
+    expect(recovered.run.attempt).toBe(1);
+    expect(recovered.run.preExecutorResumeMode).toBeUndefined();
+    expect(recovered.run.checkpoints).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ errorCode: "alpha2_abandoned_running_step" }),
+      ]),
     );
   });
 
@@ -1427,6 +1616,61 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       now: "2026-08-30T20:00:00.000Z",
     });
     expect(recovered).toEqual([]);
+  });
+
+  it.each([
+    ["NaN wait delay", { type: "waiting", checkpointId: "cp-invalid-nan", resumeAfterMs: NaN }],
+    [
+      "infinite wait delay",
+      { type: "waiting", checkpointId: "cp-invalid-infinity", resumeAfterMs: Infinity },
+    ],
+    [
+      "infinite retry delay",
+      {
+        type: "failed",
+        checkpointId: "cp-invalid-retry-infinity",
+        errorCode: "alpha2_provider_timeout",
+        retryable: true,
+        retryAfterMs: Infinity,
+      },
+    ],
+    ["missing checkpoint identity", { type: "completed" }],
+  ])("persists %s as a structured non-retryable executor failure", async (_label, invalid) => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const runId = `run-invalid-outcome-${String(_label).replaceAll(" ", "-")}`;
+    ledger.seed(run(runId));
+
+    const result = await runAlpha2DurableStep({
+      runId,
+      workerId: "worker-invalid-outcome",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return invalid as unknown as Alpha2WorkerOutcome;
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.status).toBe("failed");
+    expect(result.run.lastErrorCode).toBe("alpha2_executor_outcome_invalid");
+    expect(result.run.resumeAt).toBeUndefined();
+    expect(result.run.checkpoints.at(-1)).toMatchObject({
+      status: "failed",
+      errorCode: "alpha2_executor_outcome_invalid",
+    });
+    expect(result.run.checkpoints).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ errorCode: "alpha2_abandoned_running_step" }),
+      ]),
+    );
+    await expect(
+      recoverAlpha2DueRuns({ ledger, dispatcher, now: "2026-08-30T20:00:00.000Z" }),
+    ).resolves.toEqual([]);
   });
 
   it("persists a synchronous executor throw as a retryable failed outcome", async () => {

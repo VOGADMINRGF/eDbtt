@@ -104,5 +104,6 @@ describe("Alpha-Foxtrott 2 human-gate immutability", () => {
     expect(approved.humanGate.resumeMode).toBe("start_new_attempt");
     const consumed = consumeAlpha2HumanResumeApproval(approved);
     expect(consumed.attempt).toBe(1);
+    expect(consumed.preExecutorResumeMode).toBe("start_new_attempt");
   });
 });

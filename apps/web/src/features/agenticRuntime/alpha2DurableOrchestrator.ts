@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   Alpha2RunRecordSchema,
   Alpha2SafeTraceArtifactRefSchema,
@@ -6,6 +7,7 @@ import {
   appendAlpha2Checkpoint,
   consumeAlpha2HumanGateApproval,
   consumeAlpha2HumanResumeApproval,
+  markAlpha2ExecutorEntered,
   normalizeAlpha2ErrorCode,
   transitionAlpha2Run,
   transitionAlpha2RunToNewHumanGate,
@@ -28,29 +30,49 @@ import {
   type Alpha2TaskOwnershipEvidence,
 } from "@/features/agenticRuntime/alpha2OpenTasksEligibilityContract";
 import {
+  Alpha2ActionGateInputSchema,
   resolveAlpha2ActionGate,
   type Alpha2ActionGateInput,
 } from "@/features/agenticRuntime/alpha2RiskGateContract";
 
-export type Alpha2WorkerOutcomeBase = {
-  checkpointId: string;
-  cursor?: string;
-  evidenceRefs?: string[];
-  safeTraceStepRefs?: Alpha2RunRecord["safeTraceStepRefs"];
-  artifactRefs?: Alpha2RunRecord["artifactRefs"];
-};
+const ALPHA2_MAX_WORKER_DELAY_MS = 2_147_483_647;
+const Alpha2WorkerDelaySchema = z
+  .number()
+  .finite()
+  .int()
+  .min(0)
+  .max(ALPHA2_MAX_WORKER_DELAY_MS);
+const Alpha2WorkerOutcomeBaseSchema = z
+  .object({
+    checkpointId: z.string().min(1),
+    cursor: z.string().min(1).optional(),
+    evidenceRefs: z.array(z.string().min(1)).optional(),
+    safeTraceStepRefs: z.array(Alpha2SafeTraceStepRefSchema).optional(),
+    artifactRefs: z.array(Alpha2SafeTraceArtifactRefSchema).optional(),
+  })
+  .strict();
 
-export type Alpha2WorkerOutcome =
-  | (Alpha2WorkerOutcomeBase & { type: "completed" })
-  | (Alpha2WorkerOutcomeBase & { type: "waiting"; resumeAfterMs: number })
-  | (Alpha2WorkerOutcomeBase & { type: "review" })
-  | (Alpha2WorkerOutcomeBase & { type: "human_gate"; reason: string })
-  | (Alpha2WorkerOutcomeBase & {
-      type: "failed";
-      errorCode: string;
-      retryable: boolean;
-      retryAfterMs?: number;
-    });
+export const Alpha2WorkerOutcomeSchema = z.discriminatedUnion("type", [
+  Alpha2WorkerOutcomeBaseSchema.extend({ type: z.literal("completed") }),
+  Alpha2WorkerOutcomeBaseSchema.extend({
+    type: z.literal("waiting"),
+    resumeAfterMs: Alpha2WorkerDelaySchema,
+  }),
+  Alpha2WorkerOutcomeBaseSchema.extend({ type: z.literal("review") }),
+  Alpha2WorkerOutcomeBaseSchema.extend({
+    type: z.literal("human_gate"),
+    reason: z.string().min(1),
+  }),
+  Alpha2WorkerOutcomeBaseSchema.extend({
+    type: z.literal("failed"),
+    errorCode: z.string().min(1),
+    retryable: z.boolean(),
+    retryAfterMs: Alpha2WorkerDelaySchema.optional(),
+  }),
+]);
+
+export type Alpha2WorkerOutcomeBase = z.infer<typeof Alpha2WorkerOutcomeBaseSchema>;
+export type Alpha2WorkerOutcome = z.infer<typeof Alpha2WorkerOutcomeSchema>;
 
 export type Alpha2ExecutionFence = {
   /** Attempt-specific ownership token; never reuse it across deliveries. */
@@ -296,11 +318,20 @@ function runtimeGateRef(input: {
   currentHeadSha: string;
   reasonCodes: string[];
 }) {
+  const parsedAction = input.authorization
+    ? Alpha2ActionGateInputSchema.safeParse(input.authorization.action)
+    : undefined;
+  const canonicalAction = parsedAction?.success
+    ? {
+        ...parsedAction.data,
+        evidenceRefs: unique(parsedAction.data.evidenceRefs).sort(),
+      }
+    : null;
   const identity = JSON.stringify({
     taskId: input.run.taskId,
     headSha: input.currentHeadSha,
-    action: input.authorization?.action ?? null,
-    reasonCodes: [...input.reasonCodes].sort(),
+    action: canonicalAction,
+    reasonCodes: unique(input.reasonCodes).sort(),
   });
   return `alpha2_gate_${createHash("sha256").update(identity).digest("hex")}`;
 }
@@ -489,7 +520,11 @@ async function moveToRunning(input: {
     });
   }
 
-  if (run.status === "running" && !input.approvedResume) {
+  if (
+    run.status === "running" &&
+    !input.approvedResume &&
+    !run.preExecutorResumeMode
+  ) {
     const terminalErrorCode =
       run.attempt >= run.budget.maxAttempts
         ? "alpha2_attempt_budget_exhausted"
@@ -827,6 +862,17 @@ async function executeWithinWallClockBudget(input: {
   controller: AbortController;
   fence: Alpha2ExecutionFence;
 }): Promise<Alpha2WorkerOutcome> {
+  const validateOutcome = (outcome: unknown): Alpha2WorkerOutcome => {
+    const parsed = Alpha2WorkerOutcomeSchema.safeParse(outcome);
+    return parsed.success
+      ? parsed.data
+      : {
+          type: "failed",
+          checkpointId: `executor_outcome_invalid_${input.run.runId}_${input.run.attempt}`,
+          errorCode: "alpha2_executor_outcome_invalid",
+          retryable: false,
+        };
+  };
   const maxWallClockMs = input.run.budget.maxWallClockMs;
   if (maxWallClockMs !== undefined && !input.run.wallClockDeadlineAt) {
     return {
@@ -859,7 +905,7 @@ async function executeWithinWallClockBudget(input: {
       }),
     )
     .catch((error: unknown) => executorFailure(input.run, error));
-  if (remainingMs === undefined) return execution;
+  if (remainingMs === undefined) return validateOutcome(await execution);
 
   const timeoutOutcome: Alpha2WorkerOutcome = {
     type: "failed",
@@ -900,7 +946,7 @@ async function executeWithinWallClockBudget(input: {
       await execution;
       return timeoutOutcome;
     }
-    return result;
+    return validateOutcome(result);
   } finally {
     if (timer) clearTimeout(timer);
   }
@@ -1172,6 +1218,20 @@ export async function runAlpha2DurableStep(input: {
             reasonCodes: freshGateDecision.reasonCodes,
           };
         }
+      }
+
+      if (executionCurrent.run.preExecutorResumeMode) {
+        const entered = markAlpha2ExecutorEntered(executionCurrent.run, {
+          now: executionNow,
+        });
+        executionCurrent = await save(
+          input.ledger,
+          executionCurrent,
+          entered,
+          { owner: leaseOwner, now: executionNow },
+        );
+        executionFence.generation = executionCurrent.version;
+        executionNow = executionCurrent.run.updatedAt;
       }
 
       const outcome = await executeWithinWallClockBudget({
