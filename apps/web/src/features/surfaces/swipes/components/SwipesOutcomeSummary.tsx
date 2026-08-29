@@ -33,10 +33,6 @@ function buildReflectionHeadline(total: number, topCategories: Array<{ category:
   if (dominant && dominant.count >= 3 && dominant.count / total >= 0.5) {
     return `Du hast dir gerade ein Bild zu ${dominant.category} gemacht.`;
   }
-  const distinctTopics = topCategories.length;
-  if (distinctTopics >= 3) {
-    return `Du hast zu ${total} unterschiedlichen Fragen Stellung genommen.`;
-  }
   return `Du hast zu ${total} Fragen Stellung genommen.`;
 }
 
@@ -50,9 +46,9 @@ export function SwipesOutcomeSummary({ stats, history, votesHref = "/abstimmunge
 
   return (
     <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm md:p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Wenn du kurz zurückblicken möchtest</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Dein Zwischenstand</p>
       <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">{headline}</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">Der Feed läuft einfach weiter. Diese Übersicht bleibt nur als freiwilliger Zwischenblick hier stehen.</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">Du kannst direkt weitermachen oder dir einzelne Fragen noch einmal ansehen.</p>
 
       {topCategories.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -75,9 +71,8 @@ export function SwipesOutcomeSummary({ stats, history, votesHref = "/abstimmunge
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <a href="#swipe-card" className="vog-chip vog-chip--active">Weiter swipen</a>
+        <a href="#swipe-card" className="vog-chip vog-chip--active">Weiter</a>
         <Link href={votesHref} className="vog-chip">Meinungsbild ansehen</Link>
-        <Link href="/mitwirken" className="vog-chip">Etwas ergänzen</Link>
       </div>
       <p className="mt-3 text-xs leading-5 text-[rgb(var(--muted))]">Das Meinungsbild anderer zeigen wir bewusst erst nach deiner eigenen Entscheidung.</p>
     </section>
