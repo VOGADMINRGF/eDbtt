@@ -159,7 +159,6 @@ function RoundQuickActions(props: {
 }) {
   const createHref = buildContributionStartHref(props.entry);
   const openHref = roundOpenHref(props.entry);
-  const resultsHref = roundResultsHref(props.entry);
 
   if (!props.isSignedIn) {
     return (
@@ -177,7 +176,9 @@ function RoundQuickActions(props: {
       {props.canManageEntry && props.entry.intakeHref ? (
         <Link href={props.entry.intakeHref} className="vog-btn-secondary">Weiterführen</Link>
       ) : null}
-      <Link href={resultsHref} className="vog-btn-secondary">Ergebnisse</Link>
+      {props.entry.resultsHref ? (
+        <Link href={props.entry.resultsHref} className="vog-btn-secondary">Ergebnisse</Link>
+      ) : null}
       {props.canQrActions && props.entry.shareActions ? (
         <a href={`#share-${props.entry.id}`} className="vog-btn-secondary">Link & QR</a>
       ) : null}
@@ -306,7 +307,8 @@ export default async function RundenPage({ searchParams }: {
   const closedEntries = entries.filter((entry) => entry.lifecycle === "closed");
   const featured = (queryAnlassraumId ? activeEntries.find((entry) => entry.anlassraumId === queryAnlassraumId) : null) ?? activeEntries[0] ?? null;
   const remainingActive = featured ? activeEntries.filter((entry) => entry.id !== featured.id) : activeEntries;
-  const existingHref = activeEntries.find((entry) => entry.operatingHref)?.operatingHref ?? activeEntries.find((entry) => entry.entryHref)?.entryHref ?? featured?.operatingHref ?? featured?.entryHref ?? "/runden?view=active";
+  const existingHref = activeEntries.find((entry) => entry.operatingHref)?.operatingHref ?? activeEntries.find((entry) => entry.entryHref)?.entryHref ?? featured?.operatingHref ?? featured?.entryHref ?? "/swipes";
+  const participationCtaLabel = activeEntries.length > 0 ? "Bei laufenden Fragen mitmachen" : "Mitmachen";
 
   const featuredOwned = featured ? entryBelongsToManagedScope({ entry: featured, sessionUid, requestScope }) : false;
   const canManageFeatured = featured ? featuredOwned && capabilitySummary.canManageProductiveRounds : false;
@@ -342,7 +344,7 @@ export default async function RundenPage({ searchParams }: {
               </div>
               <div className="public-action-row pt-1">
                 <Link href="/runden/new?gtm=1" className="vog-btn-brand">Etwas starten</Link>
-                <Link href={existingHref} className="vog-btn-secondary">Bei laufenden Fragen mitmachen</Link>
+                <Link href={existingHref} className="vog-btn-secondary">{participationCtaLabel}</Link>
               </div>
               {closedEntries.length > 0 ? <Link href={viewHref("results")} className="text-sm font-semibold text-[rgb(var(--muted))] underline underline-offset-4 hover:text-[rgb(var(--fg))]">Ergebnisse ansehen</Link> : null}
               {createIntent ? (
@@ -381,16 +383,6 @@ export default async function RundenPage({ searchParams }: {
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm leading-6 text-[rgb(var(--fg))]">{createPrefill}</div>
           </section>
         ) : null}
-
-        <RundenGuidedQuestionBuilder
-          returnTo={buildRundenReturnHref(featured?.anlassraumId)}
-          featuredAnlassraumId={featured?.anlassraumId ?? null}
-          participationHref={quickStartParticipationHref}
-          participationAnchorId={quickStartParticipationAnchorId}
-          initialInput={createPrefill}
-        />
-
-        <RundenPublicSharingGuide featuredAnlassraumId={featured?.anlassraumId ?? null} featuredAnlassraumTitle={featured?.title ?? null} />
 
         {isSignedIn ? (
           <nav aria-label="Fragenbereiche" className="overflow-x-auto pb-1">
@@ -494,6 +486,16 @@ export default async function RundenPage({ searchParams }: {
             )}
           </section>
         ) : null}
+
+        <RundenGuidedQuestionBuilder
+          returnTo={buildRundenReturnHref(featured?.anlassraumId)}
+          featuredAnlassraumId={featured?.anlassraumId ?? null}
+          participationHref={quickStartParticipationHref}
+          participationAnchorId={quickStartParticipationAnchorId}
+          initialInput={createPrefill}
+        />
+
+        <RundenPublicSharingGuide featuredAnlassraumId={featured?.anlassraumId ?? null} featuredAnlassraumTitle={featured?.title ?? null} />
       </main>
     </section>
   );
