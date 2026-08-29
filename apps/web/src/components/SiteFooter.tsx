@@ -18,9 +18,9 @@ const infoLinks = [
 ];
 
 const platformLinks = [
-  { href: "/swipes", label: "Abstimmen" },
-  { href: "/statements", label: "Beitrag einreichen" },
-  { href: "/stream", label: "Präsentieren" },
+  { href: "/swipes", label: "Mitmachen" },
+  { href: "/statements", label: "Etwas beitragen" },
+  { href: "/stream", label: "Live begleiten" },
   { href: "/reports", label: "Ergebnisse ansehen" },
 ];
 
@@ -65,7 +65,7 @@ export default function SiteFooter() {
   const tagline = t(taglineBase, "tagline");
 
   const brandCopy = t(
-    "Infrastruktur statt Parteiprogramm: eDebatte bündelt Dossiers, Abstimmungen und Umsetzungs-Tracking für nachvollziehbare Entscheidungen.",
+    "Fragen öffnen, Perspektiven sichtbar machen und gemeinsam zu einem nachvollziehbaren nächsten Schritt kommen.",
     "brand.copy",
   );
   const donationLabel = t("Spenden:", "donation.label");
@@ -128,8 +128,8 @@ export default function SiteFooter() {
             links={info}
           />
           <FooterNav
-            title={t("Plattform nutzen", "nav.platform")}
-            ariaLabel={t("Footer Navigation: Plattform nutzen", "aria.platform")}
+            title={t("Mitmachen", "nav.platform")}
+            ariaLabel={t("Footer Navigation: Mitmachen", "aria.platform")}
             links={platform}
           />
           <FooterNav
