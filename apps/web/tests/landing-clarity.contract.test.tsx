@@ -20,27 +20,24 @@ vi.mock("next/image", () => ({
 }));
 
 describe("landing clarity contract", () => {
-  it("explains the ballot-first journey, audiences and guardrails", () => {
+  it("explains the context-first participation journey and its guardrails", () => {
     const html = renderToStaticMarkup(<LandingStart />);
     const headings = [...html.matchAll(/<h1([^>]*)>/g)];
 
     expect(headings).toHaveLength(1);
     expect(headings[0]?.[1] ?? "").not.toContain("sr-only");
 
-    expect(html).toContain("Abstimmen. Verstehen. Gemeinsam weiterkommen.");
-    expect(html).toContain("Direkt ausprobieren");
-    expect(html).toContain("Kostenlos Abstimmung starten");
-    expect(html).toContain("Vereine");
-    expect(html).toContain("Bürgerinitiativen &amp; lokale Gruppen");
-    expect(html).toContain("Verbände &amp; Netzwerke");
-    expect(html).toContain("Organisationen &amp; Kommunen");
-    expect(html).toContain("Frage stellen");
-    expect(html).toContain("Link teilen");
-    expect(html).toContain("Positionen verstehen");
-    expect(html).toContain("Keine Abstimmung über Fakten oder Wahrheit");
-    expect(html).toContain("Keine automatische Veröffentlichung");
-    expect(html).toContain("Richtwert bis 30 Teilnehmende");
-    expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage"');
+    expect(html).toContain("Eine Frage. Viele Perspektiven. Ein klareres Bild.");
+    expect(html).toContain("Mitmachen");
+    expect(html).toContain("Etwas starten");
+    expect(html).toContain("Schnell deine Meinung abgeben");
+    expect(html).toContain("Eine eigene Frage öffnen");
+    expect(html).toContain("1 Frage · direkt ausprobieren");
+    expect(html).toContain("Nicht nur Antworten sammeln");
+    expect(html).toContain("Nichts geht automatisch online");
+    expect(html).toContain("Fakten werden nicht zur Abstimmung gestellt");
+    expect(html).toContain("Bis 30 Teilnehmende kostenlos");
+    expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage-intent"');
     expect(html).toContain('href="/swipes"');
 
     expect(html).not.toContain("500K");
@@ -48,7 +45,9 @@ describe("landing clarity contract", () => {
     expect(html).not.toContain("35 Länder");
     expect(html).not.toContain("Live Poll");
     expect(html).not.toContain("/demo/");
-    expect(html).not.toContain("/brand/voxy/voxy-presenting.webp");
+    expect(html).not.toContain("Anlassraum");
+    expect(html).not.toContain("Review-first");
+    expect(html).not.toContain("Analysefortschritt");
   });
 
   it("keeps the conversion landing free of debug and demo language", () => {
