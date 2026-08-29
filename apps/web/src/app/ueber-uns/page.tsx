@@ -5,6 +5,7 @@ import { useLocale } from "@/context/LocaleContext";
 import { useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 
 const CARD = "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm";
+const CONTRIBUTION_HREF = "/create?mode=source&intent=contribution&entryIntent=content_companion&entryMode=direct";
 
 export default function UeberUnsPage() {
   const { locale } = useLocale();
@@ -82,10 +83,10 @@ export default function UeberUnsPage() {
           <div>
             <h2 className="text-2xl font-black">{tr("Du siehst eine Lücke? Dann sollst du helfen können.", "See a gap? You should be able to help.", "help.title")}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              {tr("Wenn eine Quelle fehlt, eine Frage offen ist oder eine Perspektive nicht vorkommt, soll der passende Beitrag möglichst direkt an dieser Stelle möglich sein. Für das dauerhafte Einreichen meldest du dich an und kehrst anschließend in denselben Kontext zurück.", "If a source is missing, a question is open or a perspective is absent, the relevant contribution should be possible right there. For a durable submission, sign in and return to the same context.", "help.body")}
+              {tr("Wenn eine Quelle fehlt, eine Frage offen ist oder eine Perspektive nicht vorkommt, soll der passende Beitrag möglichst direkt an dieser Stelle möglich sein. Für das dauerhafte Einreichen meldest du dich an; der gewählte Kontext wird dabei erhalten, wenn du aus einem konkreten Thema kommst.", "If a source is missing, a question is open or a perspective is absent, the relevant contribution should be possible right there. For a durable submission, sign in; when you come from a specific topic, that context is preserved.", "help.body")}
             </p>
           </div>
-          <Link href="/create?intent=contribute" className="btn btn-primary">{tr("Beitrag einreichen", "Contribute", "help.cta")}</Link>
+          <Link href={CONTRIBUTION_HREF} className="btn btn-primary">{tr("Beitrag einreichen", "Contribute", "help.cta")}</Link>
         </section>
       </section>
     </main>
