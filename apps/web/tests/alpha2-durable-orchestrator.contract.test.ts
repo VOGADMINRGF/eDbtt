@@ -37,6 +37,8 @@ class FakeLedger implements Alpha2RunLedger {
   listRecoverableError: Error | undefined;
   onListRecoverable: (() => void) | undefined;
   throwAfterPreExecutorMarkerWrite = false;
+  throwOnExecutorEntryWrite = false;
+  executorEntryWrites = 0;
 
   seed(run: Alpha2RunRecord) {
     this.records.set(run.runId, { run, version: 0, lease: null });
@@ -87,6 +89,12 @@ class FakeLedger implements Alpha2RunLedger {
       throw new Error("alpha2_ledger_lease_lost");
     }
     assertAlpha2RunEvolution(current.run, input.run);
+    const entersExecutor =
+      Boolean(current.run.preExecutorResumeMode) && !input.run.preExecutorResumeMode;
+    if (this.throwOnExecutorEntryWrite && entersExecutor) {
+      this.throwOnExecutorEntryWrite = false;
+      throw new Error("simulated_executor_entry_cas_failure");
+    }
     const authoritativeNow = this.serverNow ?? input.lease?.now ?? input.run.updatedAt;
     const checkpoints = input.stampCheckpointId
       ? input.run.checkpoints.map((checkpoint) =>
@@ -125,6 +133,7 @@ class FakeLedger implements Alpha2RunLedger {
       lease: current.lease,
     } satisfies Alpha2VersionedRun;
     this.records.set(input.run.runId, next);
+    if (entersExecutor) this.executorEntryWrites += 1;
     if (this.throwAfterPreExecutorMarkerWrite && run.preExecutorResumeMode) {
       this.throwAfterPreExecutorMarkerWrite = false;
       throw new Error("simulated_process_crash_after_resume_consumption");
@@ -735,7 +744,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     });
 
     expect(executions).toBe(1);
-    expect(markerAtExecutorEntry).toBe("start_new_attempt");
+    expect(markerAtExecutorEntry).toBeUndefined();
     expect(recovered.state).toBe("executed");
     if (recovered.state !== "executed") throw new Error("unexpected state");
     expect(recovered.run.attempt).toBe(1);
@@ -745,6 +754,232 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
         expect.objectContaining({ errorCode: "alpha2_abandoned_running_step" }),
       ]),
     );
+  });
+
+  it("recovers a queued crash before executor entry without exhausting one attempt", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const queued = createAlpha2RunRecord({
+      runId: "run-queued-pre-entry-crash",
+      idempotencyKey: "idem-run-queued-pre-entry-crash",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    ledger.seed(queued);
+    ledger.throwAfterPreExecutorMarkerWrite = true;
+    let executions = 0;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: queued.runId,
+        workerId: "worker-queued-pre-entry-crash",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            executions += 1;
+            return { type: "completed", checkpointId: "must-not-run-before-crash" };
+          },
+        },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    ).rejects.toThrow("simulated_process_crash_after_resume_consumption");
+
+    expect(await ledger.getByRunId(queued.runId)).toMatchObject({
+      run: {
+        status: "running",
+        attempt: 1,
+        preExecutorResumeMode: "start_new_attempt",
+      },
+    });
+    const recovered = await runAlpha2DurableStep({
+      runId: queued.runId,
+      workerId: "worker-queued-pre-entry-recovery",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executions += 1;
+          return { type: "completed", checkpointId: "cp-queued-pre-entry-recovered" };
+        },
+      },
+      now: "2026-08-23T20:01:00.000Z",
+    });
+
+    expect(executions).toBe(1);
+    expect(recovered.state).toBe("executed");
+    if (recovered.state !== "executed") throw new Error("unexpected state");
+    expect(recovered.run.attempt).toBe(1);
+    expect(recovered.run.checkpoints).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ errorCode: "alpha2_abandoned_running_step" }),
+      ]),
+    );
+  });
+
+  it("recovers a scheduled resume crash before executor entry without charging abandonment", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const queued = createAlpha2RunRecord({
+      runId: "run-scheduled-pre-entry-crash",
+      idempotencyKey: "idem-run-scheduled-pre-entry-crash",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const waiting = transitionAlpha2Run(running, "waiting", {
+      now: "2026-08-23T20:00:00.000Z",
+      resumeAt: "2026-08-23T20:01:00.000Z",
+    });
+    ledger.seed(waiting);
+    ledger.throwAfterPreExecutorMarkerWrite = true;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: queued.runId,
+        workerId: "worker-scheduled-pre-entry-crash",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute() {
+            throw new Error("must not execute before simulated crash");
+          },
+        },
+        now: "2026-08-23T20:01:00.000Z",
+      }),
+    ).rejects.toThrow("simulated_process_crash_after_resume_consumption");
+
+    expect(await ledger.getByRunId(queued.runId)).toMatchObject({
+      run: {
+        status: "running",
+        attempt: 1,
+        preExecutorResumeMode: "resume_attempt",
+      },
+    });
+    const recovered = await runAlpha2DurableStep({
+      runId: queued.runId,
+      workerId: "worker-scheduled-pre-entry-recovery",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          return { type: "completed", checkpointId: "cp-scheduled-pre-entry-recovered" };
+        },
+      },
+      now: "2026-08-23T20:02:00.000Z",
+    });
+
+    expect(recovered.state).toBe("executed");
+    if (recovered.state !== "executed") throw new Error("unexpected state");
+    expect(recovered.run.attempt).toBe(1);
+    expect(recovered.run.checkpoints).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ errorCode: "alpha2_abandoned_running_step" }),
+      ]),
+    );
+  });
+
+  it("does not invoke an approved resume executor when durable entry persistence fails", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const queued = createAlpha2RunRecord({
+      runId: "run-approved-entry-cas-failure",
+      idempotencyKey: "idem-run-approved-entry-cas-failure",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 1 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const gated = transitionAlpha2Run(running, "human_gate", {
+      now: "2026-08-23T20:01:00.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "resume_requires_approval",
+        resumeMode: "resume_attempt",
+      },
+    });
+    const approved = transitionAlpha2Run(gated, "running", {
+      now: "2026-08-23T20:02:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: gated.humanGate.reason,
+        resumeMode: "resume_attempt",
+        decisionRef: "human:approved-entry-cas-failure",
+        decidedAt: "2026-08-23T20:02:00.000Z",
+      },
+    });
+    ledger.seed(approved);
+    ledger.throwOnExecutorEntryWrite = true;
+    let executorStarts = 0;
+    let sideEffects = 0;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: queued.runId,
+        workerId: "worker-approved-entry-cas-failure",
+        ledger,
+        dispatcher,
+        executor: {
+          execute() {
+            executorStarts += 1;
+            sideEffects += 1;
+            return Promise.resolve({
+              type: "completed" as const,
+              checkpointId: "must-not-run-after-entry-cas-failure",
+            });
+          },
+        },
+        now: "2026-08-23T20:02:00.000Z",
+      }),
+    ).rejects.toThrow("simulated_executor_entry_cas_failure");
+
+    expect(executorStarts).toBe(0);
+    expect(sideEffects).toBe(0);
+  });
+
+  it("starts a synchronous executor body only after durable executor entry", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-synchronous-entry-order"));
+    let entryWritesAtSynchronousStart = 0;
+
+    const result = await runAlpha2DurableStep({
+      runId: "run-synchronous-entry-order",
+      workerId: "worker-synchronous-entry-order",
+      ledger,
+      dispatcher,
+      executor: {
+        execute() {
+          entryWritesAtSynchronousStart = ledger.executorEntryWrites;
+          return Promise.resolve({
+            type: "completed" as const,
+            checkpointId: "cp-synchronous-entry-order",
+          });
+        },
+      },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    expect(entryWritesAtSynchronousStart).toBe(1);
   });
 
   it("consumes a resolved runtime-block approval without recharging its active attempt", async () => {
@@ -1244,8 +1479,8 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     });
 
     expect(dispatcher.jobs.map((job) => job.dispatchKey)).toEqual([
-      "resume_v2_cp-repeated-wait",
-      "resume_v4_cp-repeated-wait",
+      "resume_v3_cp-repeated-wait",
+      "resume_v6_cp-repeated-wait",
     ]);
   });
 
@@ -1283,8 +1518,8 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     });
 
     expect(dispatcher.jobs.map((job) => job.dispatchKey)).toEqual([
-      "retry_v2_cp-repeated-retry",
-      "retry_v5_cp-repeated-retry",
+      "retry_v3_cp-repeated-retry",
+      "retry_v7_cp-repeated-retry",
     ]);
   });
 
@@ -1855,6 +2090,53 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect((await ledger.getByRunId("run-fenced-effect"))?.run.checkpoints).toEqual([]);
   });
 
+  it("invalidates an active execution fence after a foreign lifecycle CAS", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    ledger.seed(run("run-lifecycle-fenced-effect"));
+    let sideEffects = 0;
+    let signalAborted = false;
+
+    await expect(
+      runAlpha2DurableStep({
+        runId: "run-lifecycle-fenced-effect",
+        workerId: "worker-lifecycle-fence",
+        ledger,
+        dispatcher,
+        executor: {
+          async execute({ signal, fence }) {
+            const active = await ledger.getByRunId("run-lifecycle-fenced-effect");
+            if (!active) throw new Error("missing active run");
+            const cancelled = transitionAlpha2Run(active.run, "cancelled", {
+              now: "2026-08-23T20:00:01.000Z",
+            });
+            await ledger.compareAndSwap({
+              run: cancelled,
+              expectedVersion: active.version,
+            });
+            await expect(
+              fence.runSideEffect({
+                effectId: "must-be-fenced",
+                sink: () => {
+                  sideEffects += 1;
+                },
+              }),
+            ).rejects.toThrow("alpha2_execution_fence_invalid");
+            signalAborted = signal.aborted;
+            return { type: "completed", checkpointId: "must-not-persist" };
+          },
+        },
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+    ).rejects.toThrow("alpha2_execution_fence_invalid");
+
+    expect(sideEffects).toBe(0);
+    expect(signalAborted).toBe(true);
+    expect(await ledger.getByRunId("run-lifecycle-fenced-effect")).toMatchObject({
+      run: { status: "cancelled", checkpoints: [] },
+    });
+  });
+
   it("supplies effect sinks with a stable key and monotonic lease generation", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();
@@ -1891,7 +2173,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     expect(result.state).toBe("executed");
     expect(sinkFence).toMatchObject({
       idempotencyKey: expect.stringMatching(/^alpha2_effect_[a-f0-9]{64}$/),
-      generation: 1,
+      generation: 2,
       attemptToken: expect.stringContaining("delivery-sink"),
       activeAt: "2026-08-23T20:00:00.000Z",
     });

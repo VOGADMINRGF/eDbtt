@@ -597,6 +597,25 @@ export function assertAlpha2RunEvolution(
   existing: Alpha2RunRecord,
   incoming: Alpha2RunRecord,
 ) {
+  if (existing.kind !== incoming.kind) {
+    throw new Error("alpha2_run_kind_is_immutable");
+  }
+  if (existing.riskClass !== incoming.riskClass) {
+    throw new Error("alpha2_risk_class_is_immutable");
+  }
+  if (!sameLifecycleValue(existing.budget, incoming.budget)) {
+    throw new Error("alpha2_budget_is_immutable");
+  }
+  if (!sameLifecycleValue(existing.route, incoming.route)) {
+    throw new Error("alpha2_route_is_immutable");
+  }
+  if (
+    existing.primaryRole !== incoming.primaryRole ||
+    !sameLifecycleValue(existing.supportingRoles, incoming.supportingRoles)
+  ) {
+    throw new Error("alpha2_role_assignments_are_immutable");
+  }
+
   if (existing.status !== incoming.status) {
     assertAlpha2RunTransition(existing.status, incoming.status);
   }
@@ -770,13 +789,22 @@ export function assertAlpha2RunEvolution(
   if (incoming.preExecutorResumeMode) {
     const markerUnchanged =
       incoming.preExecutorResumeMode === existing.preExecutorResumeMode;
+    const reservesNormalExecutorEntry =
+      incoming.status === "running" &&
+      incoming.humanGate.state === "not_required" &&
+      gateUnchanged &&
+      historyUnchanged &&
+      ((existing.status === "queued" &&
+        incoming.preExecutorResumeMode === "start_new_attempt") ||
+        (existing.status === "waiting" &&
+          incoming.preExecutorResumeMode === "resume_attempt"));
     const consumedApprovedResume =
       existing.status === "running" &&
       existing.humanGate.state === "approved" &&
       incoming.humanGate.state === "not_required" &&
       incoming.preExecutorResumeMode === existing.humanGate.resumeMode &&
       archivesCurrentGate;
-    if (!markerUnchanged && !consumedApprovedResume) {
+    if (!markerUnchanged && !reservesNormalExecutorEntry && !consumedApprovedResume) {
       throw new Error("alpha2_pre_executor_resume_marker_invalid");
     }
   } else if (existing.preExecutorResumeMode) {

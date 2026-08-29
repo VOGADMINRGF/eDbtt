@@ -564,11 +564,16 @@ async function moveToRunning(input: {
   }
 
   if (run.status === "queued" || run.status === "waiting") {
+    const preExecutorResumeMode =
+      run.status === "queued" ? ("start_new_attempt" as const) : ("resume_attempt" as const);
     const initializeWallClock =
       run.status === "queued" && !run.startedAt
         ? { maxWallClockMs: run.budget.maxWallClockMs }
         : undefined;
-    run = transitionAlpha2Run(current.run, "running", { now: input.now });
+    run = Alpha2RunRecordSchema.parse({
+      ...transitionAlpha2Run(current.run, "running", { now: input.now }),
+      preExecutorResumeMode,
+    });
     current = await save(input.ledger, current, run, {
       owner: input.leaseOwner,
       now: input.now,
@@ -784,14 +789,18 @@ function startLeaseHeartbeat(input: {
   runId: string;
   leaseOwner: string;
   leaseMs: number;
-  onLost?: () => void;
+  expectedGeneration: () => number;
+  expectedHumanGateState: () => Alpha2RunRecord["humanGate"]["state"];
+  onLost?: (reason: string) => void;
 }) {
   let lost = false;
+  let lossReason = "alpha2_ledger_lease_lost";
   let pending: Promise<Alpha2VersionedRun | null> | null = null;
-  const markLost = () => {
+  const markLost = (reason = "alpha2_ledger_lease_lost") => {
     if (lost) return;
     lost = true;
-    input.onLost?.();
+    lossReason = reason;
+    input.onLost?.(reason);
   };
   const renew = () => {
     if (pending) return pending;
@@ -803,7 +812,18 @@ function startLeaseHeartbeat(input: {
         leaseMs: input.leaseMs,
       })
       .then((renewed) => {
-        if (!renewed) markLost();
+        if (!renewed?.lease) {
+          markLost();
+          return null;
+        }
+        if (
+          renewed.version !== input.expectedGeneration() ||
+          renewed.run.status !== "running" ||
+          renewed.run.humanGate.state !== input.expectedHumanGateState()
+        ) {
+          markLost("alpha2_execution_fence_invalid");
+          return null;
+        }
         return renewed;
       })
       .catch(() => {
@@ -821,7 +841,7 @@ function startLeaseHeartbeat(input: {
   return {
     async assertActive() {
       const renewed = await renew();
-      if (lost || !renewed?.lease) throw new Error("alpha2_ledger_lease_lost");
+      if (lost || !renewed?.lease) throw new Error(lossReason);
       return new Date(Date.parse(renewed.lease.expiresAt) - input.leaseMs).toISOString();
     },
     async stopAndVerify(now: string) {
@@ -836,7 +856,7 @@ function startLeaseHeartbeat(input: {
         });
         if (!renewed) markLost();
       }
-      if (lost) throw new Error("alpha2_ledger_lease_lost");
+      if (lost) throw new Error(lossReason);
     },
     stop() {
       clearInterval(timer);
@@ -861,7 +881,6 @@ async function executeWithinWallClockBudget(input: {
   now: string;
   controller: AbortController;
   fence: Alpha2ExecutionFence;
-  onExecutorEntered?: () => Promise<void>;
 }): Promise<Alpha2WorkerOutcome> {
   const validateOutcome = (outcome: unknown): Alpha2WorkerOutcome => {
     const parsed = Alpha2WorkerOutcomeSchema.safeParse(outcome);
@@ -915,7 +934,6 @@ async function executeWithinWallClockBudget(input: {
   const execution = invocationThrew
     ? Promise.resolve(executorFailure(input.run, invocationError))
     : Promise.resolve(invocation).catch((error: unknown) => executorFailure(input.run, error));
-  await input.onExecutorEntered?.();
   if (remainingMs === undefined) return validateOutcome(await execution);
 
   const timeoutOutcome: Alpha2WorkerOutcome = {
@@ -1122,12 +1140,16 @@ export async function runAlpha2DurableStep(input: {
     });
     if (start.exhausted) return { state: "attempts_exhausted", run: start.current.run };
     const executionController = new AbortController();
+    let executionGeneration = start.current.version;
+    let executionHumanGateState = start.current.run.humanGate.state;
     const heartbeat = startLeaseHeartbeat({
       ledger: input.ledger,
       runId: input.runId,
       leaseOwner,
       leaseMs,
-      onLost: () => executionController.abort("alpha2_ledger_lease_lost"),
+      expectedGeneration: () => executionGeneration,
+      expectedHumanGateState: () => executionHumanGateState,
+      onLost: (reason) => executionController.abort(reason),
     });
     const executionFence: Alpha2ExecutionFence = {
       token: leaseOwner,
@@ -1205,6 +1227,8 @@ export async function runAlpha2DurableStep(input: {
             : undefined,
         );
         executionFence.generation = executionCurrent.version;
+        executionGeneration = executionCurrent.version;
+        executionHumanGateState = executionCurrent.run.humanGate.state;
         executionNow = await executionFence.assertActive();
         freshGateDecision = executionGateDecision(executionCurrent.run, authorization, {
           currentHeadSha: input.currentHeadSha,
@@ -1230,6 +1254,28 @@ export async function runAlpha2DurableStep(input: {
         }
       }
 
+      if (!executionCurrent.run.preExecutorResumeMode) {
+        throw new Error("alpha2_pre_executor_resume_marker_missing");
+      }
+      try {
+        executionNow = await executionFence.assertActive();
+        const entered = markAlpha2ExecutorEntered(executionCurrent.run, {
+          now: executionNow,
+        });
+        executionCurrent = await save(
+          input.ledger,
+          executionCurrent,
+          entered,
+          { owner: leaseOwner, now: executionNow },
+        );
+      } catch (error: unknown) {
+        executionController.abort("alpha2_executor_entry_persistence_failed");
+        throw error;
+      }
+      executionFence.generation = executionCurrent.version;
+      executionGeneration = executionCurrent.version;
+      executionNow = executionCurrent.run.updatedAt;
+
       const outcome = await executeWithinWallClockBudget({
         run: executionCurrent.run,
         workerId: input.workerId,
@@ -1237,26 +1283,6 @@ export async function runAlpha2DurableStep(input: {
         now: executionNow,
         controller: executionController,
         fence: executionFence,
-        onExecutorEntered: async () => {
-          if (!executionCurrent.run.preExecutorResumeMode) return;
-          try {
-            executionNow = await executionFence.assertActive();
-            const entered = markAlpha2ExecutorEntered(executionCurrent.run, {
-              now: executionNow,
-            });
-            executionCurrent = await save(
-              input.ledger,
-              executionCurrent,
-              entered,
-              { owner: leaseOwner, now: executionNow },
-            );
-          } catch (error: unknown) {
-            executionController.abort("alpha2_executor_entry_persistence_failed");
-            throw error;
-          }
-          executionFence.generation = executionCurrent.version;
-          executionNow = executionCurrent.run.updatedAt;
-        },
       });
       const outcomeAt = await heartbeat.assertActive();
       const persisted = await persistOutcomeWithRetry({
