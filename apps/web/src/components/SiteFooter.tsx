@@ -128,8 +128,8 @@ export default function SiteFooter() {
             links={info}
           />
           <FooterNav
-            title={t("Mitmachen", "nav.platform")}
-            ariaLabel={t("Footer Navigation: Mitmachen", "aria.platform")}
+            title={t("Auf eDebatte", "nav.platform")}
+            ariaLabel={t("Footer Navigation: Auf eDebatte", "aria.platform")}
             links={platform}
           />
           <FooterNav
