@@ -13,7 +13,7 @@ vi.mock("next/image", () => ({
 }));
 
 describe("start CTA immediate navigation contract", () => {
-  it("renders the conversion CTAs as direct links to the existing create entry", () => {
+  it("renders participation and creator CTAs as direct links", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <LandingStart />
@@ -21,7 +21,7 @@ describe("start CTA immediate navigation contract", () => {
     );
 
     expect((html.match(/href="\/runden\/new\?gtm=1/g) ?? []).length).toBeGreaterThan(1);
-    expect((html.match(/href="\/swipes"/g) ?? []).length).toBe(1);
+    expect((html.match(/href="\/swipes"/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(html).toContain("<button");
     expect(html).not.toContain("disabled");
     expect(html).not.toContain("aria-busy");
@@ -38,7 +38,6 @@ describe("start CTA immediate navigation contract", () => {
     );
 
     expect(landingSource).not.toContain("useRouter");
-    expect(splitLandingSource).not.toContain("useRouter");
     expect(splitLandingSource).not.toContain("useRouter");
     expect(splitLandingSource).not.toContain("onSubmit");
     expect(splitLandingSource).not.toContain("startBusy");
