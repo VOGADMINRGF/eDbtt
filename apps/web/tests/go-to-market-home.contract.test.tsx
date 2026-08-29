@@ -15,28 +15,26 @@ vi.mock("@/context/LocaleContext", () => ({
 }));
 
 describe("GO-TO-MARKET-01 homepage contract", () => {
-  it("renders the complete public conversion journey without internal product terms", () => {
+  it("renders the simple public entry journey without internal product terms", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Direkt ausprobieren");
-    expect(html).toContain("Vereine");
-    expect(html).toContain("Bürgerinitiativen &amp; lokale Gruppen");
-    expect(html).toContain("Verbände &amp; Netzwerke");
-    expect(html).toContain("Organisationen &amp; Kommunen");
-    expect(html).toContain("Frage stellen");
-    expect(html).toContain("Link teilen");
-    expect(html).toContain("Positionen verstehen");
-    expect(html).toContain("Mehr als ein Prozentwert");
+    expect(html).toContain("Eine Frage. Viele Perspektiven. Ein klareres Bild.");
+    expect(html).toContain("Mitmachen");
+    expect(html).toContain("Etwas starten");
+    expect(html).toContain("Schnell deine Meinung abgeben");
+    expect(html).toContain("Eine eigene Frage öffnen");
+    expect(html).toContain("direkt ausprobieren");
+    expect(html).toContain("Nicht nur Antworten sammeln");
     expect(html).toContain("Kostenlos starten");
-    expect(html).toContain("Keine automatische Veröffentlichung");
-    expect(html).toContain("KI unterstützt gekennzeichnet und entscheidet nicht autonom");
+    expect(html).toContain("Nichts geht automatisch online");
+    expect(html).toContain("Voxy bleibt optional");
     expect(html).not.toContain("Anlassraum");
-    expect(html).not.toContain("Dossier");
     expect(html).not.toContain("Orchestrator");
     expect(html).not.toContain("Review-first");
+    expect(html).not.toContain("Analysefortschritt");
   });
 
-  it("keeps the free guideline and templates in one truthful configuration", () => {
+  it("keeps the free guideline and broadly usable templates in one truthful configuration", () => {
     expect(GO_TO_MARKET_PACKAGING).toMatchObject({
       freeParticipantGuideline: 30,
       freeUseIsAvailable: true,
@@ -45,12 +43,13 @@ describe("GO-TO-MARKET-01 homepage contract", () => {
       publishedPricesAreAvailable: false,
     });
     expect(GO_TO_MARKET_TEMPLATES).toHaveLength(5);
+    expect(GO_TO_MARKET_TEMPLATES[0]?.title.de).toBe("Prioritäten gemeinsam klären");
     expect(buildFreeBallotStartHref("member-priorities")).toBe(
       "/runden/new?gtm=1&source=homepage&template=member-priorities",
     );
   });
 
-  it("connects homepage and swipe participation to the existing draft-first create route", () => {
+  it("connects homepage and swipe participation to the existing question-first start flow", () => {
     const landingSource = readFileSync(
       resolve(process.cwd(), "src/features/home/HomeGoToMarketLanding.tsx"),
       "utf8",
@@ -69,6 +68,7 @@ describe("GO-TO-MARKET-01 homepage contract", () => {
     );
 
     expect(landingSource).toContain("buildFreeBallotStartHref");
+    expect(landingSource).toContain('href="/swipes"');
     expect(swipesSource).toContain('buildFreeBallotStartHref(undefined, "swipes-outcome")');
     expect(formSource).toContain("getGoToMarketTemplate");
     expect(prePublishSource).toContain("Kostenlos als Entwurf speichern");
