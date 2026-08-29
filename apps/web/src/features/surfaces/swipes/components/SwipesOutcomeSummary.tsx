@@ -28,18 +28,31 @@ function pickQuestionsToRevisit(history: DecisionHistoryItem[]) {
   return history.slice(-2).reverse();
 }
 
+function buildReflectionHeadline(total: number, topCategories: Array<{ category: string; count: number }>) {
+  const dominant = topCategories[0];
+  if (dominant && dominant.count >= 3 && dominant.count / total >= 0.5) {
+    return `Du hast dir gerade ein Bild zu ${dominant.category} gemacht.`;
+  }
+  const distinctTopics = topCategories.length;
+  if (distinctTopics >= 3) {
+    return `Du hast zu ${total} unterschiedlichen Fragen Stellung genommen.`;
+  }
+  return `Du hast zu ${total} Fragen Stellung genommen.`;
+}
+
 export function SwipesOutcomeSummary({ stats, history, votesHref = "/abstimmungen" }: SwipesOutcomeSummaryProps) {
   const total = stats.agree + stats.neutral + stats.disagree;
   if (total < 5) return null;
 
   const topCategories = pickTopCategories(history);
   const revisit = pickQuestionsToRevisit(history);
+  const headline = buildReflectionHeadline(total, topCategories);
 
   return (
     <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm md:p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Kurzer Zwischenstand</p>
-      <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">Du hast zu {total} Fragen Stellung genommen.</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">Du kannst direkt weitermachen oder kurz ansehen, welche Themen du gerade berührt hast und wo du noch offen bist.</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Wenn du kurz zurückblicken möchtest</p>
+      <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">{headline}</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">Der Feed läuft einfach weiter. Diese Übersicht bleibt nur als freiwilliger Zwischenblick hier stehen.</p>
 
       {topCategories.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
