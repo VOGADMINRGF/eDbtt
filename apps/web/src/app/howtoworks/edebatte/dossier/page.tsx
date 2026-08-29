@@ -5,6 +5,7 @@ import { useLocale } from "@/context/LocaleContext";
 import { useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 
 const CARD = "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm";
+const CONTRIBUTION_HREF = "/create?mode=source&intent=contribution&entryIntent=content_companion&entryMode=direct";
 
 export default function DossierPage() {
   const { locale } = useLocale();
@@ -33,7 +34,7 @@ export default function DossierPage() {
             {tr("Ein Dossier bündelt den aktuellen Stand zu einer Frage. Es zeigt Quellen, Erfahrungen, unterschiedliche Sichtweisen und offene Punkte, damit du nachvollziehen und gezielt ergänzen kannst.", "A dossier brings together the current state of a question. It shows sources, experiences, different perspectives and open points so you can understand and contribute where needed.", "hero.lead")}
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/create?intent=contribute" className="btn btn-primary">{tr("Etwas beitragen", "Contribute", "cta.contribute")}</Link>
+            <Link href={CONTRIBUTION_HREF} className="btn btn-primary">{tr("Etwas beitragen", "Contribute", "cta.contribute")}</Link>
             <Link href="/howtoworks/edebatte" className="btn btn-ghost">{tr("So funktioniert eDebatte", "How eDebatte works", "cta.how")}</Link>
           </div>
         </header>
@@ -62,8 +63,8 @@ export default function DossierPage() {
               {tr("Dann soll die nächste Handlung klar sein: Quelle hinzufügen, Erfahrung beitragen, offene Frage beantworten, Alternative ergänzen oder auf einen möglichen Fehler hinweisen. Dafür brauchst du keine Fachsprache über interne Prozesse.", "Then the next action should be clear: add a source, share experience, answer an open question, add an alternative or flag a possible error. You should not need internal process jargon to do that.", "gap.body")}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/create?intent=contribute" className="btn btn-primary">{tr("Quelle oder Beitrag ergänzen", "Add source or contribution", "gap.cta")}</Link>
-              <Link href="/login" className="btn btn-ghost">{tr("Anmelden", "Sign in", "gap.login")}</Link>
+              <Link href={CONTRIBUTION_HREF} className="btn btn-primary">{tr("Quelle oder Beitrag ergänzen", "Add source or contribution", "gap.cta")}</Link>
+              <Link href={`/login?next=${encodeURIComponent(CONTRIBUTION_HREF)}`} className="btn btn-ghost">{tr("Anmelden & hier weitermachen", "Sign in and continue here", "gap.login")}</Link>
             </div>
           </article>
           <article className={CARD}>
