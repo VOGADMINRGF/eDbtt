@@ -1141,10 +1141,27 @@ export async function runAlpha2DurableStep(input: {
       authorizationLease.run.status === "running" &&
       approvedResumeMode !== "recover_abandoned_attempt";
     const chargeApprovedAttempt = approvedResumeMode === "start_new_attempt";
+    const abandonedRecoveryGateRef =
+      approvedHumanGateRef &&
+      authorizationLease.run.status === "running" &&
+      approvedResumeMode === "recover_abandoned_attempt"
+        ? approvedHumanGateRef
+        : undefined;
+    const startLease = abandonedRecoveryGateRef
+      ? await save(
+          input.ledger,
+          authorizationLease,
+          consumeAlpha2HumanGateApproval(authorizationLease.run, {
+            gateRef: abandonedRecoveryGateRef,
+            now: authorizationNow,
+          }),
+          { owner: leaseOwner, now: authorizationNow },
+        )
+      : authorizationLease;
 
     const start = await moveToRunning({
       ledger: input.ledger,
-      leased: authorizationLease,
+      leased: startLease,
       now: authorizationNow,
       leaseOwner,
       approvedResume,
@@ -1256,7 +1273,7 @@ export async function runAlpha2DurableStep(input: {
         };
       }
 
-      if (approvedHumanGateRef || manualResumeApproval) {
+      if ((approvedHumanGateRef || manualResumeApproval) && !abandonedRecoveryGateRef) {
         const consumed = approvedHumanGateRef
           ? consumeAlpha2HumanGateApproval(executionCurrent.run, {
               gateRef: approvedHumanGateRef,
@@ -1267,7 +1284,7 @@ export async function runAlpha2DurableStep(input: {
           executionCurrent,
           consumed,
           executionNow,
-          chargeApprovedAttempt
+          chargeApprovedAttempt && executionCurrent.run.attempt === 0
             ? { maxWallClockMs: consumed.budget.maxWallClockMs }
             : undefined,
         );

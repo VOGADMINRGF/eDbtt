@@ -516,7 +516,7 @@ export function transitionAlpha2Run(
     }
   }
 
-  if (run.status === "review" && to === "running") {
+  if (run.status === "review" && ["running", "completed"].includes(to)) {
     if (nextHumanGate.state !== "approved") {
       throw new Error("alpha2_review_exit_requires_approval");
     }
@@ -663,16 +663,17 @@ export function assertAlpha2RunEvolution(
     (existing.attempt === 0 ? "start_new_attempt" : "resume_attempt");
   const addsAuditedReviewApproval =
     existing.status === "review" &&
-    incoming.status === "running" &&
+    ["running", "completed"].includes(incoming.status) &&
     existing.humanGate.state === "not_required" &&
     incoming.humanGate.state === "approved" &&
-    incoming.humanGate.resumeMode === expectedReviewResumeMode &&
+    (incoming.status === "completed" ||
+      incoming.humanGate.resumeMode === expectedReviewResumeMode) &&
     Boolean(incoming.humanGate.decisionRef) &&
     Boolean(incoming.humanGate.decidedAt) &&
     historyUnchanged;
   const retainsAuditedReviewApproval =
     existing.status === "review" &&
-    incoming.status === "running" &&
+    ["running", "completed"].includes(incoming.status) &&
     existing.humanGate.state === "approved" &&
     gateUnchanged &&
     historyUnchanged &&
@@ -683,7 +684,7 @@ export function assertAlpha2RunEvolution(
 
   if (
     existing.status === "review" &&
-    incoming.status === "running" &&
+    ["running", "completed"].includes(incoming.status) &&
     !auditedReviewExit
   ) {
     throw new Error("alpha2_review_exit_requires_audited_approval");

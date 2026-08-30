@@ -251,6 +251,24 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
     expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
   });
 
+  it("rejects wall-clock initialization that exceeds the immutable run budget", async () => {
+    const queued = policyRun();
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(queued, 0));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({
+        run: running,
+        expectedVersion: 0,
+        initializeWallClock: { maxWallClockMs: 120_000 },
+      }),
+    ).rejects.toThrow("alpha2_wall_clock_budget_mismatch");
+    expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it("preserves the approved first-attempt lifecycle while deriving its budget server-side", async () => {
     const queued = policyRun();
     const gated = transitionAlpha2Run(queued, "human_gate", {
@@ -311,7 +329,7 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
       ledger.compareAndSwap({
         run: running,
         expectedVersion: 1,
-        initializeWallClock: { maxWallClockMs: 120_000 },
+        initializeWallClock: { maxWallClockMs: 60_000 },
       }),
     ).rejects.toThrow("alpha2_started_at_is_immutable");
     expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();

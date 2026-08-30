@@ -134,6 +134,9 @@ function assertWallClockCasBoundary(
   initializeWallClock?: { maxWallClockMs?: number },
 ) {
   if (initializeWallClock) {
+    if (initializeWallClock.maxWallClockMs !== incoming.budget.maxWallClockMs) {
+      throw new Error("alpha2_wall_clock_budget_mismatch");
+    }
     const consumesApprovedFirstAttempt =
       existing.status === "running" &&
       existing.humanGate.state === "approved" &&

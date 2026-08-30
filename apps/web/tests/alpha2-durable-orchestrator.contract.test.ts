@@ -679,6 +679,174 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
     );
   });
 
+  it("keeps the run-wide wall-clock window unchanged across an approved retry", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const queued = createAlpha2RunRecord({
+      runId: "run-approved-retry-wall-clock",
+      idempotencyKey: "idem-run-approved-retry-wall-clock",
+      taskId: "ALPHA2-TEST-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "test" },
+      budget: { maxAttempts: 3, maxWallClockMs: 3_600_000 },
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const running = Alpha2RunRecordSchema.parse({
+      ...transitionAlpha2Run(queued, "running", {
+        now: "2026-08-23T20:00:00.000Z",
+      }),
+      wallClockDeadlineAt: "2026-08-23T21:00:00.000Z",
+    });
+    const failed = transitionAlpha2Run(running, "failed", {
+      now: "2026-08-23T20:05:00.000Z",
+      errorCode: "alpha2_retry_requires_approval",
+      resumeAt: "2026-08-23T20:10:00.000Z",
+    });
+    const retryQueued = transitionAlpha2Run(failed, "queued", {
+      now: "2026-08-23T20:10:00.000Z",
+    });
+    const gated = transitionAlpha2Run(retryQueued, "human_gate", {
+      now: "2026-08-23T20:10:00.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "retry_requires_approval",
+        gateRef: "gate:approved-retry-wall-clock",
+        resumeMode: "start_new_attempt",
+      },
+    });
+    const approved = transitionAlpha2Run(gated, "running", {
+      now: "2026-08-23T20:10:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: gated.humanGate.reason,
+        gateRef: gated.humanGate.gateRef,
+        resumeMode: "start_new_attempt",
+        decisionRef: "human:approved-retry-wall-clock",
+        decidedAt: "2026-08-23T20:10:00.000Z",
+      },
+    });
+    ledger.seed(approved);
+    let executorClock:
+      | { startedAt: string | undefined; wallClockDeadlineAt: string | undefined }
+      | undefined;
+
+    const result = await runAlpha2DurableStep({
+      runId: queued.runId,
+      workerId: "worker-approved-retry-wall-clock",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute({ run }) {
+          executorClock = {
+            startedAt: run.startedAt,
+            wallClockDeadlineAt: run.wallClockDeadlineAt,
+          };
+          return { type: "completed", checkpointId: "cp-approved-retry-wall-clock" };
+        },
+      },
+      now: "2026-08-23T20:10:00.000Z",
+    });
+
+    expect(result.state).toBe("executed");
+    expect(executorClock).toEqual({
+      startedAt: "2026-08-23T20:00:00.000Z",
+      wallClockDeadlineAt: "2026-08-23T21:00:00.000Z",
+    });
+    if (result.state !== "executed") throw new Error("unexpected state");
+    expect(result.run.startedAt).toBe("2026-08-23T20:00:00.000Z");
+    expect(result.run.wallClockDeadlineAt).toBe("2026-08-23T21:00:00.000Z");
+    expect(result.run.attempt).toBe(2);
+  });
+
+  it("consumes abandoned-recovery approval before requeue and cannot replay it", async () => {
+    const ledger = new FakeLedger();
+    const dispatcher = new FakeDispatcher();
+    const queued = run("run-approved-abandoned-recovery");
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-08-23T20:00:00.000Z",
+    });
+    const gated = transitionAlpha2Run(running, "human_gate", {
+      now: "2026-08-23T20:05:00.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "abandoned_attempt_requires_approval",
+        gateRef: "gate:recover-abandoned-attempt",
+        resumeMode: "recover_abandoned_attempt",
+      },
+    });
+    const approved = transitionAlpha2Run(gated, "running", {
+      now: "2026-08-23T20:10:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: gated.humanGate.reason,
+        gateRef: gated.humanGate.gateRef,
+        resumeMode: "recover_abandoned_attempt",
+        decisionRef: "human:recover-abandoned-attempt",
+        decidedAt: "2026-08-23T20:10:00.000Z",
+      },
+    });
+    ledger.seed(approved);
+    const persistedRuns: Alpha2RunRecord[] = [];
+    const compareAndSwap = ledger.compareAndSwap.bind(ledger);
+    ledger.compareAndSwap = async (input) => {
+      persistedRuns.push(input.run);
+      return compareAndSwap(input);
+    };
+    let executorStarts = 0;
+
+    const first = await runAlpha2DurableStep({
+      runId: queued.runId,
+      workerId: "worker-approved-abandoned-recovery",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executorStarts += 1;
+          return { type: "completed", checkpointId: "cp-approved-abandoned-recovery" };
+        },
+      },
+      now: "2026-08-23T20:10:00.000Z",
+    });
+
+    const consumedIndex = persistedRuns.findIndex(
+      (entry) =>
+        entry.humanGate.state === "not_required" &&
+        entry.humanGateHistory.some(
+          (gate) => gate.decisionRef === "human:recover-abandoned-attempt",
+        ),
+    );
+    const requeueIndex = persistedRuns.findIndex((entry) => entry.status === "queued");
+    expect(consumedIndex).toBeGreaterThanOrEqual(0);
+    expect(requeueIndex).toBeGreaterThan(consumedIndex);
+    expect(persistedRuns[requeueIndex]?.humanGate.state).toBe("not_required");
+    expect(first.state).toBe("executed");
+    expect(executorStarts).toBe(1);
+    if (first.state !== "executed") throw new Error("unexpected state");
+    expect(first.run.humanGateHistory).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ decisionRef: "human:recover-abandoned-attempt" }),
+      ]),
+    );
+
+    const replay = await runAlpha2DurableStep({
+      runId: queued.runId,
+      workerId: "worker-approved-abandoned-recovery-replay",
+      ledger,
+      dispatcher,
+      executor: {
+        async execute() {
+          executorStarts += 1;
+          return { type: "completed", checkpointId: "must-not-replay-approval" };
+        },
+      },
+      now: "2026-08-23T20:11:00.000Z",
+    });
+    expect(replay.state).toBe("terminal");
+    expect(executorStarts).toBe(1);
+  });
+
   it("recovers an approved resume crash before executor entry without charging abandonment", async () => {
     const ledger = new FakeLedger();
     const dispatcher = new FakeDispatcher();

@@ -178,6 +178,64 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
     expect(() => assertAlpha2RunEvolution(reviewed, approved)).not.toThrow();
   });
 
+  it("requires an audited human decision before review completes", () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-reviewed-completion",
+      idempotencyKey: "reviewed-completion-key",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+    const reviewed = transitionAlpha2Run(queued, "review", {
+      now: "2026-08-23T21:01:00.000Z",
+    });
+
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-08-23T21:02:00.000Z",
+      }),
+    ).toThrow("alpha2_review_exit_requires_approval");
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-08-23T21:02:00.000Z",
+        humanGate: {
+          state: "approved",
+          decisionRef: "decision:review-completed",
+        },
+      }),
+    ).toThrow("alpha2_review_exit_requires_audited_approval");
+
+    const directBypass = Alpha2RunRecordSchema.parse({
+      ...reviewed,
+      status: "completed",
+      finishedAt: "2026-08-23T21:02:00.000Z",
+    });
+    expect(() => assertAlpha2RunEvolution(reviewed, directBypass)).toThrow(
+      "alpha2_review_exit_requires_audited_approval",
+    );
+
+    const approved = transitionAlpha2Run(reviewed, "completed", {
+      now: "2026-08-23T21:02:00.000Z",
+      humanGate: {
+        state: "approved",
+        decisionRef: "decision:review-completed",
+        decidedAt: "2026-08-23T21:02:00.000Z",
+      },
+    });
+    expect(() => assertAlpha2RunEvolution(reviewed, approved)).not.toThrow();
+    expect(approved).toMatchObject({
+      status: "completed",
+      humanGate: {
+        state: "approved",
+        decisionRef: "decision:review-completed",
+        decidedAt: "2026-08-23T21:02:00.000Z",
+      },
+    });
+  });
+
   it("prevents a rejected human gate from resuming through an indirect retry path", () => {
     const queued = createAlpha2RunRecord({
       runId: "run-rejected-retry",
