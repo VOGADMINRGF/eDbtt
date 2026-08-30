@@ -18,7 +18,7 @@ function readSeenIds(raw?: string | null): string[] {
     .slice(-MAX_SEEN_IDS);
 }
 
-function writeSeenCookie(res: NextResponse, ids: string[]) {
+function writeSeenCookie(res: ReturnType<typeof NextResponse.json>, ids: string[]) {
   res.cookies.set(SWIPES_SEEN_COOKIE, ids.slice(-MAX_SEEN_IDS).join(","), {
     httpOnly: true,
     sameSite: "lax",
