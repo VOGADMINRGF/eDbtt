@@ -158,6 +158,42 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
     expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
   });
 
+  it("rejects direct CAS reuse of an older gate approval for review completion", async () => {
+    const queued = policyRun();
+    const gated = transitionAlpha2Run(queued, "human_gate", {
+      now: "2026-08-23T20:00:30.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "approve entering review",
+        gateRef: "gate:enter-review",
+      },
+    });
+    const reviewed = transitionAlpha2Run(gated, "review", {
+      now: "2026-08-23T20:01:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: "approve entering review",
+        gateRef: "gate:enter-review",
+        resumeMode: "start_new_attempt",
+        decisionRef: "decision:enter-review",
+        decidedAt: "2026-08-23T20:00:45.000Z",
+      },
+    });
+    const directCompletion = Alpha2RunRecordSchema.parse({
+      ...reviewed,
+      status: "completed",
+      updatedAt: "2026-08-23T20:02:00.000Z",
+      finishedAt: "2026-08-23T20:02:00.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(reviewed, 1));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({ run: directCompletion, expectedVersion: 1 }),
+    ).rejects.toThrow("alpha2_review_completion_requires_bound_approval");
+    expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it("rejects direct CAS changes to startedAt and wallClockDeadlineAt", async () => {
     const queued = policyRun();
     const running = Alpha2RunRecordSchema.parse({

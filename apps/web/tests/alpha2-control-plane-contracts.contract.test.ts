@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   Alpha2RunRecordSchema,
+  alpha2ReviewCompletionGateRef,
   appendAlpha2Checkpoint,
   assertAlpha2RunEvolution,
   createAlpha2RunRecord,
@@ -171,6 +172,7 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       now: "2026-08-23T21:02:00.000Z",
       humanGate: {
         state: "approved",
+        resumeMode: "start_new_attempt",
         decisionRef: "decision:review-approved",
         decidedAt: "2026-08-23T21:02:00.000Z",
       },
@@ -178,7 +180,7 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
     expect(() => assertAlpha2RunEvolution(reviewed, approved)).not.toThrow();
   });
 
-  it("requires an audited human decision before review completes", () => {
+  it("requires a current completion-bound human decision before review completes", () => {
     const queued = createAlpha2RunRecord({
       runId: "run-reviewed-completion",
       idempotencyKey: "reviewed-completion-key",
@@ -203,10 +205,33 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
         now: "2026-08-23T21:02:00.000Z",
         humanGate: {
           state: "approved",
+          gateRef: "gate:enter-review",
+          reason: "approve entering review",
+          decisionRef: "decision:enter-review",
+          decidedAt: "2026-08-23T21:02:00.000Z",
+        },
+      }),
+    ).toThrow("alpha2_review_completion_requires_bound_approval");
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-08-23T21:02:00.000Z",
+        humanGate: {
+          state: "approved",
           decisionRef: "decision:review-completed",
         },
       }),
     ).toThrow("alpha2_review_exit_requires_audited_approval");
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-08-23T21:02:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewCompletionGateRef(reviewed),
+          decisionRef: "decision:stale-review-completion",
+          decidedAt: "2026-08-23T21:00:59.000Z",
+        },
+      }),
+    ).toThrow("alpha2_review_completion_requires_bound_approval");
 
     const directBypass = Alpha2RunRecordSchema.parse({
       ...reviewed,
@@ -221,6 +246,7 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       now: "2026-08-23T21:02:00.000Z",
       humanGate: {
         state: "approved",
+        gateRef: alpha2ReviewCompletionGateRef(reviewed),
         decisionRef: "decision:review-completed",
         decidedAt: "2026-08-23T21:02:00.000Z",
       },
@@ -230,10 +256,51 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       status: "completed",
       humanGate: {
         state: "approved",
+        gateRef: alpha2ReviewCompletionGateRef(reviewed),
         decisionRef: "decision:review-completed",
         decidedAt: "2026-08-23T21:02:00.000Z",
       },
     });
+  });
+
+  it("does not reuse approval that predates entry into the current review", () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-old-review-approval",
+      idempotencyKey: "old-review-approval-key",
+      taskId: "ALPHA2-RUN-CONTRACT-01",
+      kind: "engineering_slice",
+      primaryRole: "governance_compliance",
+      riskClass: "green",
+      route: { mode: "automatic", capabilityClass: "engineering_contract" },
+      now: NOW,
+    });
+    const gated = transitionAlpha2Run(queued, "human_gate", {
+      now: "2026-08-23T21:00:30.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "approve prior review completion",
+        gateRef:
+          "alpha2:review-completion:run-old-review-approval:2026-08-23T21:00:00.000Z",
+      },
+    });
+    const reviewed = transitionAlpha2Run(gated, "review", {
+      now: "2026-08-23T21:01:00.000Z",
+      humanGate: {
+        state: "approved",
+        reason: "approve prior review completion",
+        gateRef:
+          "alpha2:review-completion:run-old-review-approval:2026-08-23T21:00:00.000Z",
+        resumeMode: "start_new_attempt",
+        decisionRef: "decision:prior-review-completion",
+        decidedAt: "2026-08-23T21:00:45.000Z",
+      },
+    });
+
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-08-23T21:02:00.000Z",
+      }),
+    ).toThrow("alpha2_review_completion_requires_bound_approval");
   });
 
   it("prevents a rejected human gate from resuming through an indirect retry path", () => {
