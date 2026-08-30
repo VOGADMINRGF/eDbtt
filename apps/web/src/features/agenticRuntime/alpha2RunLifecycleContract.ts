@@ -244,8 +244,14 @@ export type Alpha2HumanGate = z.infer<typeof Alpha2HumanGateSchema>;
 export type Alpha2Checkpoint = z.infer<typeof Alpha2CheckpointSchema>;
 export type Alpha2RunRecord = z.infer<typeof Alpha2RunRecordSchema>;
 
+type Alpha2ReviewCompletionState = {
+  runId: string;
+  status: Alpha2RunStatus;
+  updatedAt: string;
+};
+
 export function alpha2ReviewCompletionGateRef(
-  run: Pick<Alpha2RunRecord, "runId" | "status" | "updatedAt">,
+  run: Alpha2ReviewCompletionState,
 ): string {
   if (run.status !== "review") {
     throw new Error("alpha2_review_completion_gate_requires_review");
@@ -254,7 +260,7 @@ export function alpha2ReviewCompletionGateRef(
 }
 
 function hasBoundAlpha2ReviewCompletionApproval(
-  run: Pick<Alpha2RunRecord, "runId" | "status" | "updatedAt">,
+  run: Alpha2ReviewCompletionState,
   humanGate: Alpha2HumanGate,
 ) {
   return (
