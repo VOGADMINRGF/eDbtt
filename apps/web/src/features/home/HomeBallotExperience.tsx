@@ -4,20 +4,73 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { useLocale } from "@/context/LocaleContext";
+import type { SupportedLocale } from "@/config/locales";
 import { buildFreeBallotStartHref } from "@features/pricing/goToMarketPackaging";
 
-const CHOICES = [
-  { id: "equipment", de: "Ausstattung verbessern", en: "Improve equipment" },
-  { id: "project", de: "Gemeinsames Projekt starten", en: "Start a shared project" },
-  { id: "reach", de: "Mehr Menschen erreichen", en: "Reach more people" },
-] as const;
+type DemoCopy = {
+  eyebrow: string;
+  question: string;
+  intro: string;
+  answers: [string, string, string, string];
+  choose: string;
+  difference: string;
+  position: string;
+  followup: string;
+  placeholder: string;
+  contribute: string;
+  skip: string;
+  explanation: string;
+  ownAnswer: string;
+  why: string;
+  source: string;
+  next: string;
+  noLogin: string;
+  start: string;
+};
+
+const DE: DemoCopy = {
+  eyebrow: "1 Frage · direkt ausprobieren",
+  question: "Wie sehr vertraust du darauf, dass politische Entscheidungen in deinem Land fair und nachvollziehbar getroffen werden?",
+  intro: "Wähle eine Antwort. Danach kannst du sagen, was du als Erstes ändern würdest.",
+  answers: ["Sehr", "Eher", "Wenig", "Gar nicht"],
+  choose: "Antwort auswählen",
+  difference: "Jetzt beginnt der Unterschied",
+  position: "Deine Position",
+  followup: "Was würdest du als Erstes ändern?",
+  placeholder: "Deine Idee …",
+  contribute: "Idee beitragen",
+  skip: "Überspringen",
+  explanation: "Eine Antwort zeigt eine Haltung. Gründe, Erfahrungen, Quellen und eigene Vorschläge zeigen, warum Menschen so denken – und was sich konkret verbessern ließe.",
+  ownAnswer: "eigener Vorschlag",
+  why: "Warum?",
+  source: "Quelle / Erfahrung",
+  next: "gemeinsames Bild",
+  noLogin: "Keine Anmeldung zum Ausprobieren",
+  start: "Eigene Frage starten →",
+};
+
+const TRANSLATIONS: Partial<Record<SupportedLocale, DemoCopy>> = {
+  de: DE,
+  en: { ...DE, eyebrow: "1 question · try it now", question: "How much do you trust that political decisions in your country are made fairly and transparently?", intro: "Choose an answer. Then tell us what you would change first.", answers: ["A lot", "Somewhat", "Little", "Not at all"], choose: "Choose an answer", difference: "This is where the difference begins", position: "Your position", followup: "What would you change first?", placeholder: "Your idea …", contribute: "Contribute idea", skip: "Skip", explanation: "An answer shows a position. Reasons, experiences, sources and your own proposals show why people think this way – and what could concretely improve.", ownAnswer: "own proposal", why: "Why?", source: "Source / experience", next: "shared picture", noLogin: "No sign-up to try", start: "Start your own question →" },
+  fr: { ...DE, eyebrow: "1 question · essayer maintenant", question: "Dans quelle mesure avez-vous confiance dans le fait que les décisions politiques de votre pays sont prises de manière équitable et transparente ?", intro: "Choisissez une réponse. Vous pourrez ensuite dire ce que vous changeriez en premier.", answers: ["Beaucoup", "Plutôt", "Peu", "Pas du tout"], choose: "Choisir une réponse", difference: "C’est ici que la différence commence", position: "Votre position", followup: "Que changeriez-vous en premier ?", placeholder: "Votre idée …", contribute: "Proposer une idée", skip: "Passer", explanation: "Une réponse montre une position. Les raisons, expériences, sources et propositions montrent pourquoi les gens pensent ainsi et ce qui pourrait être amélioré.", ownAnswer: "proposition", why: "Pourquoi ?", source: "Source / expérience", next: "vue d’ensemble", noLogin: "Aucune inscription pour essayer", start: "Lancer votre question →" },
+  es: { ...DE, eyebrow: "1 pregunta · pruébalo ahora", question: "¿Cuánta confianza tienes en que las decisiones políticas de tu país se toman de forma justa y transparente?", intro: "Elige una respuesta. Después puedes decir qué cambiarías primero.", answers: ["Mucha", "Bastante", "Poca", "Ninguna"], choose: "Elegir una respuesta", difference: "Aquí empieza la diferencia", position: "Tu posición", followup: "¿Qué cambiarías primero?", placeholder: "Tu idea …", contribute: "Aportar idea", skip: "Omitir", explanation: "Una respuesta muestra una posición. Las razones, experiencias, fuentes y propuestas muestran por qué pensamos así y qué podría mejorar.", ownAnswer: "propuesta propia", why: "¿Por qué?", source: "Fuente / experiencia", next: "visión común", noLogin: "Sin registro para probar", start: "Iniciar tu pregunta →" },
+  it: { ...DE, eyebrow: "1 domanda · prova subito", question: "Quanto ti fidi che le decisioni politiche nel tuo Paese vengano prese in modo equo e trasparente?", intro: "Scegli una risposta. Poi puoi dire cosa cambieresti per prima cosa.", answers: ["Molto", "Abbastanza", "Poco", "Per niente"], choose: "Scegli una risposta", difference: "Qui inizia la differenza", position: "La tua posizione", followup: "Cosa cambieresti per prima cosa?", placeholder: "La tua idea …", contribute: "Proponi un’idea", skip: "Salta", explanation: "Una risposta mostra una posizione. Ragioni, esperienze, fonti e proposte mostrano perché le persone la pensano così e cosa potrebbe migliorare.", ownAnswer: "proposta", why: "Perché?", source: "Fonte / esperienza", next: "quadro comune", noLogin: "Nessuna registrazione per provare", start: "Avvia la tua domanda →" },
+  nl: { ...DE, eyebrow: "1 vraag · probeer direct", question: "Hoeveel vertrouwen heb je erin dat politieke besluiten in jouw land eerlijk en transparant worden genomen?", intro: "Kies een antwoord. Daarna kun je zeggen wat je als eerste zou veranderen.", answers: ["Veel", "Redelijk", "Weinig", "Helemaal niet"], choose: "Kies een antwoord", difference: "Hier begint het verschil", position: "Jouw positie", followup: "Wat zou je als eerste veranderen?", placeholder: "Jouw idee …", contribute: "Idee bijdragen", skip: "Overslaan", explanation: "Een antwoord toont een standpunt. Redenen, ervaringen, bronnen en voorstellen laten zien waarom mensen zo denken en wat beter kan.", ownAnswer: "eigen voorstel", why: "Waarom?", source: "Bron / ervaring", next: "gezamenlijk beeld", noLogin: "Geen registratie om te proberen", start: "Start je eigen vraag →" },
+  pl: { ...DE, eyebrow: "1 pytanie · wypróbuj teraz", question: "Na ile ufasz, że decyzje polityczne w twoim kraju są podejmowane uczciwie i przejrzyście?", intro: "Wybierz odpowiedź. Potem możesz powiedzieć, co zmienił(a)byś najpierw.", answers: ["Bardzo", "Raczej", "Mało", "Wcale"], choose: "Wybierz odpowiedź", difference: "Tu zaczyna się różnica", position: "Twoje stanowisko", followup: "Co zmienił(a)byś najpierw?", placeholder: "Twój pomysł …", contribute: "Dodaj pomysł", skip: "Pomiń", explanation: "Odpowiedź pokazuje stanowisko. Powody, doświadczenia, źródła i propozycje pokazują, dlaczego ludzie tak myślą i co można poprawić.", ownAnswer: "własna propozycja", why: "Dlaczego?", source: "Źródło / doświadczenie", next: "wspólny obraz", noLogin: "Bez rejestracji, aby wypróbować", start: "Zacznij własne pytanie →" },
+  pt: { ...DE, eyebrow: "1 pergunta · experimente agora", question: "Até que ponto confia que as decisões políticas no seu país são tomadas de forma justa e transparente?", intro: "Escolha uma resposta. Depois pode dizer o que mudaria primeiro.", answers: ["Muito", "Razoavelmente", "Pouco", "Nada"], choose: "Escolher uma resposta", difference: "É aqui que começa a diferença", position: "A sua posição", followup: "O que mudaria primeiro?", placeholder: "A sua ideia …", contribute: "Contribuir com ideia", skip: "Saltar", explanation: "Uma resposta mostra uma posição. Razões, experiências, fontes e propostas mostram por que pensamos assim e o que pode melhorar.", ownAnswer: "proposta própria", why: "Porquê?", source: "Fonte / experiência", next: "visão comum", noLogin: "Sem registo para experimentar", start: "Criar a sua pergunta →" },
+  tr: { ...DE, eyebrow: "1 soru · hemen dene", question: "Ülkenizde siyasi kararların adil ve şeffaf biçimde alındığına ne kadar güveniyorsunuz?", intro: "Bir yanıt seçin. Ardından ilk olarak neyi değiştireceğinizi söyleyebilirsiniz.", answers: ["Çok", "Oldukça", "Az", "Hiç"], choose: "Yanıt seçin", difference: "Fark burada başlıyor", position: "Görüşünüz", followup: "İlk olarak neyi değiştirirdiniz?", placeholder: "Fikriniz …", contribute: "Fikir ekle", skip: "Atla", explanation: "Bir yanıt bir görüşü gösterir. Nedenler, deneyimler, kaynaklar ve öneriler insanların neden böyle düşündüğünü ve neyin iyileşebileceğini gösterir.", ownAnswer: "kendi önerin", why: "Neden?", source: "Kaynak / deneyim", next: "ortak tablo", noLogin: "Denemek için kayıt gerekmez", start: "Kendi sorunu başlat →" },
+  ar: { ...DE, eyebrow: "سؤال واحد · جرّبه الآن", question: "إلى أي مدى تثق بأن القرارات السياسية في بلدك تُتخذ بصورة عادلة وشفافة؟", intro: "اختر إجابة، ثم أخبرنا ما أول شيء ستغيّره.", answers: ["كثيراً", "إلى حد ما", "قليلاً", "لا أثق إطلاقاً"], choose: "اختر إجابة", difference: "هنا يبدأ الاختلاف", position: "موقفك", followup: "ما أول شيء ستغيّره؟", placeholder: "فكرتك …", contribute: "أضف فكرتك", skip: "تخطَّ", explanation: "الإجابة تُظهر موقفاً. الأسباب والتجارب والمصادر والمقترحات توضّح لماذا يفكر الناس بهذه الطريقة وما الذي يمكن تحسينه.", ownAnswer: "اقتراحك", why: "لماذا؟", source: "مصدر / تجربة", next: "صورة مشتركة", noLogin: "لا يلزم التسجيل للتجربة", start: "ابدأ سؤالك →" },
+};
+
+const CHOICE_IDS = ["high", "some", "low", "none"] as const;
 
 export function HomeBallotExperience() {
   const { locale } = useLocale();
-  const language = locale === "de" ? "de" : "en";
+  const copy = TRANSLATIONS[locale] ?? DE;
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [idea, setIdea] = useState("");
   const resultRef = useRef<globalThis.HTMLDivElement>(null);
-  const selected = CHOICES.find((choice) => choice.id === selectedId) ?? null;
+  const selectedIndex = CHOICE_IDS.findIndex((id) => id === selectedId);
 
   useEffect(() => {
     if (selectedId) resultRef.current?.focus();
@@ -26,57 +79,30 @@ export function HomeBallotExperience() {
   return (
     <div className="space-y-4">
       <section aria-labelledby="home-ballot-question" className="relative overflow-hidden rounded-[2.25rem] border border-[color:var(--border)] bg-[color:var(--surface-elevated)] px-5 py-6 shadow-[0_28px_90px_rgba(15,23,42,0.14)] sm:px-8 sm:py-8">
-        <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-[color:var(--muted)]">
-          <span>{language === "de" ? "1 Frage · direkt ausprobieren" : "1 question · try it now"}</span>
-          <span className="text-cyan-600">01</span>
-        </div>
-
-        <h2 id="home-ballot-question" className="mt-5 max-w-3xl text-balance text-2xl font-black leading-tight tracking-[-0.025em] text-[color:var(--foreground)] sm:text-4xl">
-          {language === "de" ? "Wir haben 5.000 € zusätzlich. Was sollten wir zuerst umsetzen?" : "We have an extra €5,000. What should we do first?"}
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-[color:var(--muted)]">
-          {language === "de" ? "Tippe eine Option. Danach siehst du, was eDebatte anders macht." : "Choose one option. Then see what makes eDebatte different."}
-        </p>
-
-        <div className="mt-7 flex flex-wrap gap-2.5" role="group" aria-label={language === "de" ? "Antwort auswählen" : "Choose an answer"}>
-          {CHOICES.map((choice) => {
-            const active = choice.id === selectedId;
-            return (
-              <button key={choice.id} type="button" aria-pressed={active} onClick={() => setSelectedId(choice.id)} className={`rounded-full border px-5 py-3 text-sm font-bold transition ${active ? "border-cyan-500 bg-cyan-500 text-slate-950 shadow-md" : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] hover:border-cyan-400 hover:-translate-y-0.5"}`}>
-                {choice[language]}
-              </button>
-            );
+        <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-[color:var(--muted)]"><span>{copy.eyebrow}</span><span className="text-cyan-600">01</span></div>
+        <h2 id="home-ballot-question" className="mt-5 max-w-4xl text-balance text-2xl font-black leading-tight tracking-[-0.025em] text-[color:var(--foreground)] sm:text-4xl">{copy.question}</h2>
+        <p className="mt-3 text-sm leading-6 text-[color:var(--muted)]">{copy.intro}</p>
+        <div className="mt-7 flex flex-wrap gap-2.5" role="group" aria-label={copy.choose}>
+          {CHOICE_IDS.map((id, index) => {
+            const active = id === selectedId;
+            return <button key={id} type="button" aria-pressed={active} onClick={() => setSelectedId(id)} className={`rounded-full border px-5 py-3 text-sm font-bold transition ${active ? "border-cyan-500 bg-cyan-500 text-slate-950 shadow-md" : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] hover:-translate-y-0.5 hover:border-cyan-400"}`}>{copy.answers[index]}</button>;
           })}
         </div>
-
-        {selected ? (
+        {selectedIndex >= 0 ? (
           <div ref={resultRef} tabIndex={-1} aria-live="polite" className="mt-8 border-t border-[color:var(--border)] pt-6 outline-none">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-600">{language === "de" ? "Jetzt beginnt der Unterschied" : "This is where the difference begins"}</p>
-            <p className="mt-3 text-lg font-black text-[color:var(--foreground)]">{language === "de" ? `Deine Position: ${selected.de}` : `Your position: ${selected.en}`}</p>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--muted)]">
-              {language === "de" ? "Eine klassische Umfrage würde jetzt zählen. eDebatte kann danach öffnen: Fehlt eine bessere Antwort? Warum entscheidest du so? Gibt es eine Erfahrung oder Quelle dazu? Was bleibt offen?" : "A classic survey would count now. eDebatte can go further: is a better answer missing? Why did you choose this? Is there an experience or source behind it? What remains open?"}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-[color:var(--foreground)]">
-              <span>＋ {language === "de" ? "eigene Antwort" : "own answer"}</span>
-              <span>↳ {language === "de" ? "Warum?" : "Why?"}</span>
-              <span>↗ {language === "de" ? "Quelle / Erfahrung" : "Source / experience"}</span>
-              <span>→ {language === "de" ? "nächster Schritt" : "next step"}</span>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-600">{copy.difference}</p>
+            <p className="mt-3 text-lg font-black text-[color:var(--foreground)]">{copy.position}: {copy.answers[selectedIndex]}</p>
+            <label htmlFor="home-ballot-idea" className="mt-5 block text-lg font-black text-[color:var(--foreground)]">{copy.followup}</label>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <input id="home-ballot-idea" value={idea} onChange={(event) => setIdea(event.target.value)} maxLength={500} placeholder={copy.placeholder} className="min-w-0 flex-1 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--foreground)] outline-none focus:border-cyan-500" />
+              <Link href={`/create?mode=source&intent=contribution&entryIntent=content_companion&entryMode=direct&source=homepage-civic-demo&signalTitle=${encodeURIComponent(copy.question)}${idea.trim() ? `&prefill=${encodeURIComponent(idea.trim())}` : ""}`} className="rounded-full bg-cyan-500 px-5 py-3 text-center text-sm font-black text-slate-950 hover:bg-cyan-400">{copy.contribute}</Link>
+              <button type="button" onClick={() => setIdea("")} className="rounded-full border border-[color:var(--border)] px-5 py-3 text-sm font-bold text-[color:var(--foreground)]">{copy.skip}</button>
             </div>
+            <p className="mt-5 max-w-3xl text-sm leading-6 text-[color:var(--muted)]">{copy.explanation}</p>
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-[color:var(--foreground)]"><span>＋ {copy.ownAnswer}</span><span>↳ {copy.why}</span><span>↗ {copy.source}</span><span>→ {copy.next}</span></div>
           </div>
         ) : null}
-
-        <div className="mt-7 flex items-center justify-between gap-4 border-t border-[color:var(--border)] pt-5">
-          <span className="text-xs text-[color:var(--muted)]">{language === "de" ? "Keine Anmeldung zum Ausprobieren" : "No sign-up to try"}</span>
-          <Link href={buildFreeBallotStartHref(undefined, "homepage-ballot")} className="text-sm font-black text-cyan-700 hover:underline dark:text-cyan-300">{language === "de" ? "Eigene Frage starten →" : "Start your own question →"}</Link>
-        </div>
-      </section>
-
-      <section className="grid gap-4 rounded-[1.75rem] border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-5 text-left sm:grid-cols-[auto_1fr] sm:items-center sm:px-7" aria-label={language === "de" ? "Premium Vorschau" : "Premium preview"}>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-xl text-white" aria-hidden="true">↑</div>
-        <div>
-          <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Premium</span><span className="text-xs font-semibold text-[color:var(--muted)]">{language === "de" ? "Dossier statt Frage für Frage" : "Dossier instead of question by question"}</span></div>
-          <p className="mt-1 text-sm leading-6 text-[color:var(--foreground)]">{language === "de" ? "Geplant: Parteiprogramm, Studie, Vereins-, Verbands- oder Unternehmensunterlagen hochladen – eDebatte bereitet daraus mehrere Fragen und mögliche Antworten zur Prüfung vor. Du entscheidest, was davon verwendet wird." : "Planned: upload a party programme, study, association or company documents – eDebatte prepares multiple questions and possible answers for review. You decide what is used."}</p>
-        </div>
+        <div className="mt-7 flex items-center justify-between gap-4 border-t border-[color:var(--border)] pt-5"><span className="text-xs text-[color:var(--muted)]">{copy.noLogin}</span><Link href={buildFreeBallotStartHref(undefined, "homepage-ballot")} className="text-sm font-black text-cyan-700 hover:underline dark:text-cyan-300">{copy.start}</Link></div>
       </section>
     </div>
   );
