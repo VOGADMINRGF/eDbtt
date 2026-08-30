@@ -17,7 +17,7 @@ export const metadata: Metadata = buildPublicPageMetadata({
   path: "/pricing",
   title: "Pakete & Preise · eDebatte",
   description:
-    "Öffentliche Preisübersicht für Einzelpersonen, Journalismus und institutionelle Nutzung mit klaren Review-first-Grenzen.",
+    "Preisübersicht für Einzelpersonen, Journalismus, Organisationen und öffentliche Auftraggeber – mit kostenfreier Beteiligung und klaren Zusatzleistungen.",
 });
 
 type PageProps = {
@@ -80,7 +80,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           pageKicker: "Pricing",
           heroTitle: "Packages & pricing",
           heroText:
-            "Use eDebatte for free to swipe topics and submit hints. Upgrade only if you want deeper review and drafting workflows.",
+            "Participating and voting can stay free. Choose a paid package only when you need more research, moderation, drafting or professional support.",
           freeStartCta: "Start free",
           confidentialHintCta: "Submit confidential hint",
           packageCta: "Choose package",
@@ -103,19 +103,19 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             privat:
               "Participation Free: €0 · Interested: €4.99/month incl. VAT · Active: €14.99/month incl. VAT · Co-creating: €29.99/month incl. VAT.",
             journalismus:
-              "Journalism packages with starter quota (3 contributions/1 issue room) or working quota (10 contributions/1 issue room).",
+              "Journalism packages combine participation with defined research and editorial support quotas.",
             organisationen:
-              "Organization packages include a starter quota for small associations plus onboarding, role setup and operational rollout.",
+              "Organization packages add onboarding, role setup and support for recurring participation work.",
             kommunen:
-              "Municipalities use procurement-ready participation services, not a second generic SaaS package list.",
+              "Municipalities use procurement-ready participation services with individually agreed scope.",
           } as Record<PricingSegmentId, string>,
           municipalBridgeTitle: "Municipalities & public buyers",
           municipalBridgeIntro:
-            "For municipalities we provide procurement-ready participation services — from participation check to framework package.",
-          municipalBridgeHint: "The full selection happens in the institutional B2G configurator.",
+            "For municipalities we provide procurement-ready participation services — from an initial participation check to ongoing operation.",
+          municipalBridgeHint: "The detailed selection happens in the institutional B2G configurator.",
           municipalBridgeCta: "Go to B2G configurator",
           municipalBridgeQuoteCta: "Request service description",
-          municipalStagesTitle: "Compact B2G preview",
+          municipalStagesTitle: "Compact B2G overview",
           municipalStages: [
             "Participation Check · from €2,500 one-time + VAT",
             "Dossier & Participation Round · project-based, quote-oriented + VAT",
@@ -130,7 +130,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           trustTwo: "Counting and status display are transparent and traceable.",
           trustThree: "Cancellation, revocation and data protection are documented clearly.",
           trustFour: "No official election result unless explicitly configured as legally binding.",
-          trustFive: "No hidden AI orchestration costs. Extra source verification or premium research stays opt-in.",
+          trustFive: "Extra source verification or premium research is optional and clearly priced.",
           membershipTitle: "Membership in the initiative",
           membershipIntro:
             "Membership remains optional and separate from package purchase.",
@@ -155,22 +155,22 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "For organizations, municipalities, associations, media and research we provide dedicated conditions.",
         }
       : {
-          pageKicker: "Pricing",
-          heroTitle: "Pakete & Preise",
+          pageKicker: "Preise",
+          heroTitle: "Kostenlos mitmachen. Mehr nur buchen, wenn du es brauchst.",
           heroText:
-            "Du kannst eDebatte kostenlos nutzen, Themen swipen und Hinweise einbringen. Pakete schalten review-first mehr Tiefe für Prüfen, Entwerfen und auditierbare Zusammenarbeit frei.",
+            "Abstimmen und teilnehmen kann kostenfrei bleiben. Kostenpflichtige Pakete brauchst du erst, wenn du mehr Recherche, Moderation, Entwurfsarbeit oder professionelle Begleitung möchtest.",
           freeStartCta: "Kostenlos starten",
-          confidentialHintCta: "Anonym / vertraulich Hinweis geben",
-          packageCta: "Paket wählen",
+          confidentialHintCta: "Vertraulichen Hinweis geben",
+          packageCta: "Pakete ansehen",
           institutionalCta: "Professionell nutzen",
           contactCta: "Kontakt aufnehmen",
           initiativeCta: "Zur Initiative",
           howItWorksCta: "So funktioniert eDebatte",
-          privateKicker: "Privatpakete",
-          privateTitle: "Privatpakete für Einzelpersonen",
+          privateKicker: "Für Einzelpersonen",
+          privateTitle: "Pakete für Einzelpersonen",
           privateText:
             "Beteiligung frei: 0 € · Interessiert: 4,99 € mtl. inkl. MwSt. · Aktiv: 14,99 € mtl. inkl. MwSt. · Mitgestaltend: 29,99 € mtl. inkl. MwSt.",
-          segmentTitle: "Weitere Segmente",
+          segmentTitle: "Weitere Zielgruppen",
           segmentLabels: {
             privat: "Einzelpersonen",
             journalismus: "Journalismus",
@@ -181,19 +181,19 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             privat:
               "Beteiligung frei: 0 € · Interessiert: 4,99 € mtl. inkl. MwSt. · Aktiv: 14,99 € mtl. inkl. MwSt. · Mitgestaltend: 29,99 € mtl. inkl. MwSt.",
             journalismus:
-              "Journalistische Pakete mit Einstiegskontingent (3 Beiträge/1 Anlassraum) oder Arbeitskontingent (10 Beiträge/1 Anlassraum).",
+              "Journalistische Pakete verbinden Beteiligung mit klar definierten Recherche- und Redaktionsleistungen.",
             organisationen:
-              "Pakete für Organisationen mit Einstiegskontingent für kleine Vereine plus klarer Einführung, Rollenaufbau und Betriebsmodell.",
+              "Pakete für Organisationen ergänzen Einführung, Rollenaufbau und Begleitung für wiederkehrende Beteiligung.",
             kommunen:
-              "Kommunen nutzen vergabefähige Beteiligungsleistungen. Die kanonische Auswahl läuft im B2G-Konfigurator.",
+              "Kommunen nutzen vergabefähige Beteiligungsleistungen mit individuell vereinbartem Umfang.",
           } as Record<PricingSegmentId, string>,
           municipalBridgeTitle: "Kommunen & öffentliche Auftraggeber",
           municipalBridgeIntro:
-            "Für Kommunen gibt es vergabefähige Beteiligungsleistungen – vom Beteiligungs-Check bis zum Rahmenvertrag.",
-          municipalBridgeHint: "Die eigentliche Auswahl erfolgt im institutionellen B2G-Konfigurator.",
+            "Für Kommunen gibt es vergabefähige Beteiligungsleistungen – vom ersten Beteiligungs-Check bis zum laufenden Betrieb.",
+          municipalBridgeHint: "Die detaillierte Auswahl erfolgt im institutionellen B2G-Konfigurator.",
           municipalBridgeCta: "Zum B2G-Konfigurator",
           municipalBridgeQuoteCta: "Leistungsbeschreibung anfordern",
-          municipalStagesTitle: "Kompakte Vorschau der vier B2G-Stufen",
+          municipalStagesTitle: "Kompakter Überblick",
           municipalStages: [
             "Beteiligungs-Check · ab 2.500 € einmalig zzgl. MwSt.",
             "Dossier & Beteiligungsrunde · projektbezogen, als Leistungsbaustein zzgl. MwSt.",
@@ -201,7 +201,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "Rahmenvertrag / Vergabepaket · Angebot nach Klärung zzgl. MwSt.",
           ],
           annualHint: "Monatliche Zahlung ist möglich. Jahreszahlung spart 15 % bei kostenpflichtigen Paketwegen.",
-          trustTitle: "Vertrauen & klare Regeln",
+          trustTitle: "Klare Regeln",
           trustIntro:
             "Nutzung ist freiwillig. eDebatte strukturiert Informationen und garantiert keine politische Umsetzung.",
           trustOne: "Beiträge sind je Kontext anonym, mit Nickname oder mit Klarname möglich.",
@@ -210,7 +210,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           trustFour:
             "Keine amtliche Wahl oder verbindliche Abstimmung, außer wenn ein rechtssicheres Verfahren ausdrücklich eingerichtet ist.",
           trustFive:
-            "Keine versteckten KI-Orchester-Kosten. Zusätzliche Quellenprüfung oder Premium-Recherche wird nur bewusst aktiviert.",
+            "Zusätzliche Quellenprüfung oder Premium-Recherche ist optional und wird klar ausgewiesen.",
           membershipTitle: "Mitgliedschaft in der Initiative",
           membershipIntro:
             "Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.",
@@ -221,8 +221,8 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "Mitgliedsantrag und Beitragshöhe werden separat per E-Mail-Link final bestätigt.",
           membershipPointFive:
             "eDebatte.org und VoiceOpenGov.org können organisatorisch und technisch getrennt geführt werden; zusätzliche Sicherheits- und Trennlogik ist bewusst möglich.",
-          addOnsTitle: "Optionale Add-ons",
-          addOnsIntro: "Add-ons sind optional und können bei Bedarf einzeln hinzugebucht werden.",
+          addOnsTitle: "Optionale Zusatzleistungen",
+          addOnsIntro: "Zusatzleistungen sind freiwillig und können bei Bedarf einzeln hinzugebucht werden.",
           addOnsItems: [
             "Quellenprüfung / Recherche-Kontingent: ca. 10 € je Kontingent (einzeln buchbar)",
             "Premium-Recherche / vertiefte externe Quellenanalyse: ca. 20 € je Freigabe (einzeln buchbar)",
@@ -244,16 +244,14 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">{labels.heroTitle}</h1>
           <p className="mt-4 max-w-4xl text-base leading-relaxed text-[rgb(var(--muted))]">{labels.heroText}</p>
           <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
-            Projekt- und Partnerpakete bleiben review-first, transparent und vertraglich gebunden.
-            Sie erzeugen kein Auto-Publish, keine automatische amtliche Freigabe und keine
-            automatische Publikationsfreigabe.
+            {locale === "en"
+              ? "Paid packages add clearly defined services. Nothing is published or presented as official automatically."
+              : "Kostenpflichtige Pakete ergänzen klar benannte Leistungen. Nichts wird dadurch automatisch veröffentlicht oder als amtlich dargestellt."}
           </p>
           <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
-            Produktive Freischaltungen laufen über Betreiber-Verifikation und manuelle
-            Vertragsfreigabe. Self-Service-Checkout erscheint nur, wenn ein Zahlungsprovider
-            bewusst aktiviert ist; sonst bleiben manuelle Rechnung, Betreiberfreigabe und
-            auditierbare Zusatzleistungen der ehrliche Pfad. Keine versteckte CRM-Integration
-            und keine automatische Verteilung.
+            {locale === "en"
+              ? "Where a package requires a contract or manual activation, we show that openly instead of pretending there is an instant checkout."
+              : "Wo ein Paket Vertrag oder manuelle Freischaltung braucht, zeigen wir das offen statt einen sofortigen Checkout vorzutäuschen."}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href={withLocaleHref("/register", locale)} className="btn-primary">

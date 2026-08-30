@@ -43,6 +43,7 @@ import type {
   SwipeNeutralReason,
 } from "@/features/swipes/types";
 import type { SurfaceAudience, SurfaceMode } from "@/features/surface";
+import { buildFreeBallotStartHref } from "@features/pricing/goToMarketPackaging";
 
 const SWIPES_SESSION_COUNT_KEY = "edb_swipes_session_count";
 const SWIPES_SAVED_IDS_KEY = "edb_swipes_saved_ids";
@@ -924,6 +925,24 @@ export function SwipesClient({
           history={decisionHistory}
           votesHref={activeItem ? openVotesRoute(activeItem.id, activeItem.title) : "/abstimmungen"}
         />
+      ) : null}
+
+      {!isSolo && decisionHistory.length > 0 ? (
+        <section className="rounded-3xl border border-cyan-300 bg-cyan-50 p-4 text-cyan-950 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-50 md:p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">
+            Deine Frage, eure Positionen
+          </p>
+          <h2 className="mt-2 text-lg font-bold">Jetzt eine eigene Abstimmung kostenlos starten</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed">
+            Beginne mit einem Entwurf, prüfe ihn selbst und teile ihn erst nach der Freigabe mit deiner Gruppe.
+          </p>
+          <Link
+            href={buildFreeBallotStartHref(undefined, "swipes-outcome")}
+            className="mt-4 inline-flex min-h-11 items-center rounded-full bg-cyan-600 px-5 py-2 text-sm font-bold text-white hover:bg-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
+          >
+            Eigene Abstimmung starten
+          </Link>
+        </section>
       ) : null}
 
       {!isSolo && activeItem && !eventualityStepOpen && !detailOpen && !freeVote.gateOpen ? (

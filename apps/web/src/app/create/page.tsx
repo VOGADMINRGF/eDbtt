@@ -40,8 +40,8 @@ import { buildCreateSegmentHint } from "@/features/agenticRuntime/segmentedAgent
 import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 
 export const metadata: Metadata = {
-  title: "Erstellen - eDebatte",
-  description: "Einheitlicher Einstieg für Statements, Beiträge und weitere Intents.",
+  title: "Etwas beitragen - eDebatte",
+  description: "Ergänze eine Quelle, Perspektive, Frage oder einen Hinweis direkt im passenden Kontext.",
 };
 
 type SearchParamsShape =

@@ -35,6 +35,10 @@ const BodySchema = z
         sourceSection: z.string().trim().optional().nullable(),
         sourceLabel: z.string().trim().optional().nullable(),
         linkLoaded: z.boolean().optional(),
+        materialReviewId: z.string().trim().optional().nullable(),
+        materialId: z.string().trim().optional().nullable(),
+        materialReviewAction: z.enum(["reuse", "continue", "enrich", "create_new"]).optional().nullable(),
+        suggestedOptions: z.array(z.string().trim().min(1)).max(12).optional(),
       })
       .optional(),
     resumeHref: z.string().trim().min(1),

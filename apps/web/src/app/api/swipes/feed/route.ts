@@ -40,5 +40,11 @@ export async function POST(req: NextRequest) {
   };
 
   const resp = await getSwipeFeed(feedReq);
-  return NextResponse.json(resp);
+  return NextResponse.json({
+    ...resp,
+    items: resp.items.map((item) => ({
+      ...item,
+      hasEventualities: false,
+    })),
+  });
 }
