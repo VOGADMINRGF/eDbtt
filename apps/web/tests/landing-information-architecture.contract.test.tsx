@@ -30,10 +30,13 @@ describe("landing information architecture contract", () => {
     expect(html).toContain("Jetzt beginnt der Unterschied");
     expect(html).toContain("Nicht nur Antworten sammeln");
     expect(html).toContain("Einfach anfangen. Tiefe entsteht erst, wenn du sie brauchst.");
-    expect(html).toContain("Du bestimmst, was passiert.");
+    expect(html).toContain("Du behältst die Kontrolle.");
+    expect(html).toContain("ohne eine feste Schablone vorzugeben");
+    expect(html).toContain("ohne Menschen in politische oder persönliche Schubladen einzuordnen");
     expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage-intent"');
     expect(html).toContain('href="/swipes"');
 
+    expect(html).not.toContain("Parteiprogramm");
     expect(html).not.toContain("Review Queue");
     expect(html).not.toContain("Runtime-basiert");
     expect(html).not.toContain("Orchestrator");
