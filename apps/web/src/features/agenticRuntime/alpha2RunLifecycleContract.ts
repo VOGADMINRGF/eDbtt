@@ -75,6 +75,7 @@ const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
 const SAFE_STRUCTURED_ERROR_CODE = /^alpha2_[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const Alpha2ErrorCodeSchema = z.string().max(128).regex(SAFE_STRUCTURED_ERROR_CODE);
 const ALPHA2_REVIEW_COMPLETION_GATE_PREFIX = "alpha2:review-completion";
+const ALPHA2_REVIEW_RESUME_GATE_PREFIX = "alpha2:review-resume";
 
 export function normalizeAlpha2ErrorCode(errorCode: unknown, fallback = "alpha2_run_failed") {
   return typeof errorCode === "string" &&
@@ -244,14 +245,14 @@ export type Alpha2HumanGate = z.infer<typeof Alpha2HumanGateSchema>;
 export type Alpha2Checkpoint = z.infer<typeof Alpha2CheckpointSchema>;
 export type Alpha2RunRecord = z.infer<typeof Alpha2RunRecordSchema>;
 
-type Alpha2ReviewCompletionState = {
+type Alpha2ReviewDecisionState = {
   runId: string;
   status: Alpha2RunStatus;
   updatedAt: string;
 };
 
 export function alpha2ReviewCompletionGateRef(
-  run: Alpha2ReviewCompletionState,
+  run: Alpha2ReviewDecisionState,
 ): string {
   if (run.status !== "review") {
     throw new Error("alpha2_review_completion_gate_requires_review");
@@ -259,17 +260,45 @@ export function alpha2ReviewCompletionGateRef(
   return `${ALPHA2_REVIEW_COMPLETION_GATE_PREFIX}:${run.runId}:${run.updatedAt}`;
 }
 
-function hasBoundAlpha2ReviewCompletionApproval(
-  run: Alpha2ReviewCompletionState,
+export function alpha2ReviewResumeGateRef(
+  run: Alpha2ReviewDecisionState,
+): string {
+  if (run.status !== "review") {
+    throw new Error("alpha2_review_resume_gate_requires_review");
+  }
+  return `${ALPHA2_REVIEW_RESUME_GATE_PREFIX}:${run.runId}:${run.updatedAt}`;
+}
+
+function hasCurrentReviewDecision(
+  run: Alpha2ReviewDecisionState,
   humanGate: Alpha2HumanGate,
+  gateRef: string,
 ) {
   return (
     humanGate.state === "approved" &&
-    humanGate.gateRef === alpha2ReviewCompletionGateRef(run) &&
+    humanGate.gateRef === gateRef &&
     humanGate.decisionRef !== undefined &&
     humanGate.decidedAt !== undefined &&
     Date.parse(humanGate.decidedAt) >= Date.parse(run.updatedAt)
   );
+}
+
+function hasBoundAlpha2ReviewCompletionApproval(
+  run: Alpha2ReviewDecisionState,
+  humanGate: Alpha2HumanGate,
+) {
+  return hasCurrentReviewDecision(
+    run,
+    humanGate,
+    alpha2ReviewCompletionGateRef(run),
+  );
+}
+
+function hasBoundAlpha2ReviewResumeApproval(
+  run: Alpha2ReviewDecisionState,
+  humanGate: Alpha2HumanGate,
+) {
+  return hasCurrentReviewDecision(run, humanGate, alpha2ReviewResumeGateRef(run));
 }
 
 const ALLOWED_TRANSITIONS: Record<Alpha2RunStatus, readonly Alpha2RunStatus[]> = {
@@ -483,7 +512,13 @@ export function transitionAlpha2Run(
   assertAlpha2RunTransition(run.status, to);
   const now = input.now ?? new Date().toISOString();
 
-  if (DECIDED_HUMAN_GATE_STATES.has(run.humanGate.state) && input.humanGate) {
+  const replacesPriorReviewDecision =
+    run.status === "review" && to === "running" && input.humanGate !== undefined;
+  if (
+    DECIDED_HUMAN_GATE_STATES.has(run.humanGate.state) &&
+    input.humanGate &&
+    !replacesPriorReviewDecision
+  ) {
     throw new Error("alpha2_human_gate_decision_is_immutable");
   }
 
@@ -552,6 +587,9 @@ export function transitionAlpha2Run(
     if (!nextHumanGate.decisionRef || !nextHumanGate.decidedAt) {
       throw new Error("alpha2_review_exit_requires_audited_approval");
     }
+    if (!hasBoundAlpha2ReviewResumeApproval(run, nextHumanGate)) {
+      throw new Error("alpha2_review_resume_requires_bound_approval");
+    }
   }
   if (run.status === "review" && to === "completed") {
     if (nextHumanGate.state !== "approved") {
@@ -592,6 +630,12 @@ export function transitionAlpha2Run(
             : checkpoint,
         )
       : run.checkpoints;
+  const archivesPriorReviewDecision =
+    run.status === "review" &&
+    to === "running" &&
+    DECIDED_HUMAN_GATE_STATES.has(run.humanGate.state) &&
+    input.humanGate !== undefined &&
+    hasBoundAlpha2ReviewResumeApproval(run, nextHumanGate);
   const next = {
     ...run,
     status: to,
@@ -602,6 +646,9 @@ export function transitionAlpha2Run(
     attempt: to === "running" && run.status === "queued" ? run.attempt + 1 : run.attempt,
     preExecutorResumeMode: to === "running" ? run.preExecutorResumeMode : undefined,
     humanGate: nextHumanGate,
+    humanGateHistory: archivesPriorReviewDecision
+      ? [...run.humanGateHistory, run.humanGate]
+      : run.humanGateHistory,
     checkpoints,
     lastErrorCode: normalizedErrorCode,
   } satisfies Alpha2RunRecord;
@@ -658,6 +705,14 @@ export function assertAlpha2RunEvolution(
   ) {
     throw new Error("alpha2_role_assignments_are_immutable");
   }
+  if (existing.createdAt !== incoming.createdAt) {
+    throw new Error("alpha2_run_created_at_is_immutable");
+  }
+  assertAppendOnlyPrefix(
+    existing.childRunIds,
+    incoming.childRunIds,
+    "alpha2_child_run_history_conflict",
+  );
 
   if (existing.status !== incoming.status) {
     assertAlpha2RunTransition(existing.status, incoming.status);
@@ -704,31 +759,22 @@ export function assertAlpha2RunEvolution(
   const expectedReviewResumeMode =
     existing.humanGate.resumeMode ??
     (existing.attempt === 0 ? "start_new_attempt" : "resume_attempt");
-  const addsAuditedReviewResumeApproval =
+  const addsBoundReviewResumeApproval =
     existing.status === "review" &&
     incoming.status === "running" &&
-    existing.humanGate.state === "not_required" &&
     incoming.humanGate.state === "approved" &&
     incoming.humanGate.resumeMode === expectedReviewResumeMode &&
-    Boolean(incoming.humanGate.decisionRef) &&
-    Boolean(incoming.humanGate.decidedAt) &&
-    historyUnchanged;
-  const retainsAuditedReviewResumeApproval =
-    existing.status === "review" &&
-    incoming.status === "running" &&
-    existing.humanGate.state === "approved" &&
-    gateUnchanged &&
-    historyUnchanged &&
-    Boolean(incoming.humanGate.decisionRef) &&
-    Boolean(incoming.humanGate.decidedAt);
+    hasBoundAlpha2ReviewResumeApproval(existing, incoming.humanGate) &&
+    ((existing.humanGate.state === "not_required" && historyUnchanged) ||
+      (DECIDED_HUMAN_GATE_STATES.has(existing.humanGate.state) &&
+        archivesCurrentGate));
   const addsBoundReviewCompletionApproval =
     existing.status === "review" &&
     incoming.status === "completed" &&
     existing.humanGate.state === "not_required" &&
     historyUnchanged &&
     hasBoundAlpha2ReviewCompletionApproval(existing, incoming.humanGate);
-  const auditedReviewResume =
-    addsAuditedReviewResumeApproval || retainsAuditedReviewResumeApproval;
+  const auditedReviewResume = addsBoundReviewResumeApproval;
   const boundReviewCompletion = addsBoundReviewCompletionApproval;
 
   if (
@@ -751,7 +797,7 @@ export function assertAlpha2RunEvolution(
     }
   }
 
-  if (addsAuditedReviewResumeApproval || addsBoundReviewCompletionApproval) {
+  if (addsBoundReviewResumeApproval || addsBoundReviewCompletionApproval) {
     // An audited decision is the only valid not_required -> approved mutation
     // at a review exit.
   } else if (existing.humanGate.state === "pending") {

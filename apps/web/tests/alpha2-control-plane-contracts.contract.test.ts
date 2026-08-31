@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   Alpha2RunRecordSchema,
   alpha2ReviewCompletionGateRef,
+  alpha2ReviewResumeGateRef,
   appendAlpha2Checkpoint,
   assertAlpha2RunEvolution,
   createAlpha2RunRecord,
@@ -172,12 +173,39 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
       now: "2026-08-23T21:02:00.000Z",
       humanGate: {
         state: "approved",
+        gateRef: alpha2ReviewResumeGateRef(reviewed),
         resumeMode: "start_new_attempt",
         decisionRef: "decision:review-approved",
         decidedAt: "2026-08-23T21:02:00.000Z",
       },
     });
     expect(() => assertAlpha2RunEvolution(reviewed, approved)).not.toThrow();
+
+    const completionApproval = {
+      state: "approved" as const,
+      gateRef: alpha2ReviewCompletionGateRef(reviewed),
+      decisionRef: "decision:review-completed-only",
+      decidedAt: "2026-08-23T21:02:00.000Z",
+    };
+    expect(() =>
+      transitionAlpha2Run(reviewed, "running", {
+        now: "2026-08-23T21:02:00.000Z",
+        humanGate: completionApproval,
+      }),
+    ).toThrow("alpha2_review_resume_requires_bound_approval");
+
+    const directPurposeBypass = Alpha2RunRecordSchema.parse({
+      ...reviewed,
+      status: "running",
+      startedAt: "2026-08-23T21:02:00.000Z",
+      humanGate: {
+        ...completionApproval,
+        resumeMode: "start_new_attempt",
+      },
+    });
+    expect(() => assertAlpha2RunEvolution(reviewed, directPurposeBypass)).toThrow(
+      "alpha2_review_exit_requires_audited_approval",
+    );
   });
 
   it("requires a current completion-bound human decision before review completes", () => {
@@ -301,6 +329,23 @@ describe("Alpha-Foxtrott 2 control-plane contracts", () => {
         now: "2026-08-23T21:02:00.000Z",
       }),
     ).toThrow("alpha2_review_completion_requires_bound_approval");
+
+    expect(() => transitionAlpha2Run(reviewed, "running")).toThrow(
+      "alpha2_review_resume_requires_bound_approval",
+    );
+
+    const resumed = transitionAlpha2Run(reviewed, "running", {
+      now: "2026-08-23T21:02:00.000Z",
+      humanGate: {
+        state: "approved",
+        gateRef: alpha2ReviewResumeGateRef(reviewed),
+        resumeMode: "start_new_attempt",
+        decisionRef: "decision:current-review-resume",
+        decidedAt: "2026-08-23T21:02:00.000Z",
+      },
+    });
+    expect(resumed.humanGateHistory).toContainEqual(reviewed.humanGate);
+    expect(() => assertAlpha2RunEvolution(reviewed, resumed)).not.toThrow();
   });
 
   it("prevents a rejected human gate from resuming through an indirect retry path", () => {

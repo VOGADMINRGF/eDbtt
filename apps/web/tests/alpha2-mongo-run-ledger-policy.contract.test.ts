@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Alpha2RunRecordSchema,
+  alpha2ReviewCompletionGateRef,
   appendAlpha2Checkpoint,
   consumeAlpha2HumanResumeApproval,
   createAlpha2RunRecord,
@@ -124,6 +125,34 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
     expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
+  it("rejects direct compareAndSwap rewrites of creation audit and child lineage", async () => {
+    const existing = Alpha2RunRecordSchema.parse({
+      ...policyRun(),
+      childRunIds: ["run-mongo-policy-child"],
+    });
+    mongoHarness.setFound(mongoDocument(existing, 0));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({
+        run: Alpha2RunRecordSchema.parse({ ...existing, childRunIds: [] }),
+        expectedVersion: 0,
+      }),
+    ).rejects.toThrow("alpha2_child_run_history_conflict");
+
+    await expect(
+      ledger.compareAndSwap({
+        run: Alpha2RunRecordSchema.parse({
+          ...existing,
+          createdAt: "2026-08-23T19:00:00.000Z",
+        }),
+        expectedVersion: 0,
+      }),
+    ).rejects.toThrow("alpha2_run_created_at_is_immutable");
+
+    expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it("allows a normal outcome CAS when execution policy is unchanged", async () => {
     const queued = policyRun();
     const running = transitionAlpha2Run(queued, "running", {
@@ -192,6 +221,68 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
       ledger.compareAndSwap({ run: directCompletion, expectedVersion: 1 }),
     ).rejects.toThrow("alpha2_review_completion_requires_bound_approval");
     expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects direct CAS use of a completion approval to resume review", async () => {
+    const reviewed = transitionAlpha2Run(policyRun(), "review", {
+      now: "2026-08-23T20:01:00.000Z",
+    });
+    const directResume = Alpha2RunRecordSchema.parse({
+      ...reviewed,
+      status: "running",
+      startedAt: "2026-08-23T20:02:00.000Z",
+      humanGate: {
+        state: "approved",
+        gateRef: alpha2ReviewCompletionGateRef(reviewed),
+        resumeMode: "start_new_attempt",
+        decisionRef: "decision:completion-only",
+        decidedAt: "2026-08-23T20:02:00.000Z",
+      },
+    });
+    mongoHarness.setFound(mongoDocument(reviewed, 1));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({ run: directResume, expectedVersion: 1 }),
+    ).rejects.toThrow("alpha2_review_exit_requires_audited_approval");
+    expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("derives a strictly monotonic server timestamp for every CAS generation", async () => {
+    const queued = policyRun();
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-08-23T20:01:00.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(queued, 0));
+    mongoHarness.setUpdated(mongoDocument(running, 1));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await ledger.compareAndSwap({
+      run: running,
+      expectedVersion: 0,
+      initializeWallClock: { maxWallClockMs: 60_000 },
+    });
+
+    const update = mongoHarness.Model.findOneAndUpdate.mock.calls[0]?.[1] as Array<{
+      $set: Record<string, any>;
+    }>;
+    const mutationDate = update[0]?.$set.updatedAt;
+    expect(mutationDate).toEqual({
+      $cond: [
+        { $gt: ["$$NOW", "$updatedAt"] },
+        "$$NOW",
+        {
+          $dateAdd: {
+            startDate: "$updatedAt",
+            unit: "millisecond",
+            amount: 1,
+          },
+        },
+      ],
+    });
+    expect(update[0]?.$set.payload.$mergeObjects[1].updatedAt.$dateToString.date).toEqual(
+      mutationDate,
+    );
   });
 
   it("rejects direct CAS changes to startedAt and wallClockDeadlineAt", async () => {

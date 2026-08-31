@@ -241,18 +241,31 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
         timezone: "UTC",
       },
     });
+    const serverMutationDate = {
+      $cond: [
+        { $gt: ["$$NOW", "$updatedAt"] },
+        "$$NOW",
+        {
+          $dateAdd: {
+            startDate: "$updatedAt",
+            unit: "millisecond",
+            amount: 1,
+          },
+        },
+      ],
+    };
     const serverDateAfter = (delayMs: number) => ({
       $dateAdd: {
-        startDate: "$$NOW",
+        startDate: serverMutationDate,
         unit: "millisecond",
         amount: Math.max(0, Math.floor(delayMs)),
       },
     });
     const payloadOverrides: Record<string, unknown> = {
-      updatedAt: serverIso("$$NOW"),
+      updatedAt: serverIso(serverMutationDate),
     };
     if (run.finishedAt) {
-      payloadOverrides.finishedAt = serverIso("$$NOW");
+      payloadOverrides.finishedAt = serverIso(serverMutationDate);
     }
     if (input.stampCheckpointId) {
       payloadOverrides.checkpoints = {
@@ -270,7 +283,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
               {
                 $mergeObjects: [
                   "$$checkpoint",
-                  { createdAt: serverIso("$$NOW") },
+                  { createdAt: serverIso(serverMutationDate) },
                 ],
               },
               "$$checkpoint",
@@ -283,7 +296,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
       payloadOverrides.resumeAt = serverIso(serverDateAfter(resumeAfterMs));
     }
     if (input.initializeWallClock) {
-      payloadOverrides.startedAt = serverIso("$$NOW");
+      payloadOverrides.startedAt = serverIso(serverMutationDate);
       if (input.initializeWallClock.maxWallClockMs !== undefined) {
         payloadOverrides.wallClockDeadlineAt = serverIso(
           serverDateAfter(input.initializeWallClock.maxWallClockMs),
@@ -305,7 +318,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
           payload: {
             $mergeObjects: [{ $literal: run }, payloadOverrides],
           },
-          updatedAt: "$$NOW",
+          updatedAt: serverMutationDate,
           version: { $add: ["$version", 1] },
         },
       },

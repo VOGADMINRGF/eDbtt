@@ -22,6 +22,7 @@ import {
 } from "@/features/agenticRuntime/alpha2RunLedgerContract";
 import {
   Alpha2RunRecordSchema,
+  alpha2ReviewResumeGateRef,
   assertAlpha2RunEvolution,
   createAlpha2RunRecord,
   transitionAlpha2Run,
@@ -1975,6 +1976,7 @@ describe("Alpha-Foxtrott 2 durable orchestrator", () => {
       now: "2026-08-23T20:01:00.000Z",
       humanGate: {
         state: "approved",
+        gateRef: alpha2ReviewResumeGateRef(reviewed.run),
         decisionRef: "human:review-approved",
         decidedAt: "2026-08-23T20:01:00.000Z",
       },
