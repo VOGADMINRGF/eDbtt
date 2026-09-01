@@ -9,21 +9,21 @@ type LandingStartProps = {
 
 const DEFAULT_START_EXPERIENCE: StartExperienceModel = {
   familiarity: "unknown_visitor",
-  eyebrow: "Mitmachen oder etwas starten",
-  title: "Was möchtest du tun?",
+  eyebrow: "Dein Anliegen zählt",
+  title: "Was sollte sich ändern?",
   description:
-    "Wenn du über einen Link oder QR-Code kommst, landest du direkt bei der passenden Frage. Ohne konkreten Kontext kannst du laufende Themen entdecken, etwas beitragen oder selbst eine Frage starten.",
-  helperText: "Abstimmen, ergänzen, eine Quelle beitragen oder eine eigene Frage öffnen.",
+    "Bring ein, was dich beschäftigt, oder entscheide schnell bei laufenden Themen mit. Der öffentliche Einstieg beginnt beim Menschen und seinem Anliegen.",
+  helperText: "Ein Satz reicht zum Start. Ort, Thema und Kontext werden nur ergänzt, soweit sie wirklich gebraucht werden.",
   trustText:
-    "Nichts wird automatisch veröffentlicht. Du siehst, worum es geht, was noch offen ist und was du als Nächstes tun kannst.",
+    "Nichts wird automatisch veröffentlicht. Quellen, Positionen und offene Fragen bleiben voneinander unterscheidbar.",
   showExtendedOrientation: false,
   workspaceHref: null,
   workspaceLabel: null,
   quickActionCenter: {
-    eyebrow: "Neu hier?",
-    title: "Mitmachen oder selbst etwas starten.",
+    eyebrow: "Direkt loslegen",
+    title: "Anliegen einbringen oder mitentscheiden.",
     description:
-      "Entdecke laufende Fragen, ergänze etwas, wo noch etwas fehlt, oder öffne eine eigene Frage für andere.",
+      "Starte frei mit deinem Anliegen oder beteilige dich schnell an laufenden Fragen. Professionelle Werkzeuge bleiben nachgelagert.",
     primaryActions: [],
     secondaryActions: [],
   },

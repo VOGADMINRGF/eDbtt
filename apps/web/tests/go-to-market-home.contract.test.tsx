@@ -15,19 +15,23 @@ vi.mock("@/context/LocaleContext", () => ({
 }));
 
 describe("GO-TO-MARKET-01 homepage contract", () => {
-  it("renders the simple public entry journey without internal product terms", () => {
+  it("renders a citizen-first public entry before professional use", () => {
     const html = renderToStaticMarkup(<LandingStart />);
 
-    expect(html).toContain("Eine Frage. Viele Perspektiven. Ein klareres Bild.");
-    expect(html).toContain("Mitmachen");
-    expect(html).toContain("Etwas starten");
-    expect(html).toContain("Schnell deine Meinung abgeben");
-    expect(html).toContain("Eine eigene Frage öffnen");
-    expect(html).toContain("direkt ausprobieren");
-    expect(html).toContain("Nicht nur Antworten sammeln");
-    expect(html).toContain("Kostenlos starten");
+    expect(html).toContain("Was sollte sich ändern?");
+    expect(html).toContain("Anliegen einbringen");
+    expect(html).toContain("Schnell mitentscheiden");
+    expect(html).toContain("Ein Satz reicht zum Start");
+    expect(html).toContain("Straße, Stadt, Bundesland, Bund oder EU.");
+    expect(html).toContain("Auch für Initiativen, Vereine, Kommunen und Organisationen.");
     expect(html).toContain("Nichts geht automatisch online");
     expect(html).toContain("Voxy bleibt optional");
+    expect(html).toContain('href="/create"');
+    expect(html).toContain('href="/swipes"');
+    expect(html.indexOf("Anliegen einbringen")).toBeLessThan(
+      html.indexOf("Auch für Initiativen, Vereine, Kommunen und Organisationen."),
+    );
+    expect(html).not.toContain("Mitarbeiter-, Kunden- oder Mitgliederperspektiven");
     expect(html).not.toContain("Anlassraum");
     expect(html).not.toContain("Orchestrator");
     expect(html).not.toContain("Review-first");
@@ -49,7 +53,7 @@ describe("GO-TO-MARKET-01 homepage contract", () => {
     );
   });
 
-  it("connects homepage and swipe participation to the existing question-first start flow", () => {
+  it("keeps professional ballot setup secondary while public CTAs use create and swipes", () => {
     const landingSource = readFileSync(
       resolve(process.cwd(), "src/features/home/HomeGoToMarketLanding.tsx"),
       "utf8",
@@ -67,8 +71,10 @@ describe("GO-TO-MARKET-01 homepage contract", () => {
       "utf8",
     );
 
-    expect(landingSource).toContain("buildFreeBallotStartHref");
+    expect(landingSource).toContain('href="/create"');
     expect(landingSource).toContain('href="/swipes"');
+    expect(landingSource).toContain("buildFreeBallotStartHref");
+    expect(landingSource).toContain('"homepage-professional"');
     expect(swipesSource).toContain('buildFreeBallotStartHref(undefined, "swipes-outcome")');
     expect(formSource).toContain("getGoToMarketTemplate");
     expect(prePublishSource).toContain("Kostenlos als Entwurf speichern");
