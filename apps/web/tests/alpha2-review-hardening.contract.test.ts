@@ -40,7 +40,6 @@ describe("Alpha-Foxtrott 2 review hardening", () => {
       route: { mode: "automatic", capabilityClass: "diagnostic" },
       now: NOW,
     });
-
     expect(() => Alpha2RunRecordSchema.parse({ ...child, rootRunId: child.runId })).toThrow(
       "alpha2_child_run_cannot_reference_itself_as_root",
     );
@@ -55,7 +54,6 @@ describe("Alpha-Foxtrott 2 review hardening", () => {
 | DUPLICATE-01 | blocked | P0 | gate | second | second |
 ## Historischer Katalog und Evidenz
 `;
-
     expect(() => parseAlpha2CanonicalOpenTasks(duplicate)).toThrow(
       "alpha2_duplicate_task_id_in_operative_head:DUPLICATE-01",
     );

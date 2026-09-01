@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  consumeAlpha2HumanResumeApproval,
   createAlpha2RunRecord,
   transitionAlpha2Run,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
@@ -24,7 +25,6 @@ describe("Alpha-Foxtrott 2 human-gate immutability", () => {
     const gated = transitionAlpha2Run(createQueuedRun(), "human_gate", {
       humanGate: { state: "pending", reason: "Human decision required" },
     });
-
     expect(() =>
       transitionAlpha2Run(gated, "failed", {
         humanGate: { state: "not_required" },
@@ -54,5 +54,56 @@ describe("Alpha-Foxtrott 2 human-gate immutability", () => {
         humanGate: { state: "approved", decisionRef: "decision:fabricated-override" },
       }),
     ).toThrow("alpha2_human_gate_decision_is_immutable");
+  });
+
+  it("requires an approval to reference the exact pending runtime gate", () => {
+    const gated = transitionAlpha2Run(createQueuedRun(), "human_gate", {
+      humanGate: {
+        state: "pending",
+        reason: "Human decision required",
+        gateRef: "alpha2_gate_expected",
+      },
+    });
+
+    expect(() =>
+      transitionAlpha2Run(gated, "running", {
+        humanGate: {
+          state: "approved",
+          gateRef: "alpha2_gate_other",
+          decisionRef: "decision:wrong-gate",
+        },
+      }),
+    ).toThrow("alpha2_human_gate_approval_ref_mismatch");
+  });
+
+  it("derives an initial gate resume mode from durable state and rejects caller overrides", () => {
+    const gated = transitionAlpha2Run(createQueuedRun(), "human_gate", {
+      humanGate: { state: "pending", reason: "Human decision required" },
+    });
+
+    expect(gated.attempt).toBe(0);
+    expect(gated.humanGate.resumeMode).toBe("start_new_attempt");
+
+    expect(() =>
+      transitionAlpha2Run(gated, "running", {
+        humanGate: {
+          state: "approved",
+          decisionRef: "decision:spoofed-resume-mode",
+          resumeMode: "resume_attempt",
+        },
+      }),
+    ).toThrow("alpha2_human_gate_resume_mode_mismatch");
+
+    const approved = transitionAlpha2Run(gated, "running", {
+      humanGate: {
+        state: "approved",
+        decisionRef: "decision:approved",
+      },
+    });
+
+    expect(approved.humanGate.resumeMode).toBe("start_new_attempt");
+    const consumed = consumeAlpha2HumanResumeApproval(approved);
+    expect(consumed.attempt).toBe(1);
+    expect(consumed.preExecutorResumeMode).toBe("start_new_attempt");
   });
 });
