@@ -38,7 +38,7 @@ describe("landing clarity contract", () => {
     expect(html).toContain("Nichts geht automatisch online");
     expect(html).toContain("Voxy bleibt optional");
     expect(html).toContain("Auch für Initiativen, Vereine, Kommunen und Organisationen.");
-    expect(html).toContain("Bis 30 Teilnehmende");
+    expect(html).toContain("bis 30 Teilnehmende");
     expect(html).toContain('href="/create"');
     expect(html).toContain('href="/swipes"');
     expect(html).toContain('href="/runden/new?gtm=1&amp;source=homepage-professional"');
