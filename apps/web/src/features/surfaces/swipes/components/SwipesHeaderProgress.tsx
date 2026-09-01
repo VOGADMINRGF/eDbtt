@@ -17,7 +17,7 @@ export function SwipesHeaderProgress({
   const isActive = mode === "active";
 
   return (
-    <header className="relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 shadow-[0_16px_45px_rgba(2,6,23,0.18)] backdrop-blur md:py-3">
+    <header className="relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/80 px-3 py-2 backdrop-blur md:bg-[rgb(var(--card))]/95 md:py-3 md:shadow-[0_16px_45px_rgba(2,6,23,0.18)]">
       <div className="pointer-events-none absolute -top-16 right-0 h-32 w-32 rounded-full bg-sky-500/15 blur-2xl" />
       <div className="pointer-events-none absolute -bottom-20 left-8 h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
       <div className="flex items-start justify-between gap-3 text-xs">
