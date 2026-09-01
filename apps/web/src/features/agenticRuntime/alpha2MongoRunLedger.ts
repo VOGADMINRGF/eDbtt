@@ -2,6 +2,7 @@ import type { Model } from "mongoose";
 import { mongo, mongoose } from "@core/db/mongoose";
 import {
   Alpha2RunRecordSchema,
+  assertAlpha2RunEvolution,
   type Alpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 import {
@@ -81,26 +82,87 @@ function indexedFields(run: Alpha2RunRecord) {
   };
 }
 
-function dueStateFilter(now: Date) {
+function dueStateFilter() {
   return {
     $or: [
       { status: "queued" },
       { status: "running" },
-      { status: "waiting", resumeAt: { $lte: now } },
-      { status: "failed", resumeAt: { $lte: now } },
+      {
+        status: "waiting",
+        resumeAt: { $ne: null },
+        $expr: { $lte: ["$resumeAt", "$$NOW"] },
+      },
+      {
+        status: "failed",
+        resumeAt: { $ne: null },
+        $expr: { $lte: ["$resumeAt", "$$NOW"] },
+      },
     ],
   };
 }
 
-function availableLeaseFilter(now: Date, owner?: string) {
+function availableLeaseFilter() {
   return {
     $or: [
-      ...(owner ? [{ leaseOwner: owner }] : []),
       { leaseOwner: null },
       { leaseExpiresAt: null },
-      { leaseExpiresAt: { $lte: now } },
+      { $expr: { $lte: ["$leaseExpiresAt", "$$NOW"] } },
     ],
   };
+}
+
+function activeLeaseFilter(owner: string) {
+  return {
+    leaseOwner: owner,
+    $expr: { $gt: ["$leaseExpiresAt", "$$NOW"] },
+  };
+}
+
+function serverLeaseExpiry(leaseMs: number) {
+  return {
+    $dateAdd: {
+      startDate: "$$NOW",
+      unit: "millisecond",
+      amount: Math.max(1, Math.floor(leaseMs)),
+    },
+  };
+}
+
+function assertWallClockCasBoundary(
+  existing: Alpha2RunRecord,
+  incoming: Alpha2RunRecord,
+  initializeWallClock?: { maxWallClockMs?: number },
+) {
+  if (initializeWallClock) {
+    if (initializeWallClock.maxWallClockMs !== incoming.budget.maxWallClockMs) {
+      throw new Error("alpha2_wall_clock_budget_mismatch");
+    }
+    const consumesApprovedFirstAttempt =
+      existing.status === "running" &&
+      existing.humanGate.state === "approved" &&
+      existing.humanGate.resumeMode === "start_new_attempt" &&
+      incoming.status === "running" &&
+      incoming.humanGate.state === "not_required" &&
+      incoming.preExecutorResumeMode === "start_new_attempt" &&
+      incoming.attempt === existing.attempt + 1;
+    if (existing.startedAt !== undefined && !consumesApprovedFirstAttempt) {
+      throw new Error("alpha2_started_at_is_immutable");
+    }
+    if (existing.wallClockDeadlineAt !== undefined) {
+      throw new Error("alpha2_wall_clock_deadline_is_immutable");
+    }
+    if (incoming.wallClockDeadlineAt !== undefined) {
+      throw new Error("alpha2_wall_clock_deadline_must_be_server_owned");
+    }
+    return;
+  }
+
+  if (existing.startedAt !== incoming.startedAt) {
+    throw new Error("alpha2_started_at_is_immutable");
+  }
+  if (existing.wallClockDeadlineAt !== incoming.wallClockDeadlineAt) {
+    throw new Error("alpha2_wall_clock_deadline_is_immutable");
+  }
 }
 
 export class Alpha2MongoRunLedger implements Alpha2RunLedger {
@@ -151,19 +213,137 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
   async compareAndSwap(input: {
     run: Alpha2RunRecord;
     expectedVersion: number;
+    lease?: { owner: string; now: string };
+    resumeAfterMs?: number;
+    initializeWallClock?: { maxWallClockMs?: number };
+    stampCheckpointId?: string;
   }): Promise<Alpha2VersionedRun> {
     const run = Alpha2RunRecordSchema.parse(input.run);
     const Model = await Alpha2LedgerModel();
-    const updated = await Model.findOneAndUpdate(
-      { runId: run.runId, version: input.expectedVersion },
-      {
-        $set: indexedFields(run),
-        $inc: { version: 1 },
+    const existing = await Model.findOne({ runId: run.runId });
+    if (!existing) {
+      throw new Error(
+        input.lease ? "alpha2_ledger_lease_lost" : "alpha2_ledger_version_conflict",
+      );
+    }
+    const existingRun = toVersionedRun(existing).run;
+    assertAlpha2LedgerIdentity(existingRun, run);
+    assertAlpha2RunEvolution(existingRun, run);
+    assertWallClockCasBoundary(existingRun, run, input.initializeWallClock);
+    const resumeAfterMs =
+      input.resumeAfterMs === undefined
+        ? undefined
+        : Math.max(0, Math.floor(input.resumeAfterMs));
+    const serverIso = (date: unknown) => ({
+      $dateToString: {
+        date,
+        format: "%Y-%m-%dT%H:%M:%S.%LZ",
+        timezone: "UTC",
       },
-      { new: true, runValidators: true },
+    });
+    const serverMutationDate = {
+      $cond: [
+        { $gt: ["$$NOW", "$updatedAt"] },
+        "$$NOW",
+        {
+          $dateAdd: {
+            startDate: "$updatedAt",
+            unit: "millisecond",
+            amount: 1,
+          },
+        },
+      ],
+    };
+    const serverDateAfter = (delayMs: number) => ({
+      $dateAdd: {
+        startDate: serverMutationDate,
+        unit: "millisecond",
+        amount: Math.max(0, Math.floor(delayMs)),
+      },
+    });
+    const payloadOverrides: Record<string, unknown> = {
+      updatedAt: serverIso(serverMutationDate),
+    };
+    if (run.finishedAt) {
+      payloadOverrides.finishedAt = serverIso(serverMutationDate);
+    }
+    if (input.stampCheckpointId) {
+      payloadOverrides.checkpoints = {
+        $map: {
+          input: { $literal: run.checkpoints },
+          as: "checkpoint",
+          in: {
+            $cond: [
+              {
+                $eq: [
+                  "$$checkpoint.checkpointId",
+                  { $literal: input.stampCheckpointId },
+                ],
+              },
+              {
+                $mergeObjects: [
+                  "$$checkpoint",
+                  { createdAt: serverIso(serverMutationDate) },
+                ],
+              },
+              "$$checkpoint",
+            ],
+          },
+        },
+      };
+    }
+    if (resumeAfterMs !== undefined) {
+      payloadOverrides.resumeAt = serverIso(serverDateAfter(resumeAfterMs));
+    }
+    if (input.initializeWallClock) {
+      payloadOverrides.startedAt = serverIso(serverMutationDate);
+      if (input.initializeWallClock.maxWallClockMs !== undefined) {
+        payloadOverrides.wallClockDeadlineAt = serverIso(
+          serverDateAfter(input.initializeWallClock.maxWallClockMs),
+        );
+      }
+    }
+    const update = [
+      {
+        $set: {
+          rootRunId: { $literal: run.rootRunId },
+          parentRunId: { $literal: run.parentRunId },
+          taskId: { $literal: run.taskId },
+          status: { $literal: run.status },
+          riskClass: { $literal: run.riskClass },
+          resumeAt:
+            resumeAfterMs === undefined
+              ? { $literal: run.resumeAt ? new Date(run.resumeAt) : null }
+              : serverDateAfter(resumeAfterMs),
+          payload: {
+            $mergeObjects: [{ $literal: run }, payloadOverrides],
+          },
+          updatedAt: serverMutationDate,
+          version: { $add: ["$version", 1] },
+        },
+      },
+    ];
+    const updated = await Model.findOneAndUpdate(
+      {
+        runId: run.runId,
+        idempotencyKey: run.idempotencyKey,
+        taskId: run.taskId,
+        rootRunId: run.rootRunId,
+        parentRunId: run.parentRunId,
+        version: input.expectedVersion,
+        ...(input.lease
+          ? activeLeaseFilter(input.lease.owner)
+          : {}),
+      },
+      update,
+      { new: true, runValidators: true, timestamps: false },
     );
 
-    if (!updated) throw new Error("alpha2_ledger_version_conflict");
+    if (!updated) {
+      throw new Error(
+        input.lease ? "alpha2_ledger_lease_lost" : "alpha2_ledger_version_conflict",
+      );
+    }
     return toVersionedRun(updated);
   }
 
@@ -174,24 +354,47 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     leaseMs: number;
   }): Promise<Alpha2VersionedRun | null> {
     const Model = await Alpha2LedgerModel();
-    const now = new Date(input.now);
-    const expiresAt = new Date(now.getTime() + input.leaseMs);
 
     const updated = await Model.findOneAndUpdate(
       {
         runId: input.runId,
-        $and: [dueStateFilter(now), availableLeaseFilter(now, input.owner)],
+        $and: [dueStateFilter(), availableLeaseFilter()],
       },
-      {
-        $set: {
-          leaseOwner: input.owner,
-          leaseExpiresAt: expiresAt,
+      [
+        {
+          $set: {
+            leaseOwner: input.owner,
+            leaseExpiresAt: serverLeaseExpiry(input.leaseMs),
+          },
         },
-      },
+      ],
       { new: true },
     );
 
     return updated ? toVersionedRun(updated) : null;
+  }
+
+  async renewLease(input: {
+    runId: string;
+    owner: string;
+    now: string;
+    leaseMs: number;
+  }): Promise<Alpha2VersionedRun | null> {
+    const Model = await Alpha2LedgerModel();
+    const updated = await Model.findOneAndUpdate(
+      {
+        runId: input.runId,
+        ...activeLeaseFilter(input.owner),
+      },
+      [{ $set: { leaseExpiresAt: serverLeaseExpiry(input.leaseMs) } }],
+      { new: true },
+    );
+    return updated ? toVersionedRun(updated) : null;
+  }
+
+  async isRunDue(input: { runId: string; now: string }): Promise<boolean> {
+    const Model = await Alpha2LedgerModel();
+    return Boolean(await Model.exists({ runId: input.runId, ...dueStateFilter() }));
   }
 
   async releaseLease(input: { runId: string; owner: string }): Promise<void> {
@@ -204,11 +407,10 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
 
   async listRecoverable(input: { now: string; limit?: number }): Promise<Alpha2VersionedRun[]> {
     const Model = await Alpha2LedgerModel();
-    const now = new Date(input.now);
     const limit = Math.max(1, Math.min(input.limit ?? 50, 500));
 
     const docs = await Model.find({
-      $and: [dueStateFilter(now), availableLeaseFilter(now)],
+      $and: [dueStateFilter(), availableLeaseFilter()],
     })
       .sort({ updatedAt: 1 })
       .limit(limit);

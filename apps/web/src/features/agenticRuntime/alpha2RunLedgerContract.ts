@@ -5,6 +5,11 @@ export type Alpha2RunLease = {
   expiresAt: string;
 };
 
+export type Alpha2LeaseFence = {
+  owner: string;
+  now: string;
+};
+
 export type Alpha2VersionedRun = {
   run: Alpha2RunRecord;
   version: number;
@@ -28,6 +33,10 @@ export interface Alpha2RunLedger {
   compareAndSwap(input: {
     run: Alpha2RunRecord;
     expectedVersion: number;
+    lease?: Alpha2LeaseFence;
+    resumeAfterMs?: number;
+    initializeWallClock?: { maxWallClockMs?: number };
+    stampCheckpointId?: string;
   }): Promise<Alpha2VersionedRun>;
   tryAcquireLease(input: {
     runId: string;
@@ -35,6 +44,13 @@ export interface Alpha2RunLedger {
     now: string;
     leaseMs: number;
   }): Promise<Alpha2VersionedRun | null>;
+  renewLease(input: {
+    runId: string;
+    owner: string;
+    now: string;
+    leaseMs: number;
+  }): Promise<Alpha2VersionedRun | null>;
+  isRunDue(input: { runId: string; now: string }): Promise<boolean>;
   releaseLease(input: { runId: string; owner: string }): Promise<void>;
   listRecoverable(input: Alpha2RecoverableRunQuery): Promise<Alpha2VersionedRun[]>;
 }
@@ -59,5 +75,11 @@ export function assertAlpha2LedgerIdentity(existing: Alpha2RunRecord, incoming: 
   }
   if (existing.runId !== incoming.runId || existing.taskId !== incoming.taskId) {
     throw new Error("alpha2_ledger_idempotency_conflict");
+  }
+  if (
+    existing.rootRunId !== incoming.rootRunId ||
+    existing.parentRunId !== incoming.parentRunId
+  ) {
+    throw new Error("alpha2_ledger_lineage_conflict");
   }
 }

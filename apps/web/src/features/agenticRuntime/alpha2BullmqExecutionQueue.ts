@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Job, Queue, QueueEvents, Worker } from "bullmq";
 import IORedis from "ioredis";
 
@@ -70,28 +71,71 @@ export function getAlpha2ExecutionQueueEvents() {
   return queueEvents;
 }
 
-function safeJobId(value: string) {
-  return value.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 180);
+function executionJobId(input: Pick<Alpha2ExecutionDispatch, "runId" | "dispatchKey">) {
+  const identity = JSON.stringify([input.runId, input.dispatchKey]);
+  return `alpha2_${createHash("sha256").update(identity).digest("hex")}`;
+}
+
+type Alpha2DispatchQueue = {
+  getJob(jobId: string): Promise<
+    | {
+        id?: string | number;
+        data: Alpha2ExecutionJob;
+        getState(): Promise<string>;
+        remove(): Promise<void>;
+      }
+    | undefined
+  >;
+  add(
+    name: string,
+    data: Alpha2ExecutionJob,
+    options: { jobId: string; delay: number },
+  ): Promise<{ id?: string | number }>;
+};
+
+export async function dispatchAlpha2Execution(
+  executionQueue: Alpha2DispatchQueue,
+  input: Alpha2ExecutionDispatch,
+) {
+  const jobId = executionJobId(input);
+  const existing = await executionQueue.getJob(jobId);
+
+  if (existing) {
+    if (
+      existing.data.runId !== input.runId ||
+      existing.data.dispatchKey !== input.dispatchKey ||
+      existing.data.taskId !== input.taskId
+    ) {
+      throw new Error("alpha2_execution_job_identity_collision");
+    }
+    const state = await existing.getState();
+    if (input.reason === "recovery" && (state === "failed" || state === "completed")) {
+      await existing.remove();
+    } else {
+      return { jobId: String(existing.id ?? jobId) };
+    }
+  }
+
+  const job = await executionQueue.add(
+    "execute-run",
+    {
+      runId: input.runId,
+      taskId: input.taskId,
+      dispatchKey: input.dispatchKey,
+      reason: input.reason,
+      requestedAt: input.requestedAt,
+    },
+    {
+      jobId,
+      delay: Math.max(0, input.delayMs ?? 0),
+    },
+  );
+  return { jobId: String(job.id ?? jobId) };
 }
 
 export class Alpha2BullmqExecutionDispatcher implements Alpha2ExecutionDispatcher {
   async dispatch(input: Alpha2ExecutionDispatch) {
-    const jobId = safeJobId(`alpha2_${input.runId}_${input.dispatchKey}`);
-    const job = await getAlpha2ExecutionQueue().add(
-      "execute-run",
-      {
-        runId: input.runId,
-        taskId: input.taskId,
-        dispatchKey: input.dispatchKey,
-        reason: input.reason,
-        requestedAt: input.requestedAt,
-      },
-      {
-        jobId,
-        delay: Math.max(0, input.delayMs ?? 0),
-      },
-    );
-    return { jobId: String(job.id ?? jobId) };
+    return dispatchAlpha2Execution(getAlpha2ExecutionQueue(), input);
   }
 }
 
