@@ -6,6 +6,22 @@ Canonical architecture: `docs/foundation/ALPHA_FOXTROTT_2_AGENTIC_ORG_RUNTIME.md
 
 This backlog decomposes the Alpha-Foxtrott 2.0 foundation architecture into bounded implementation slices. `docs/E150/OpenTasks.md` remains the operational SSOT; the task IDs below must be mirrored there before implementation begins.
 
+## Reconciliation 2026-09-02
+
+This file is historical architecture decomposition, not a current execution queue. The operative Alpha2 statuses and dependencies are exclusively in the canonical head of `docs/E150/OpenTasks.md`; the cross-cutting target is reconciled in `docs/E150/E150_CITIZEN_VOXY_ALPHA2_TARGET_ARCHITECTURE_2026-09-02.md`.
+
+The current critical autonomy path is:
+
+1. central GitHub state adapter;
+2. controlled transactional OpenTasks single writer;
+3. durable orchestrator loop;
+4. convergence of the existing continuous-dispatch Draft PR;
+5. convergence of the existing bounded-repair Draft PR;
+6. production-capable Mission Control and observability linkage;
+7. autonomous end-to-end and recovery acceptance.
+
+The earlier wave descriptions below remain useful design evidence but must not be used to reopen completed runtime work or bypass current PR ownership.
+
 ## Priority 0 — Control plane foundation
 
 ### ALPHA2-RUN-CONTRACT-01
@@ -284,9 +300,9 @@ This backlog decomposes the Alpha-Foxtrott 2.0 foundation architecture into boun
   - each card links to evidence/run history;
   - cost and concurrency visible.
 
-## First implementation wave
+## Historical first implementation wave
 
-Recommended first wave after OpenTasks intake:
+The original recommended first wave after OpenTasks intake was:
 
 1. `ALPHA2-RUN-CONTRACT-01`
 2. `ALPHA2-AGENT-REGISTRY-01`
@@ -294,4 +310,4 @@ Recommended first wave after OpenTasks intake:
 4. `ALPHA2-OPENTASKS-ADAPTER-01`
 5. `ALPHA2-GITHUB-STATE-ADAPTER-01`
 
-These slices create the provider-agnostic control-plane contracts before any large runtime or vendor commitment.
+The canonical operative head records the current outcome of these slices. This historical list creates no new implementation authorization.
