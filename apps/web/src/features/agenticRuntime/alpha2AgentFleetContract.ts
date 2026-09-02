@@ -155,6 +155,14 @@ export function loadAlpha2AgentFleetRegistry(): Alpha2AgentFleetRegistry {
   if (unique(routeCapabilities).length !== routeCapabilities.length) {
     throw new Error("alpha2_registry_duplicate_capability_route");
   }
+  const advertisedCapabilities = unique(
+    parsed.organizationRoles.flatMap((role) => role.capabilities),
+  );
+  for (const capability of advertisedCapabilities) {
+    if (!routeCapabilities.includes(capability)) {
+      throw new Error(`alpha2_registry_missing_capability_route:${capability}`);
+    }
+  }
 
   cachedFleet = parsed;
   return parsed;
@@ -162,6 +170,12 @@ export function loadAlpha2AgentFleetRegistry(): Alpha2AgentFleetRegistry {
 
 export function isAlpha2RoleId(value: string): value is Alpha2RoleId {
   return (ALPHA2_ROLE_IDS as readonly string[]).includes(value);
+}
+
+export function isAlpha2OrganizationRoleId(
+  value: Alpha2RoleId,
+): value is Alpha2OrganizationRoleId {
+  return (ALPHA2_ORGANIZATION_ROLE_IDS as readonly string[]).includes(value);
 }
 
 export function resolveAlpha2Role(roleId: Alpha2RoleId) {
@@ -183,10 +197,14 @@ export function resolveAlpha2Role(roleId: Alpha2RoleId) {
   return { ...role, source: "alpha2_organization_registry" as const };
 }
 
-export function resolveAlpha2CapabilityRoute(capability: string) {
-  const route = loadAlpha2AgentFleetRegistry().capabilityRoutes.find(
+export function findAlpha2CapabilityRoute(capability: string) {
+  return loadAlpha2AgentFleetRegistry().capabilityRoutes.find(
     (entry) => entry.capability === capability,
   );
+}
+
+export function resolveAlpha2CapabilityRoute(capability: string) {
+  const route = findAlpha2CapabilityRoute(capability);
   if (!route) throw new Error(`alpha2_capability_route_not_found:${capability}`);
   return route;
 }

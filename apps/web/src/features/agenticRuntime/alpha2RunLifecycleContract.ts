@@ -1,15 +1,14 @@
 import { z } from "zod";
 import {
   Alpha2RoleIdSchema,
+  findAlpha2CapabilityRoute,
+  isAlpha2OrganizationRoleId,
+  resolveAlpha2Role,
   type Alpha2RoleId,
 } from "@/features/agenticRuntime/alpha2AgentFleetContract";
 import {
-  AGENT_ROLE_IDS,
-} from "@/features/agenticRuntime/agentRegistryBootstrapContract";
-import {
   AGENT_SAFE_TRACE_ARTIFACT_TYPES,
   type AgentSafeTraceArtifactRef,
-  type AgentSafeTraceStep,
 } from "@/features/agenticRuntime/agentRunArtifactSafeTraceContract";
 
 export const ALPHA2_RUN_STATUSES = [
@@ -60,7 +59,10 @@ export type Alpha2RiskClass = (typeof ALPHA2_RISK_CLASSES)[number];
 export type Alpha2GateState = (typeof ALPHA2_GATE_STATES)[number];
 export type Alpha2RouteMode = (typeof ALPHA2_ROUTE_MODES)[number];
 export type Alpha2SafeTraceArtifactRef = AgentSafeTraceArtifactRef;
-export type Alpha2SafeTraceStepRef = Pick<AgentSafeTraceStep, "stepId" | "roleId">;
+export type Alpha2SafeTraceStepRef = {
+  stepId: string;
+  roleId: Alpha2RoleId;
+};
 
 const Alpha2RunStatusSchema = z.enum(ALPHA2_RUN_STATUSES);
 const Alpha2RunKindSchema = z.enum(ALPHA2_RUN_KINDS);
@@ -69,7 +71,6 @@ const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
 const Alpha2GateResumeModeSchema = z.enum(ALPHA2_GATE_RESUME_MODES);
 const Alpha2PreExecutorResumeModeSchema = z.enum(ALPHA2_PRE_EXECUTOR_RESUME_MODES);
-const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
 const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
   "approved",
   "rejected",
@@ -100,7 +101,7 @@ export const Alpha2SafeTraceArtifactRefSchema = z
 export const Alpha2SafeTraceStepRefSchema = z
   .object({
     stepId: z.string().min(1),
-    roleId: AgentRoleIdSchema,
+    roleId: Alpha2RoleIdSchema,
   })
   .strict();
 
@@ -198,6 +199,40 @@ export const Alpha2RunRecordSchema = z
   })
   .strict()
   .superRefine((run, ctx) => {
+    const capabilityRoute = findAlpha2CapabilityRoute(run.route.capabilityClass);
+
+    if (isAlpha2OrganizationRoleId(run.primaryRole)) {
+      const primaryRole = resolveAlpha2Role(run.primaryRole);
+
+      if (!capabilityRoute) {
+        ctx.addIssue({
+          code: "custom",
+          message: `alpha2_capability_route_not_found:${run.route.capabilityClass}`,
+        });
+      } else if (!primaryRole.capabilities.includes(run.route.capabilityClass)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `alpha2_primary_role_capability_mismatch:${run.primaryRole}:${run.route.capabilityClass}`,
+        });
+      }
+
+    }
+
+    if (capabilityRoute?.independentReviewRequired) {
+      if (run.primaryRole === "review_agent") {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_independent_reviewer_must_differ_from_primary",
+        });
+      }
+      if (!run.supportingRoles.includes("review_agent")) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_independent_review_role_required",
+        });
+      }
+    }
+
     if (run.parentRunId === null && run.rootRunId !== run.runId) {
       ctx.addIssue({ code: "custom", message: "alpha2_root_run_must_reference_itself" });
     }
@@ -513,6 +548,13 @@ export function transitionAlpha2Run(
   } = {},
 ): Alpha2RunRecord {
   assertAlpha2RunTransition(run.status, to);
+  if (
+    to === "completed" &&
+    run.status !== "review" &&
+    findAlpha2CapabilityRoute(run.route.capabilityClass)?.independentReviewRequired
+  ) {
+    throw new Error("alpha2_independent_review_required_before_completion");
+  }
   const now = input.now ?? new Date().toISOString();
 
   const replacesPriorReviewDecision =
@@ -719,6 +761,13 @@ export function assertAlpha2RunEvolution(
 
   if (existing.status !== incoming.status) {
     assertAlpha2RunTransition(existing.status, incoming.status);
+  }
+  if (
+    incoming.status === "completed" &&
+    existing.status !== "review" &&
+    findAlpha2CapabilityRoute(existing.route.capabilityClass)?.independentReviewRequired
+  ) {
+    throw new Error("alpha2_independent_review_required_before_completion");
   }
 
   assertAppendOnlyPrefix(
