@@ -209,10 +209,10 @@ function assertAuthenticatedReviewCasBoundary(
   const independentReviewRequired = Boolean(
     findAlpha2CapabilityRoute(existing.route.capabilityClass)?.independentReviewRequired,
   );
-  const isReviewExit =
+  const isProtectedReviewExit =
     existing.status === "review" &&
-    (incoming.status === "completed" || incoming.status === "running");
-  if (!independentReviewRequired || !isReviewExit) return;
+    ["running", "completed", "human_gate"].includes(incoming.status);
+  if (!independentReviewRequired || !isProtectedReviewExit) return;
 
   if (!authenticatedActor) {
     throw new Error("alpha2_review_cas_requires_authenticated_actor");
@@ -230,9 +230,11 @@ function assertAuthenticatedReviewCasBoundary(
     throw new Error("alpha2_review_cas_actor_not_assigned");
   }
 
-  const decisionActor = incoming.humanGate.decisionActor;
-  if (!decisionActor || !samePrincipal(decisionActor, authenticatedActor)) {
-    throw new Error("alpha2_review_decision_actor_auth_mismatch");
+  if (incoming.status !== "human_gate") {
+    const decisionActor = incoming.humanGate.decisionActor;
+    if (!decisionActor || !samePrincipal(decisionActor, authenticatedActor)) {
+      throw new Error("alpha2_review_decision_actor_auth_mismatch");
+    }
   }
 }
 
