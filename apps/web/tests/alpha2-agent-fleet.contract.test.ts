@@ -20,6 +20,15 @@ import {
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 
 describe("Alpha-Foxtrott 2 organization agent fleet", () => {
+  const primaryEngineeringActor = {
+    actorId: "worker-1",
+    roleId: "engineering_agent" as const,
+  };
+  const assignedReviewActor = {
+    actorId: "reviewer-1",
+    roleId: "review_agent" as const,
+  };
+
   it("extends the canonical registry without replacing the existing V3 roles", () => {
     const fleet = loadAlpha2AgentFleetRegistry();
     expect(fleet.schemaVersion).toBe("alpha2.registry.v1");
@@ -93,6 +102,8 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
       kind: "engineering_slice",
       primaryRole: "engineering_agent",
       supportingRoles: ["review_agent", "qa_agent", "risk_governor"],
+      primaryActor: primaryEngineeringActor,
+      assignedReviewActor,
       riskClass: "yellow",
       route: { mode: "automatic", capabilityClass: "engineering" },
       now: "2026-08-23T21:00:00.000Z",
@@ -144,6 +155,8 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
         kind: "engineering_slice",
         primaryRole: "engineering_agent",
         supportingRoles: ["qa_agent"],
+        primaryActor: primaryEngineeringActor,
+        assignedReviewActor,
         riskClass: "yellow",
         route: { mode: "automatic", capabilityClass: "engineering" },
         now: "2026-09-02T08:00:00.000Z",
@@ -158,14 +171,50 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
         kind: "engineering_slice",
         primaryRole: "review_agent",
         supportingRoles: ["review_agent"],
+        primaryActor: { actorId: "worker-self", roleId: "review_agent" },
+        assignedReviewActor: { actorId: "reviewer-other", roleId: "review_agent" },
         riskClass: "yellow",
         route: { mode: "automatic", capabilityClass: "engineering" },
         now: "2026-09-02T08:00:00.000Z",
       }),
     ).toThrow("alpha2_independent_reviewer_must_differ_from_primary");
+
+    expect(() =>
+      createAlpha2RunRecord({
+        runId: "fleet-run-missing-principals",
+        idempotencyKey: "fleet-idem-missing-principals",
+        taskId: "ALPHA2-DIRECT-ENGINEERING-WORKER-01",
+        kind: "engineering_slice",
+        primaryRole: "engineering_agent",
+        supportingRoles: ["review_agent"],
+        riskClass: "yellow",
+        route: { mode: "automatic", capabilityClass: "engineering" },
+        now: "2026-09-02T08:00:00.000Z",
+      }),
+    ).toThrow("alpha2_primary_actor_required_for_independent_review");
+
+    expect(() =>
+      createAlpha2RunRecord({
+        runId: "fleet-run-same-principal-assignments",
+        idempotencyKey: "fleet-idem-same-principal-assignments",
+        taskId: "ALPHA2-DIRECT-ENGINEERING-WORKER-01",
+        kind: "engineering_slice",
+        primaryRole: "engineering_agent",
+        supportingRoles: ["review_agent"],
+        primaryActor: primaryEngineeringActor,
+        assignedReviewActor: {
+          actorId: primaryEngineeringActor.actorId,
+          roleId: "review_agent",
+        },
+        riskClass: "yellow",
+        route: { mode: "automatic", capabilityClass: "engineering" },
+        now: "2026-09-02T08:00:00.000Z",
+      }),
+    ).toThrow("alpha2_independent_reviewer_principal_must_differ_from_primary");
   });
 
   it("requires a bound review approval before review-gated runs complete", () => {
+    const implementationActorId = primaryEngineeringActor.actorId;
     const queued = createAlpha2RunRecord({
       runId: "fleet-run-review-required",
       idempotencyKey: "fleet-idem-review-required",
@@ -173,6 +222,8 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
       kind: "engineering_slice",
       primaryRole: "engineering_agent",
       supportingRoles: ["review_agent"],
+      primaryActor: primaryEngineeringActor,
+      assignedReviewActor,
       riskClass: "yellow",
       route: { mode: "automatic", capabilityClass: "engineering" },
       now: "2026-09-02T08:00:00.000Z",
@@ -201,6 +252,22 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
     const reviewed = transitionAlpha2Run(running, "review", {
       now: "2026-09-02T08:02:00.000Z",
     });
+
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-09-02T08:03:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewCompletionGateRef(reviewed),
+          decisionRef: "review:same-principal-changed-role",
+          decidedAt: "2026-09-02T08:03:00.000Z",
+          decisionActor: {
+            actorId: implementationActorId,
+            roleId: "review_agent",
+          },
+        },
+      }),
+    ).toThrow("alpha2_review_approval_actor_matches_primary_principal");
 
     expect(() =>
       transitionAlpha2Run(reviewed, "completed", {
@@ -243,6 +310,22 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
     ).toThrow("alpha2_review_approval_requires_actor_identity");
 
     expect(() =>
+      transitionAlpha2Run(reviewed, "running", {
+        now: "2026-09-02T08:03:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewResumeGateRef(reviewed),
+          decisionRef: "review:resume-same-principal-changed-role",
+          decidedAt: "2026-09-02T08:03:00.000Z",
+          decisionActor: {
+            actorId: implementationActorId,
+            roleId: "review_agent",
+          },
+        },
+      }),
+    ).toThrow("alpha2_review_approval_actor_matches_primary_principal");
+
+    expect(() =>
       transitionAlpha2Run(reviewed, "completed", {
         now: "2026-09-02T08:03:00.000Z",
         humanGate: {
@@ -251,12 +334,12 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
           decisionRef: "review:self-approval",
           decidedAt: "2026-09-02T08:03:00.000Z",
           decisionActor: {
-            actorId: "engineering_agent",
+            actorId: implementationActorId,
             roleId: "engineering_agent",
           },
         },
       }),
-    ).toThrow("alpha2_review_approval_actor_must_differ_from_primary");
+    ).toThrow("alpha2_review_approval_actor_matches_primary_principal");
 
     expect(() =>
       transitionAlpha2Run(reviewed, "completed", {
@@ -274,8 +357,24 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
       }),
     ).toThrow("alpha2_review_approval_actor_not_assigned");
 
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-09-02T08:03:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewCompletionGateRef(reviewed),
+          decisionRef: "review:wrong-assigned-reviewer",
+          decidedAt: "2026-09-02T08:03:00.000Z",
+          decisionActor: {
+            actorId: "reviewer-unassigned",
+            roleId: "review_agent",
+          },
+        },
+      }),
+    ).toThrow("alpha2_review_approval_actor_not_assigned");
+
     const validReviewerActor = {
-      actorId: "review-agent:independent-01",
+      actorId: assignedReviewActor.actorId,
       roleId: "review_agent" as const,
     };
     const invalidBoundApprovals = [
@@ -325,6 +424,20 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
       },
     });
     expect(completed.status).toBe("completed");
+
+    const resumed = transitionAlpha2Run(reviewed, "running", {
+      now: "2026-09-02T08:03:00.000Z",
+      humanGate: {
+        state: "approved",
+        gateRef: alpha2ReviewResumeGateRef(reviewed),
+        decisionRef: "review:independent:resume-approved",
+        decidedAt: "2026-09-02T08:03:00.000Z",
+        decisionActor: validReviewerActor,
+      },
+    });
+    expect(() => assertAlpha2RunEvolution(reviewed, resumed)).not.toThrow();
+    expect(resumed.primaryActor).toEqual(primaryEngineeringActor);
+    expect(resumed.assignedReviewActor).toEqual(assignedReviewActor);
 
     const normalQueued = createAlpha2RunRecord({
       runId: "fleet-run-no-review-required",

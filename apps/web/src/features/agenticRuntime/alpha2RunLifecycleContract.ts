@@ -132,12 +132,14 @@ export const Alpha2ModelRouteSchema = z
     }
   });
 
-export const Alpha2GateDecisionActorSchema = z
+export const Alpha2ActorPrincipalSchema = z
   .object({
     actorId: z.string().min(1),
     roleId: Alpha2RoleIdSchema,
   })
   .strict();
+
+export const Alpha2GateDecisionActorSchema = Alpha2ActorPrincipalSchema;
 
 export const Alpha2HumanGateSchema = z
   .object({
@@ -186,6 +188,8 @@ export const Alpha2RunRecordSchema = z
     status: Alpha2RunStatusSchema,
     primaryRole: Alpha2RoleIdSchema,
     supportingRoles: z.array(Alpha2RoleIdSchema).default([]),
+    primaryActor: Alpha2ActorPrincipalSchema.optional(),
+    assignedReviewActor: Alpha2ActorPrincipalSchema.optional(),
     riskClass: Alpha2RiskClassSchema,
     humanGate: Alpha2HumanGateSchema,
     humanGateHistory: z.array(Alpha2HumanGateSchema).default([]),
@@ -239,6 +243,46 @@ export const Alpha2RunRecordSchema = z
           message: "alpha2_independent_review_role_required",
         });
       }
+      if (!run.primaryActor) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_primary_actor_required_for_independent_review",
+        });
+      } else if (run.primaryActor.roleId !== run.primaryRole) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_primary_actor_role_mismatch",
+        });
+      }
+      if (!run.assignedReviewActor) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_assigned_review_actor_required",
+        });
+      } else if (
+        run.assignedReviewActor.roleId !== "review_agent" ||
+        !run.supportingRoles.includes(run.assignedReviewActor.roleId)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_assigned_review_actor_not_assigned",
+        });
+      }
+      if (
+        run.primaryActor &&
+        run.assignedReviewActor &&
+        run.primaryActor.actorId === run.assignedReviewActor.actorId
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_independent_reviewer_principal_must_differ_from_primary",
+        });
+      }
+    } else if (run.primaryActor && run.primaryActor.roleId !== run.primaryRole) {
+      ctx.addIssue({
+        code: "custom",
+        message: "alpha2_primary_actor_role_mismatch",
+      });
     }
 
     if (run.parentRunId === null && run.rootRunId !== run.runId) {
@@ -287,6 +331,7 @@ export const Alpha2RunRecordSchema = z
 
 export type Alpha2Budget = z.infer<typeof Alpha2BudgetSchema>;
 export type Alpha2ModelRoute = z.infer<typeof Alpha2ModelRouteSchema>;
+export type Alpha2ActorPrincipal = z.infer<typeof Alpha2ActorPrincipalSchema>;
 export type Alpha2GateDecisionActor = z.infer<typeof Alpha2GateDecisionActorSchema>;
 export type Alpha2HumanGate = z.infer<typeof Alpha2HumanGateSchema>;
 export type Alpha2Checkpoint = z.infer<typeof Alpha2CheckpointSchema>;
@@ -346,12 +391,20 @@ function assertAssignedIndependentReviewActor(
   if (!actor) {
     throw new Error("alpha2_review_approval_requires_actor_identity");
   }
-  if (actor.roleId === run.primaryRole || actor.actorId === run.primaryRole) {
-    throw new Error("alpha2_review_approval_actor_must_differ_from_primary");
+  const primaryActor = run.primaryActor;
+  const assignedReviewActor = run.assignedReviewActor;
+  if (!primaryActor || !assignedReviewActor) {
+    throw new Error("alpha2_review_principal_binding_missing");
   }
   if (
-    actor.roleId !== "review_agent" ||
-    !run.supportingRoles.includes(actor.roleId)
+    actor.actorId === primaryActor.actorId ||
+    actor.roleId === primaryActor.roleId
+  ) {
+    throw new Error("alpha2_review_approval_actor_matches_primary_principal");
+  }
+  if (
+    actor.actorId !== assignedReviewActor.actorId ||
+    actor.roleId !== assignedReviewActor.roleId
   ) {
     throw new Error("alpha2_review_approval_actor_not_assigned");
   }
@@ -444,6 +497,8 @@ export function createAlpha2RunRecord(input: {
   kind: Alpha2RunKind;
   primaryRole: Alpha2RoleId;
   supportingRoles?: Alpha2RoleId[];
+  primaryActor?: Alpha2ActorPrincipal;
+  assignedReviewActor?: Alpha2ActorPrincipal;
   riskClass: Alpha2RiskClass;
   route: Alpha2ModelRoute;
   budget?: Partial<Alpha2Budget>;
@@ -484,6 +539,8 @@ export function createAlpha2RunRecord(input: {
     supportingRoles: Array.from(new Set(input.supportingRoles ?? [])).filter(
       (role) => role !== input.primaryRole,
     ),
+    primaryActor: input.primaryActor,
+    assignedReviewActor: input.assignedReviewActor,
     riskClass: input.riskClass,
     humanGate: initialHumanGate,
     humanGateHistory: [],
@@ -810,6 +867,12 @@ export function assertAlpha2RunEvolution(
     !sameLifecycleValue(existing.supportingRoles, incoming.supportingRoles)
   ) {
     throw new Error("alpha2_role_assignments_are_immutable");
+  }
+  if (
+    !sameLifecycleValue(existing.primaryActor, incoming.primaryActor) ||
+    !sameLifecycleValue(existing.assignedReviewActor, incoming.assignedReviewActor)
+  ) {
+    throw new Error("alpha2_principal_assignments_are_immutable");
   }
   if (existing.createdAt !== incoming.createdAt) {
     throw new Error("alpha2_run_created_at_is_immutable");
