@@ -4,6 +4,7 @@ Stand: 2026-09-02
 Status: kanonischer Reconciliation-Contract; Runtime- und Produktionsaktivierung bleiben gesondert gegatet
 Operative SSOT: `docs/E150/OpenTasks.md`
 Single-Writer-Anker: Issue `#447`
+Reconciliation-PR: Draft-PR `#699`
 
 ## 1. Zweck und Rang
 
