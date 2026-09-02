@@ -19,6 +19,8 @@ import type {
   CreateUnderstandingResult,
   FollowupConfidence,
 } from "@/features/create/intelligentFollowupContract";
+import { buildOfficialRegionsFromDirectory } from "@features/region/directory";
+import { resolveCreateCitizenIntakeContext } from "@/features/create/createCitizenIntakeContext";
 
 type BuildCreateIntelligentFollowupInput = {
   text: string;
@@ -227,6 +229,20 @@ export async function buildCreateIntelligentFollowup(
 ): Promise<CreateIntelligentFollowupResult> {
   const text = input.text.trim();
   const generatedAt = new Date().toISOString();
+  const citizenContext = resolveCreateCitizenIntakeContext({
+    text,
+    locale: input.locale,
+    directoryEntries: buildOfficialRegionsFromDirectory()
+      .filter((region) => Boolean(region.officialDirectoryEntry))
+      .map((region) => ({
+        id: region.id,
+        municipalityName: region.name,
+        state: region.federalState,
+        country: region.country,
+        registryId: region.officialDirectoryEntry?.ags ?? region.officialDirectoryEntry?.ars ?? null,
+        authorityName: region.officialBody?.label ?? null,
+      })),
+  });
   const planner = await buildCreatePlanner({
     text,
     locale: input.locale,
@@ -251,6 +267,7 @@ export async function buildCreateIntelligentFollowup(
       userMessage: resolveTextAnalysisFailureMessage(planner, input.locale),
       generatedAt,
       planner,
+      citizenContext,
     });
   }
 
@@ -272,6 +289,7 @@ export async function buildCreateIntelligentFollowup(
     generatedAt,
     meta: {
       planner,
+      citizenContext,
       graphMatch: buildGraphMatchPlan(planner),
       researchUsed: "none",
       researchProvider: null,
