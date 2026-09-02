@@ -13,6 +13,7 @@ import {
   Alpha2RunRecordSchema,
   Alpha2SafeTraceStepRefSchema,
   alpha2ReviewCompletionGateRef,
+  alpha2ReviewResumeGateRef,
   assertAlpha2RunEvolution,
   createAlpha2RunRecord,
   transitionAlpha2Run,
@@ -200,6 +201,119 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
     const reviewed = transitionAlpha2Run(running, "review", {
       now: "2026-09-02T08:02:00.000Z",
     });
+
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-09-02T08:03:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewCompletionGateRef(reviewed),
+          decisionRef: "review:decision-ref-only",
+          decidedAt: "2026-09-02T08:03:00.000Z",
+        },
+      }),
+    ).toThrow("alpha2_review_approval_requires_actor_identity");
+
+    const directDecisionRefOnlyCompletion = Alpha2RunRecordSchema.parse({
+      ...reviewed,
+      status: "completed",
+      updatedAt: "2026-09-02T08:03:00.000Z",
+      finishedAt: "2026-09-02T08:03:00.000Z",
+      humanGate: {
+        state: "approved",
+        gateRef: alpha2ReviewCompletionGateRef(reviewed),
+        decisionRef: "review:direct-cas-decision-ref-only",
+        decidedAt: "2026-09-02T08:03:00.000Z",
+      },
+    });
+    expect(() =>
+      assertAlpha2RunEvolution(reviewed, directDecisionRefOnlyCompletion),
+    ).toThrow("alpha2_review_approval_requires_actor_identity");
+
+    expect(() =>
+      transitionAlpha2Run(reviewed, "running", {
+        now: "2026-09-02T08:03:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewResumeGateRef(reviewed),
+          decisionRef: "review:resume-decision-ref-only",
+          decidedAt: "2026-09-02T08:03:00.000Z",
+        },
+      }),
+    ).toThrow("alpha2_review_approval_requires_actor_identity");
+
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-09-02T08:03:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewCompletionGateRef(reviewed),
+          decisionRef: "review:self-approval",
+          decidedAt: "2026-09-02T08:03:00.000Z",
+          decisionActor: {
+            actorId: "engineering_agent",
+            roleId: "engineering_agent",
+          },
+        },
+      }),
+    ).toThrow("alpha2_review_approval_actor_must_differ_from_primary");
+
+    expect(() =>
+      transitionAlpha2Run(reviewed, "completed", {
+        now: "2026-09-02T08:03:00.000Z",
+        humanGate: {
+          state: "approved",
+          gateRef: alpha2ReviewCompletionGateRef(reviewed),
+          decisionRef: "review:unknown-reviewer",
+          decidedAt: "2026-09-02T08:03:00.000Z",
+          decisionActor: {
+            actorId: "qa-agent:unassigned-reviewer",
+            roleId: "qa_agent",
+          },
+        },
+      }),
+    ).toThrow("alpha2_review_approval_actor_not_assigned");
+
+    const validReviewerActor = {
+      actorId: "review-agent:independent-01",
+      roleId: "review_agent" as const,
+    };
+    const invalidBoundApprovals = [
+      {
+        gateRef: alpha2ReviewResumeGateRef(reviewed),
+        decisionRef: "review:wrong-purpose",
+        decidedAt: "2026-09-02T08:03:00.000Z",
+      },
+      {
+        gateRef: alpha2ReviewCompletionGateRef(reviewed).replace(
+          reviewed.runId,
+          "fleet-run-wrong",
+        ),
+        decisionRef: "review:wrong-run",
+        decidedAt: "2026-09-02T08:03:00.000Z",
+      },
+      {
+        gateRef: alpha2ReviewCompletionGateRef({
+          ...reviewed,
+          updatedAt: "2026-09-02T08:01:00.000Z",
+        }),
+        decisionRef: "review:replayed-generation",
+        decidedAt: "2026-09-02T08:01:30.000Z",
+      },
+    ];
+    for (const approval of invalidBoundApprovals) {
+      expect(() =>
+        transitionAlpha2Run(reviewed, "completed", {
+          now: "2026-09-02T08:03:00.000Z",
+          humanGate: {
+            state: "approved",
+            ...approval,
+            decisionActor: validReviewerActor,
+          },
+        }),
+      ).toThrow("alpha2_review_completion_requires_bound_approval");
+    }
+
     const completed = transitionAlpha2Run(reviewed, "completed", {
       now: "2026-09-02T08:03:00.000Z",
       humanGate: {
@@ -207,6 +321,7 @@ describe("Alpha-Foxtrott 2 organization agent fleet", () => {
         gateRef: alpha2ReviewCompletionGateRef(reviewed),
         decisionRef: "review:independent:approved",
         decidedAt: "2026-09-02T08:03:00.000Z",
+        decisionActor: validReviewerActor,
       },
     });
     expect(completed.status).toBe("completed");

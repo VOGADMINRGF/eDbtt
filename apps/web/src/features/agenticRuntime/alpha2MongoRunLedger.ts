@@ -2,6 +2,7 @@ import type { Model } from "mongoose";
 import { mongo, mongoose } from "@core/db/mongoose";
 import {
   Alpha2RunRecordSchema,
+  assertAlpha2InitialRunPersistence,
   assertAlpha2RunEvolution,
   type Alpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
@@ -176,6 +177,8 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
       assertAlpha2LedgerIdentity(record.run, validated);
       return { record, created: false };
     }
+
+    assertAlpha2InitialRunPersistence(validated);
 
     try {
       const created = await Model.create({

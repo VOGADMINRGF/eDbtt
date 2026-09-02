@@ -15,6 +15,7 @@ const mongoHarness = vi.hoisted(() => {
   const Model = {
     findOne: vi.fn(async () => found),
     findOneAndUpdate: vi.fn(async () => updated),
+    create: vi.fn(async (input: unknown) => input),
   };
   return {
     Model,
@@ -75,7 +76,69 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
   beforeEach(() => {
     mongoHarness.Model.findOne.mockClear();
     mongoHarness.Model.findOneAndUpdate.mockClear();
+    mongoHarness.Model.create.mockClear();
+    mongoHarness.setFound(null);
     mongoHarness.setUpdated(null);
+  });
+
+  it("rejects a fresh pre-completed review-gated run at initial insertion", async () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-mongo-pre-completed",
+      idempotencyKey: "idem-run-mongo-pre-completed",
+      taskId: "ALPHA2-DIRECT-ENGINEERING-WORKER-01",
+      kind: "engineering_slice",
+      primaryRole: "engineering_agent",
+      supportingRoles: ["review_agent"],
+      riskClass: "yellow",
+      route: { mode: "automatic", capabilityClass: "engineering" },
+      now: "2026-09-02T08:00:00.000Z",
+    });
+    const preCompleted = Alpha2RunRecordSchema.parse({
+      ...queued,
+      status: "completed",
+      updatedAt: "2026-09-02T08:01:00.000Z",
+      finishedAt: "2026-09-02T08:01:00.000Z",
+    });
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(ledger.createOrGet(preCompleted)).rejects.toThrow(
+      "alpha2_invalid_initial_run_status:completed",
+    );
+    expect(mongoHarness.Model.create).not.toHaveBeenCalled();
+  });
+
+  it("persists canonical initial runs and preserves existing recovery records", async () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-mongo-valid-initial",
+      idempotencyKey: "idem-run-mongo-valid-initial",
+      taskId: "ALPHA2-DIRECT-ENGINEERING-WORKER-01",
+      kind: "engineering_slice",
+      primaryRole: "engineering_agent",
+      supportingRoles: ["review_agent"],
+      riskClass: "yellow",
+      route: { mode: "automatic", capabilityClass: "engineering" },
+      now: "2026-09-02T08:00:00.000Z",
+    });
+    const ledger = new Alpha2MongoRunLedger();
+
+    const created = await ledger.createOrGet(queued);
+    expect(created).toMatchObject({ created: true, record: { run: queued, version: 0 } });
+    expect(mongoHarness.Model.create).toHaveBeenCalledOnce();
+
+    const completed = Alpha2RunRecordSchema.parse({
+      ...queued,
+      status: "completed",
+      updatedAt: "2026-09-02T08:05:00.000Z",
+      finishedAt: "2026-09-02T08:05:00.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(completed, 4));
+
+    const recovered = await ledger.createOrGet(completed);
+    expect(recovered).toMatchObject({
+      created: false,
+      record: { run: completed, version: 4 },
+    });
+    expect(mongoHarness.Model.create).toHaveBeenCalledOnce();
   });
 
   it("rejects direct compareAndSwap changes to execution policy", async () => {
