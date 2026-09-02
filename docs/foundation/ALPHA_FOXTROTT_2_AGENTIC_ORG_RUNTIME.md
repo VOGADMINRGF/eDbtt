@@ -1,7 +1,7 @@
 # Alpha-Foxtrott 2.0 — Agentic Organization Runtime
 
-Status: proposed foundation architecture
-Stand: 2026-08-23
+Status: canonical foundation architecture; production activation remains gated
+Stand: 2026-09-02
 Scope: eDebatte, VoiceOpenGov, Vote4Gov, Voxy and shared operations
 
 ## 1. Purpose
@@ -10,17 +10,29 @@ Alpha-Foxtrott remains the orchestration basis for the ecosystem, but it must no
 
 The goal is not to create one autonomous super-agent. The goal is to create a persistent organization runtime in which many specialized workers can operate in parallel under a shared canon, shared evidence model, shared memory and explicit human-sovereignty boundaries.
 
+Alpha-Foxtrott 2.0 has two explicit operating phases. These operating phases are distinct from the delivery waves later in this document.
+
+### Phase 1 — Build / Completion Mode
+
+Until production readiness and the autonomous acceptance contract are proven, Alpha2's primary mission is: **finish building eDebatte**. It selects work only from the canonical operative head of `docs/E150/OpenTasks.md` and coordinates bounded engineering, architecture, review, QA, SRE, security, Voxy, research/evidence, Mission Control, observability, governance and product/UX slices. Existing review, security, budget and human gates remain authoritative.
+
+### Phase 2 — Autonomous Operating Mode
+
+Only after the defined production-readiness, end-to-end and recovery gates have passed may Alpha2 become the durable orchestrator of the full specialist fleet. Entering this phase is an explicit, evidenced transition; it is not inferred from the existence of runtime code, Draft PRs or green unit tests.
+
 ## 2. Operating principle
 
 Alpha itself should do as little task execution as possible.
 
-Its core loop is:
+Its complete control loop is:
 
-`observe -> prioritize -> delegate -> verify -> learn -> continue or escalate`
+`observe -> prioritize -> claim -> delegate -> execute -> verify -> review / human gate when required -> reconcile SSOT -> learn -> continue -> observe`
 
 Worker agents remain deliberately bounded. A worker may execute one coherent slice or 1–3 `codex_ready` tasks, but Alpha may automatically dispatch the next eligible worker when the previous slice has completed and all gates are satisfied.
 
 This preserves small reviewable changes without requiring a human to restart the organization after every run.
+
+After idle, process restart, worker loss, a queue/Redis loss covered by the runtime contract or completion of a task, Alpha must re-observe canonical state and answer: **what is the next permitted work?** It must never answer from chat memory alone.
 
 ## 3. Non-negotiable boundaries
 
@@ -38,6 +50,12 @@ Alpha-Foxtrott 2.0 must preserve the existing foundation canon and the following
 Automation may be broader for reversible, low-risk, previously authorized operations.
 
 ## 4. Scope of the organization
+
+### Product mission alignment
+
+The public product is citizen-first and Voxy-first. A person should be able to begin with a low-threshold concern, question, observation, proposal, position or source. Existing Place/Registry/Jurisdiction, Signal, Anlassraum, Dossier, Runde, Mandat and Impact contracts remain the domain truth behind that simple interaction.
+
+Voxy is the primary visible AI interface for normal users. It keeps permitted context, asks only necessary clarifying questions, explains evidence and delegates internally. Alpha2 is not a public conversational persona, and normal users do not select or orchestrate specialist agents. Agent selection remains visible only on explicit admin, operator, debug, governance and Mission Control surfaces.
 
 Alpha-Foxtrott 2.0 is not only an engineering orchestrator. It is the common operating layer for:
 
@@ -127,6 +145,14 @@ Initial capability groups:
 - `brand-trust-agent`: brand canon, evidence wording and external-risk checks.
 
 Agents are logical roles. Multiple roles may use the same model or process. A role is only instantiated when needed.
+
+The seven civic roles in `docs/E150/V3_AGENTIC_RUNTIME_MANIFEST_2026-07-13.md` remain the canonical public-workflow capability grouping. The broader Alpha2 organization registry refines internal ownership for engineering and operations; it does not replace those civic roles or create a second user-facing agent model.
+
+Research is a multi-stage evidence pipeline, not a generic web-search action:
+
+`question / claim -> discovery -> source retrieval -> source quality -> primary-source preference -> cross-check -> contradiction detection -> evidence mapping -> fact check -> synthesis -> citation / provenance`
+
+Each stage preserves retrieval time, jurisdiction, language, source family, uncertainty and provenance where relevant. Independent sources and primary sources are preferred where available and lawful. Contradictions and access limits remain visible. "Search the whole web" means broad, policy-compliant discovery within legal, technical, licensing, cost and access boundaries; it never authorizes bypassing them or inventing completeness.
 
 ## 6. Durable execution
 
@@ -273,7 +299,9 @@ Minimum views:
 - agent/model performance;
 - human decision inbox.
 
-## 15. Implementation sequence
+## 15. Delivery sequence inside the phase transition
+
+The following delivery waves do not redefine the two operating phases. All of them remain in Phase 1 until the Phase-2 acceptance gate in section 16 is met.
 
 ### Phase 0 — canon and contracts
 
@@ -332,6 +360,30 @@ Alpha-Foxtrott 2.0 is successful when:
 - agent/model quality is measured through repeatable evaluations;
 - all public/evidentiary work preserves provenance and review boundaries;
 - the system can operate for at least 48 hours without human prompting while continuing authorized low-risk work and surfacing a concise human decision inbox.
+
+### Phase-2 acceptance gate
+
+"Alpha2 operates autonomously" may be claimed only when one reproducible end-to-end test proves this entire chain against exact state:
+
+`read OpenTasks -> read GitHub state -> select permitted task -> atomically claim -> persist run -> select specialist -> check risk/budget/policy -> dispatch -> execute -> create tests/evidence -> verify exact-head CI/review -> reconcile OpenTasks -> continue or persist review/human_gate`
+
+The same acceptance program must then terminate a worker during a run, restart the relevant runtime, exercise queue/Redis recovery as defined by the storage decision, prove that no duplicate side effects occur, resume the run correctly and show that Alpha2 subsequently finds the next permitted work on its own.
+
+Merge, deploy, publish, spending, contracts, rights, secrets and other high-risk actions remain subject to their existing policy and human gates. Autonomy is durable policy-bound continuation, not unrestricted authority.
+
+### Remaining critical autonomy path
+
+The remaining path must converge existing components in this order:
+
+1. central GitHub state adapter;
+2. controlled transactional OpenTasks single writer;
+3. durable Alpha2 orchestrator loop;
+4. convergence of the existing continuous-dispatch stack;
+5. convergence of the existing bounded repair/self-healing stack;
+6. production-capable Mission Control and observability linkage;
+7. end-to-end autonomous operating and recovery acceptance.
+
+No step reimplements the durable Mongo ledger, BullMQ/Redis execution layer, lease/fencing/idempotency contract, existing agent-fleet work, learning/eval work, Mission Control work, continuous dispatch or bounded repair work.
 
 ## 17. Immediate architectural decision
 
