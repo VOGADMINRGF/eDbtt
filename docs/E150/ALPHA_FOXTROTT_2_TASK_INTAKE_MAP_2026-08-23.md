@@ -3,6 +3,8 @@
 Stand: 2026-08-23
 Status: intake scaffold for `docs/E150/OpenTasks.md`
 
+> Reconciliation 2026-09-02: This scaffold is historical mapping evidence. The operative Alpha2 queue, including the GitHub state adapter, transactional OpenTasks single writer, orchestrator loop and autonomous E2E/recovery acceptance, now lives exclusively in the canonical head of `docs/E150/OpenTasks.md`. Current architecture is summarized in `docs/E150/E150_CITIZEN_VOXY_ALPHA2_TARGET_ARCHITECTURE_2026-09-02.md`.
+
 ## Purpose
 
 This document is a temporary mapping aid for Issue #632 and Draft-PR #631. It is not an operational task source of truth. `docs/E150/OpenTasks.md` remains canonical.
