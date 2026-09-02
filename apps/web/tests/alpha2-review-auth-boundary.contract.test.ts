@@ -240,4 +240,44 @@ describe("Alpha2 authenticated review persistence boundary", () => {
     expect(persisted.run.status).toBe("running");
     expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
   });
+
+  it("requires the assigned reviewer to authenticate review escalation into a human gate", async () => {
+    const { primaryActor, assignedReviewActor, reviewed } = engineeringReviewRun();
+    const escalated = transitionAlpha2Run(reviewed, "human_gate", {
+      now: "2026-09-02T20:03:00.000Z",
+      humanGate: {
+        state: "pending",
+        reason: "reviewer requests human decision",
+        gateRef: "review:human-escalation",
+        resumeMode: "resume_attempt",
+      },
+    });
+    mongoHarness.setFound(mongoDocument(reviewed, 2));
+    mongoHarness.setUpdated(mongoDocument(escalated, 3));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({ run: escalated, expectedVersion: 2 }),
+    ).rejects.toThrow("alpha2_review_cas_requires_authenticated_actor");
+
+    await expect(
+      ledger.compareAndSwap({
+        run: escalated,
+        expectedVersion: 2,
+        authenticatedActor: {
+          actorId: primaryActor.actorId,
+          roleId: "review_agent",
+        },
+      }),
+    ).rejects.toThrow("alpha2_review_cas_actor_matches_primary_principal");
+
+    const persisted = await ledger.compareAndSwap({
+      run: escalated,
+      expectedVersion: 2,
+      authenticatedActor: assignedReviewActor,
+    });
+    expect(persisted.run.status).toBe("human_gate");
+    expect(persisted.run.humanGate.state).toBe("pending");
+    expect(mongoHarness.Model.findOneAndUpdate).toHaveBeenCalledOnce();
+  });
 });
