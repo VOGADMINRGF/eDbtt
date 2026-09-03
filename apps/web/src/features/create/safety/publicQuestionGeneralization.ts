@@ -136,6 +136,13 @@ const ACCUSATION_FINDINGS = new Set<CreateInputSafetyFindingKind>([
   "source_bluffing",
 ]);
 
+const INDEPENDENT_ACTOR_EXTRACTION_SOURCES =
+  new Set<PublicQuestionActorExtractionSource>([
+    "entity_registry",
+    "actor_graph",
+    "human_review",
+  ]);
+
 function cleanText(value: string | null | undefined): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
@@ -506,10 +513,13 @@ export function evaluatePublicQuestionGeneralization(
     });
   }
 
-  if (
-    actorExtraction.status !== "complete" ||
-    actorExtraction.independentFromCandidateProvider !== true
-  ) {
+  const hasIndependentlyCompleteActorExtraction =
+    actorExtraction.status === "complete" &&
+    actorExtraction.independentFromCandidateProvider === true &&
+    actorExtraction.evidenceRefs.length > 0 &&
+    INDEPENDENT_ACTOR_EXTRACTION_SOURCES.has(actorExtraction.source);
+
+  if (!hasIndependentlyCompleteActorExtraction) {
     return result(input, {
       ...commonResultParams,
       outcome: "actor_extraction_review_required",

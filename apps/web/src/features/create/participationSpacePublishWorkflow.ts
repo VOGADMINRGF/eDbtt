@@ -412,7 +412,7 @@ function getBaseBlockers(
         evidenceRefs: [],
       },
     });
-  if (questionGuard.releaseState === "blocked") {
+  if (questionGuard.releaseState !== "draft_allowed") {
     blockers.push("public_question_guard_blocked");
   }
   if (draft.sourceStatus === "source_review_pending") {

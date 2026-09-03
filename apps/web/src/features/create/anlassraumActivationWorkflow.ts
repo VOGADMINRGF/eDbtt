@@ -342,7 +342,7 @@ export function getAnlassraumActivationBlockers(
         evidenceRefs: [],
       },
     });
-  if (questionGuard.releaseState === "blocked") {
+  if (questionGuard.releaseState !== "draft_allowed") {
     blockers.add("public_question_guard_blocked");
   }
   if (

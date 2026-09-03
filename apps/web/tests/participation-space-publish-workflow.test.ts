@@ -18,6 +18,7 @@ import {
   type ParticipationSpaceRuntimeRecord,
 } from "@/features/create/participationSpaceRuntime";
 import type { PersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
+import { evaluatePublicQuestionGeneralization } from "@/features/create/safety/publicQuestionGeneralization";
 
 function buildHandoffRecord(): PersistedCreateHandoffRecord {
   return {
@@ -29,8 +30,10 @@ function buildHandoffRecord(): PersistedCreateHandoffRecord {
     plannerResult: {
       shortSummary:
         "Sichere Schulwege sollen als Beteiligungsraum mit klarer Leitfrage weitergeführt werden.",
-      openQuestion: "Welche Kreuzungen sind zuerst kritisch?",
-      openQuestions: ["Welche Kreuzungen sind zuerst kritisch?"],
+      openQuestion: "Welche Maßnahmen sollten sichere Schulwege zuerst verbessern?",
+      openQuestions: [
+        "Welche Maßnahmen sollten sichere Schulwege zuerst verbessern?",
+      ],
       topicCandidates: ["Sichere Schulwege"],
     } as any,
     graphMatches: {
@@ -89,7 +92,8 @@ function buildHandoffRecord(): PersistedCreateHandoffRecord {
 function buildRuntimeRecord(
   overrides: Partial<ParticipationSpaceRuntimeRecord> = {},
 ): ParticipationSpaceRuntimeRecord {
-  const draft = buildParticipationSpaceRuntimeDraftFromHandoff(buildHandoffRecord(), {
+  const handoff = buildHandoffRecord();
+  const draft = buildParticipationSpaceRuntimeDraftFromHandoff(handoff, {
     status: "created",
     visibility: "active_internal",
     createdParticipationSpaceId: "participation-space-1",
@@ -104,6 +108,17 @@ function buildRuntimeRecord(
 
   return {
     ...draft,
+    questionGuard: evaluatePublicQuestionGeneralization({
+      originalInput: handoff.sourceText,
+      candidatePublicQuestion: draft.participationQuestion,
+      actorContexts: [],
+      actorExtraction: {
+        status: "complete",
+        source: "actor_graph",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["actor-graph-review:participation-publish-1"],
+      },
+    }),
     auditTrail: [
       {
         id: "runtime-created-1",
@@ -194,6 +209,38 @@ describe("participation space publish workflow", () => {
     expect(getParticipationSpacePublishBlockers(publishDraft)).toContain(
       "public_question_guard_blocked",
     );
+  });
+
+  it("blocks publication while public-question review remains unresolved", () => {
+    const unresolvedQuestionGuard = buildParticipationSpaceRuntimeDraftFromHandoff(
+      buildHandoffRecord(),
+    ).questionGuard;
+    const record = buildPublishRecord({
+      questionGuard: unresolvedQuestionGuard,
+      status: "approved_for_publication",
+      visibility: "ready_for_publication_review",
+      approvedForActivationAt: "2026-06-30T09:20:00.000Z",
+      approvedForActivationBy: "admin-1",
+      approvedForPublicationAt: "2026-06-30T09:40:00.000Z",
+      approvedForPublicationBy: "admin-1",
+    });
+
+    expect(record.questionGuard.releaseState).toBe("review_required");
+    expect(getParticipationSpacePublishBlockers(record, "publication")).toContain(
+      "public_question_guard_blocked",
+    );
+
+    const published = publishParticipationSpaceAfterReview(record, {
+      actorUserId: "admin-1",
+      reason: "Öffentlich sichtbar machen.",
+      origin: "participation_space_publish_workflow",
+      approvedAt: "2026-06-30T09:50:00.000Z",
+    });
+
+    expect(published.ok).toBe(false);
+    if (!published.ok) {
+      expect(published.blockers).toContain("public_question_guard_blocked");
+    }
   });
 
   it("keeps created participation spaces non-public until explicit publication", () => {

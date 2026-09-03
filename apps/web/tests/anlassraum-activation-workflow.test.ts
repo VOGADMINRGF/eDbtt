@@ -9,6 +9,7 @@ import {
   buildAnlassraumActivationDraft,
   canApproveAnlassraumPublication,
   canPublishAnlassraum,
+  getAnlassraumActivationBlockers,
   publishAnlassraumAfterReview,
   type AnlassraumActivationRecord,
 } from "@/features/create/anlassraumActivationWorkflow";
@@ -17,6 +18,7 @@ import {
   type AnlassraumRuntimeRecord,
 } from "@/features/create/anlassraumRuntime";
 import type { PersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
+import { evaluatePublicQuestionGeneralization } from "@/features/create/safety/publicQuestionGeneralization";
 
 function buildHandoffRecord(): PersistedCreateHandoffRecord {
   return {
@@ -28,8 +30,10 @@ function buildHandoffRecord(): PersistedCreateHandoffRecord {
     plannerResult: {
       shortSummary:
         "Sichere Schulwege sollen als Anlassraum weitergeführt werden.",
-      openQuestion: "Welche Kreuzungen sind zuerst kritisch?",
-      openQuestions: ["Welche Kreuzungen sind zuerst kritisch?"],
+      openQuestion: "Welche Maßnahmen sollten sichere Schulwege zuerst verbessern?",
+      openQuestions: [
+        "Welche Maßnahmen sollten sichere Schulwege zuerst verbessern?",
+      ],
       topicCandidates: ["Sichere Schulwege"],
     } as any,
     graphMatches: {
@@ -88,7 +92,8 @@ function buildHandoffRecord(): PersistedCreateHandoffRecord {
 function buildRuntimeRecord(
   overrides: Partial<AnlassraumRuntimeRecord> = {},
 ): AnlassraumRuntimeRecord {
-  const draft = buildAnlassraumRuntimeDraftFromHandoff(buildHandoffRecord(), {
+  const handoff = buildHandoffRecord();
+  const draft = buildAnlassraumRuntimeDraftFromHandoff(handoff, {
     status: "created",
     visibility: "ready_for_activation_review",
     createdAnlassraumId: "65a111111111111111111110",
@@ -102,6 +107,17 @@ function buildRuntimeRecord(
 
   return {
     ...draft,
+    questionGuard: evaluatePublicQuestionGeneralization({
+      originalInput: handoff.sourceText,
+      candidatePublicQuestion: draft.trigger,
+      actorContexts: [],
+      actorExtraction: {
+        status: "complete",
+        source: "actor_graph",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["actor-graph-review:anlassraum-activation-1"],
+      },
+    }),
     auditTrail: [
       {
         id: "runtime-created-1",
@@ -186,6 +202,35 @@ describe("anlassraum activation workflow", () => {
 
     expect(activationDraft.questionGuard.outcome).toBe("safety_blocked");
     expect(activationDraft.blockers).toContain("public_question_guard_blocked");
+  });
+
+  it("blocks activation while public-question review remains unresolved", () => {
+    const unresolvedQuestionGuard = buildAnlassraumRuntimeDraftFromHandoff(
+      buildHandoffRecord(),
+    ).questionGuard;
+    const record = buildActivationRecord({
+      questionGuard: unresolvedQuestionGuard,
+      status: "approved_for_activation",
+      approvedForActivationAt: "2026-07-01T09:20:00.000Z",
+      approvedForActivationBy: "admin-1",
+    });
+
+    expect(record.questionGuard.releaseState).toBe("review_required");
+    expect(getAnlassraumActivationBlockers(record)).toContain(
+      "public_question_guard_blocked",
+    );
+
+    const activated = activateAnlassraumAfterReview(record, {
+      actorUserId: "admin-1",
+      reason: "Intern aktivieren.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T09:30:00.000Z",
+    });
+
+    expect(activated.ok).toBe(false);
+    if (!activated.ok) {
+      expect(activated.blockers).toContain("public_question_guard_blocked");
+    }
   });
 
   it("keeps created anlassraeume non-public until explicit publication", () => {

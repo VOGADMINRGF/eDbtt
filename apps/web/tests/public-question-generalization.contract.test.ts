@@ -268,6 +268,38 @@ describe("public question generalization and anti-targeting contract", () => {
     expect(result.releaseState).toBe("draft_allowed");
   });
 
+  it("keeps complete actor extraction without evidence references in review", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Welche Maßnahmen sollten Kommunen gegen Hitze priorisieren?",
+      actorContexts: [],
+      actorExtraction: {
+        status: "complete",
+        source: "actor_graph",
+        independentFromCandidateProvider: true,
+        evidenceRefs: [],
+      },
+    });
+
+    expect(result.outcome).toBe("actor_extraction_review_required");
+    expect(result.releaseState).toBe("review_required");
+  });
+
+  it("keeps self-attested material-provider extraction in review", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Welche Maßnahmen sollten Kommunen gegen Hitze priorisieren?",
+      actorContexts: [],
+      actorExtraction: {
+        status: "complete",
+        source: "material_provider",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["material-provider-run-1"],
+      },
+    });
+
+    expect(result.outcome).toBe("actor_extraction_review_required");
+    expect(result.releaseState).toBe("review_required");
+  });
+
   it("routes incomplete actor extraction to review even for a general question", () => {
     const result = evaluatePublicQuestionGeneralization({
       originalInput: "Welche Maßnahmen sollten Kommunen gegen Hitze priorisieren?",

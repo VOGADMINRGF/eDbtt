@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { AnlassraumActivationRecord } from "@/features/create/anlassraumActivationWorkflow";
+import { evaluatePublicQuestionGeneralization } from "@/features/create/safety/publicQuestionGeneralization";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -14,6 +15,7 @@ import AnlassraumActivationActions from "@/app/admin/review/AnlassraumActivation
 function buildRecord(
   overrides: Partial<AnlassraumActivationRecord> = {},
 ): AnlassraumActivationRecord {
+  const trigger = "Welche Maßnahmen sollten sichere Schulwege zuerst verbessern?";
   return {
     id: "anlassraum-activation:handoff-1",
     sourceHandoffId: "handoff-1",
@@ -27,7 +29,17 @@ function buildRecord(
     roomIsPublic: false,
     title: "Anlassraum Sichere Schulwege",
     workingTitle: "Anlassraum Sichere Schulwege",
-    trigger: "Welche Kreuzungen sind zuerst kritisch?",
+    trigger,
+    questionGuard: evaluatePublicQuestionGeneralization({
+      originalInput: trigger,
+      actorContexts: [],
+      actorExtraction: {
+        status: "complete",
+        source: "human_review",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["human-review:anlassraum-activation-1"],
+      },
+    }),
     description:
       "1 Aussage · 1 offene Frage. Sichere Schulwege sollen sichtbar, aber erst nach separater Freigabe öffentlich werden.",
     relatedDossierId: "dossier-sichere-schulwege",
