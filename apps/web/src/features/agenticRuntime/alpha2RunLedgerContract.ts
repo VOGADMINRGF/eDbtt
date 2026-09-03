@@ -1,4 +1,7 @@
-import type { Alpha2RunRecord } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
+import type {
+  Alpha2ActorPrincipal,
+  Alpha2RunRecord,
+} from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 
 export type Alpha2RunLease = {
   owner: string;
@@ -37,6 +40,12 @@ export interface Alpha2RunLedger {
     resumeAfterMs?: number;
     initializeWallClock?: { maxWallClockMs?: number };
     stampCheckpointId?: string;
+    /**
+     * Principal already authenticated by the trusted caller boundary. This
+     * context is deliberately separate from the caller-supplied run payload
+     * and is mandatory for independent-review completion/resume CAS writes.
+     */
+    authenticatedActor?: Alpha2ActorPrincipal;
   }): Promise<Alpha2VersionedRun>;
   tryAcquireLease(input: {
     runId: string;
