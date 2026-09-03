@@ -39,16 +39,30 @@ export const ALPHA2_ORGANIZATION_ROLE_IDS = [
 export const ALPHA2_ROLE_IDS = [...AGENT_ROLE_IDS, ...ALPHA2_ORGANIZATION_ROLE_IDS] as const;
 export const ALPHA2_PROVIDER_IDS = ["openai", "codex", "oss", "anthropic"] as const;
 export const ALPHA2_DEFAULT_RISK_CLASSES = ["green", "yellow", "orange", "red"] as const;
+export const ALPHA2_ROLE_TOOL_PERMISSIONS = ["read_only", "write_reversible"] as const;
+export const ALPHA2_MODEL_CLASSES = [
+  "reasoning",
+  "engineering",
+  "review",
+  "research",
+  "content",
+  "support",
+  "visual_qa",
+] as const;
 
 export type Alpha2OrganizationRoleId = (typeof ALPHA2_ORGANIZATION_ROLE_IDS)[number];
 export type Alpha2RoleId = (typeof ALPHA2_ROLE_IDS)[number];
 export type Alpha2ProviderId = (typeof ALPHA2_PROVIDER_IDS)[number];
 export type Alpha2DefaultRiskClass = (typeof ALPHA2_DEFAULT_RISK_CLASSES)[number];
+export type Alpha2RoleToolPermission = (typeof ALPHA2_ROLE_TOOL_PERMISSIONS)[number];
+export type Alpha2ModelClass = (typeof ALPHA2_MODEL_CLASSES)[number];
 
 export const Alpha2RoleIdSchema = z.enum(ALPHA2_ROLE_IDS);
 const Alpha2OrganizationRoleIdSchema = z.enum(ALPHA2_ORGANIZATION_ROLE_IDS);
 const Alpha2ProviderIdSchema = z.enum(ALPHA2_PROVIDER_IDS);
 const Alpha2DefaultRiskSchema = z.enum(ALPHA2_DEFAULT_RISK_CLASSES);
+const Alpha2RoleToolPermissionSchema = z.enum(ALPHA2_ROLE_TOOL_PERMISSIONS);
+const Alpha2ModelClassSchema = z.enum(ALPHA2_MODEL_CLASSES);
 
 const Alpha2OrganizationRoleSchema = z
   .object({
@@ -56,7 +70,11 @@ const Alpha2OrganizationRoleSchema = z
     title: z.string().min(1),
     domains: z.array(z.string().min(1)).min(1),
     capabilities: z.array(z.string().min(1)).min(1),
+    toolPermissions: z.array(Alpha2RoleToolPermissionSchema).min(1),
     defaultRisk: Alpha2DefaultRiskSchema,
+    riskCeiling: Alpha2DefaultRiskSchema,
+    defaultModelClass: Alpha2ModelClassSchema,
+    evaluationSuiteRefs: z.array(z.string().min(1)).min(1),
   })
   .strict();
 
@@ -109,6 +127,13 @@ export type Alpha2AgentFleetRegistry = z.infer<typeof Alpha2RegistryExtensionSch
 export type Alpha2OrganizationRole = Alpha2AgentFleetRegistry["organizationRoles"][number];
 export type Alpha2CapabilityRoute = Alpha2AgentFleetRegistry["capabilityRoutes"][number];
 
+const ALPHA2_RISK_RANK: Record<Alpha2DefaultRiskClass, number> = {
+  green: 0,
+  yellow: 1,
+  orange: 2,
+  red: 3,
+};
+
 function resolveRepoFile(...segments: string[]) {
   const cwd = process.cwd();
   const candidates = [cwd, resolve(cwd, ".."), resolve(cwd, "..", "..")] .map((base) =>
@@ -139,6 +164,17 @@ export function loadAlpha2AgentFleetRegistry(): Alpha2AgentFleetRegistry {
   }
   for (const roleId of ALPHA2_ORGANIZATION_ROLE_IDS) {
     if (!actualRoleIds.includes(roleId)) throw new Error(`alpha2_registry_missing_role:${roleId}`);
+  }
+  for (const role of parsed.organizationRoles) {
+    if (unique(role.toolPermissions).length !== role.toolPermissions.length) {
+      throw new Error(`alpha2_registry_duplicate_tool_permission:${role.id}`);
+    }
+    if (unique(role.evaluationSuiteRefs).length !== role.evaluationSuiteRefs.length) {
+      throw new Error(`alpha2_registry_duplicate_evaluation_suite_ref:${role.id}`);
+    }
+    if (ALPHA2_RISK_RANK[role.defaultRisk] > ALPHA2_RISK_RANK[role.riskCeiling]) {
+      throw new Error(`alpha2_registry_default_risk_exceeds_ceiling:${role.id}`);
+    }
   }
 
   const providerIds = parsed.providers.map((provider) => provider.id);
@@ -195,6 +231,25 @@ export function resolveAlpha2Role(roleId: Alpha2RoleId) {
   const role = loadAlpha2AgentFleetRegistry().organizationRoles.find((entry) => entry.id === roleId);
   if (!role) throw new Error(`alpha2_organization_role_not_found:${roleId}`);
   return { ...role, source: "alpha2_organization_registry" as const };
+}
+
+export function getAlpha2OrganizationRoleControls(roleId: Alpha2OrganizationRoleId) {
+  const role = loadAlpha2AgentFleetRegistry().organizationRoles.find((entry) => entry.id === roleId);
+  if (!role) throw new Error(`alpha2_organization_role_not_found:${roleId}`);
+  return {
+    toolPermissions: [...role.toolPermissions],
+    riskCeiling: role.riskCeiling,
+    defaultModelClass: role.defaultModelClass,
+    evaluationSuiteRefs: [...role.evaluationSuiteRefs],
+  };
+}
+
+export function isAlpha2OrganizationRoleRiskWithinCeiling(
+  roleId: Alpha2OrganizationRoleId,
+  riskClass: Alpha2DefaultRiskClass,
+) {
+  const role = getAlpha2OrganizationRoleControls(roleId);
+  return ALPHA2_RISK_RANK[riskClass] <= ALPHA2_RISK_RANK[role.riskCeiling];
 }
 
 export function findAlpha2CapabilityRoute(capability: string) {
