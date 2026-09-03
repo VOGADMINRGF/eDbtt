@@ -6,7 +6,7 @@ export const BRAND = {
   supportEmail: "support@edebatte.org",
   membershipEmail: "members@edebatte.org",
   tagline_de:
-    "Beteiligung beginnt vor dem Verfahren: Anliegen, Quellen, Perspektiven und Handlungsoptionen nachvollziehbar verbinden.",
+    "Vom Anliegen zur gemeinsamen Agenda: öffentliche Infrastruktur für demokratische Problemklärung, Evidenz und gesellschaftliche Willensbildung.",
   tagline_en:
-    "Participation starts before the process: connect concerns, sources, perspectives and options transparently.",
+    "From concern to shared agenda: public infrastructure for democratic problem-solving, evidence and collective civic reasoning.",
 } as const;
