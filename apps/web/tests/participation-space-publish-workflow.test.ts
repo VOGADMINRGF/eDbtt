@@ -165,6 +165,37 @@ function buildPublishRecord(
 }
 
 describe("participation space publish workflow", () => {
+  it("carries a blocked source question into the publication blocker set", () => {
+    const handoff = buildHandoffRecord();
+    handoff.sourceText = "Sollen wir diese Gruppe verprügeln?";
+    handoff.plannerResult.openQuestions = [
+      "Welche Maßnahmen sollten Konflikte friedlich lösen?",
+    ];
+    const runtimeDraft = buildParticipationSpaceRuntimeDraftFromHandoff(handoff, {
+      status: "created",
+      visibility: "active_internal",
+      createdParticipationSpaceId: "participation-space-blocked",
+    });
+    const runtimeRecord: ParticipationSpaceRuntimeRecord = {
+      ...runtimeDraft,
+      auditTrail: [],
+      approvedForCreationAt: null,
+      approvedForCreationBy: null,
+      rejectedAt: null,
+      rejectedBy: null,
+    };
+    const publishDraft = buildParticipationSpacePublishDraft({
+      runtimeRecord,
+      createdSpace: null,
+      creationAudited: false,
+    });
+
+    expect(publishDraft.questionGuard.outcome).toBe("safety_blocked");
+    expect(getParticipationSpacePublishBlockers(publishDraft)).toContain(
+      "public_question_guard_blocked",
+    );
+  });
+
   it("keeps created participation spaces non-public until explicit publication", () => {
     const record = buildPublishRecord();
 

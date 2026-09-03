@@ -6,6 +6,7 @@ import { z } from "zod";
 import { ObjectId, coreCol } from "@core/db/triMongo";
 import { anlassraumCol } from "@features/anlassraum/db";
 import { requireCreatorContext } from "../../streams/utils";
+import { evaluateQrQuestionSetQuestion } from "@/features/create/qrQuestionSetGuard";
 
 const QuestionSchema = z.object({
   title: z.string().min(3).max(200),
@@ -56,17 +57,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "bad_input" }, { status: 400 });
   }
 
-  const questions = parsed.data.questions.map((q, idx) => ({
-    id: q.title.toLowerCase().replace(/\s+/g, "-").slice(0, 24) + `-${idx + 1}`,
-    title: q.title,
-    description: q.description ?? null,
-    options: q.options.map((opt) => opt.trim()).filter(Boolean),
-    publicAttribution: q.publicAttribution ?? "hidden",
-    allowAnonymousVoting: q.publicAttribution !== "public",
-  }));
+  const questions = parsed.data.questions.map((q, idx) => {
+    const questionGuard = evaluateQrQuestionSetQuestion({
+      question: q.title,
+      staffReviewerId: ctx?.isStaff ? ctx.userId : null,
+    });
+    return {
+      id: q.title.toLowerCase().replace(/\s+/g, "-").slice(0, 24) + `-${idx + 1}`,
+      title: q.title,
+      description: q.description ?? null,
+      options: q.options.map((opt) => opt.trim()).filter(Boolean),
+      publicAttribution: q.publicAttribution ?? "hidden",
+      allowAnonymousVoting: q.publicAttribution !== "public",
+      questionGuard,
+    };
+  });
 
   if (questions.some((q) => q.options.length < 2)) {
     return NextResponse.json({ ok: false, error: "options_required" }, { status: 400 });
+  }
+  const blockedQuestion = questions.find(
+    (question) => question.questionGuard.releaseState !== "draft_allowed",
+  );
+  if (blockedQuestion) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          blockedQuestion.questionGuard.releaseState === "blocked"
+            ? "public_question_blocked"
+            : "public_question_review_required",
+        questionGuard: blockedQuestion.questionGuard,
+      },
+      { status: 422 },
+    );
   }
 
   if (!ctx) {

@@ -159,6 +159,35 @@ function buildActivationRecord(
 }
 
 describe("anlassraum activation workflow", () => {
+  it("carries a blocked source question into the activation blocker set", () => {
+    const handoff = buildHandoffRecord();
+    handoff.sourceText = "Sollen wir diese Gruppe verprügeln?";
+    handoff.plannerResult.openQuestions = [
+      "Welche Maßnahmen sollten Konflikte friedlich lösen?",
+    ];
+    const runtimeDraft = buildAnlassraumRuntimeDraftFromHandoff(handoff, {
+      status: "created",
+      visibility: "ready_for_activation_review",
+      createdAnlassraumId: "65a111111111111111111119",
+    });
+    const runtimeRecord: AnlassraumRuntimeRecord = {
+      ...runtimeDraft,
+      auditTrail: [],
+      approvedForCreationAt: null,
+      approvedForCreationBy: null,
+      rejectedAt: null,
+      rejectedBy: null,
+    };
+    const activationDraft = buildAnlassraumActivationDraft({
+      runtimeRecord,
+      createdRoom: null,
+      creationAudited: false,
+    });
+
+    expect(activationDraft.questionGuard.outcome).toBe("safety_blocked");
+    expect(activationDraft.blockers).toContain("public_question_guard_blocked");
+  });
+
   it("keeps created anlassraeume non-public until explicit publication", () => {
     const record = buildActivationRecord();
 

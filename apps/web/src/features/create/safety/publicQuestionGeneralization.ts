@@ -1,5 +1,6 @@
 import {
   evaluateCreateInputSafety,
+  type CreateInputSafetyDecision,
   type CreateInputSafetyFindingKind,
 } from "@/features/create/safety/createInputSafety";
 
@@ -11,6 +12,9 @@ export type PublicQuestionGeneralizationOutcome =
   | "personal_targeting_blocked"
   | "accusation_or_character_judgment_blocked"
   | "fact_or_truth_question_blocked"
+  | "safety_blocked"
+  | "safety_review_required"
+  | "actor_extraction_review_required"
   | "actor_context_evidence_review_required"
   | "named_actor_targeting_review_required";
 
@@ -55,15 +59,47 @@ export type PublicQuestionProcedureContext = {
   evidenceRefs: string[];
 };
 
+export type PublicQuestionActorExtractionStatus =
+  | "complete"
+  | "incomplete"
+  | "unverified";
+
+export type PublicQuestionActorExtractionSource =
+  | "entity_registry"
+  | "actor_graph"
+  | "create_analysis"
+  | "material_provider"
+  | "voxy_provider"
+  | "human_review"
+  | "not_available";
+
+/**
+ * Trust-boundary evidence for actor extraction. A provider that authored the
+ * candidate question may contribute actor hints, but it cannot mark its own
+ * extraction as independently complete.
+ */
+export type PublicQuestionActorExtraction = {
+  status: PublicQuestionActorExtractionStatus;
+  source: PublicQuestionActorExtractionSource;
+  independentFromCandidateProvider: boolean;
+  evidenceRefs: string[];
+};
+
 export type PublicQuestionReleaseState = "draft_allowed" | "review_required" | "blocked";
 
 export type PublicQuestionGeneralizationResult = {
   originalInput: string;
+  candidatePublicQuestion: string;
   publicQuestion: string | null;
   outcome: PublicQuestionGeneralizationOutcome;
   releaseState: PublicQuestionReleaseState;
   actorContexts: PublicQuestionActorContext[];
+  actorExtraction: PublicQuestionActorExtraction;
+  procedure: PublicQuestionProcedureContext | null;
+  originalSafetyDecision: CreateInputSafetyDecision;
+  candidateSafetyDecision: CreateInputSafetyDecision;
   findingKinds: CreateInputSafetyFindingKind[];
+  evidenceRefs: string[];
   reasons: string[];
   explanation: string;
   requiresHumanReview: boolean;
@@ -76,6 +112,7 @@ export type EvaluatePublicQuestionGeneralizationInput = {
   originalInput: string;
   candidatePublicQuestion?: string | null;
   actorContexts: PublicQuestionActorContext[];
+  actorExtraction?: PublicQuestionActorExtraction | null;
   procedure?: PublicQuestionProcedureContext | null;
   locale?: string | null;
   sourceLanguage?: string | null;
@@ -187,23 +224,50 @@ function result(
     outcome: PublicQuestionGeneralizationOutcome;
     releaseState: PublicQuestionReleaseState;
     publicQuestion: string | null;
+    candidatePublicQuestion: string;
+    actorExtraction: PublicQuestionActorExtraction;
+    originalSafetyDecision: CreateInputSafetyDecision;
+    candidateSafetyDecision: CreateInputSafetyDecision;
     findingKinds: CreateInputSafetyFindingKind[];
     reasons: string[];
     explanation: string;
   },
 ): PublicQuestionGeneralizationResult {
+  const actorContexts = input.actorContexts.map((actor) => ({
+    ...actor,
+    id: cleanText(actor.id),
+    name: cleanText(actor.name),
+    evidenceRefs: actor.evidenceRefs.map(cleanText).filter(Boolean),
+  }));
+  const procedure = input.procedure
+    ? {
+        ...input.procedure,
+        evidenceRefs: input.procedure.evidenceRefs.map(cleanText).filter(Boolean),
+      }
+    : null;
+  const actorExtraction = {
+    ...params.actorExtraction,
+    evidenceRefs: params.actorExtraction.evidenceRefs.map(cleanText).filter(Boolean),
+  };
   return {
     originalInput: String(input.originalInput ?? ""),
+    candidatePublicQuestion: params.candidatePublicQuestion,
     publicQuestion: params.publicQuestion,
     outcome: params.outcome,
     releaseState: params.releaseState,
-    actorContexts: input.actorContexts.map((actor) => ({
-      ...actor,
-      id: cleanText(actor.id),
-      name: cleanText(actor.name),
-      evidenceRefs: actor.evidenceRefs.map(cleanText).filter(Boolean),
-    })),
+    actorContexts,
+    actorExtraction,
+    procedure,
+    originalSafetyDecision: params.originalSafetyDecision,
+    candidateSafetyDecision: params.candidateSafetyDecision,
     findingKinds: params.findingKinds,
+    evidenceRefs: Array.from(
+      new Set([
+        ...actorContexts.flatMap((actor) => actor.evidenceRefs),
+        ...actorExtraction.evidenceRefs,
+        ...(procedure?.evidenceRefs ?? []),
+      ]),
+    ),
     reasons: params.reasons,
     explanation: params.explanation,
     requiresHumanReview: params.releaseState !== "draft_allowed",
@@ -241,6 +305,24 @@ export function evaluatePublicQuestionGeneralization(
   const findingKinds = Array.from(
     new Set([...safety.findings, ...candidateSafety.findings].map((finding) => finding.kind)),
   );
+  const actorExtraction: PublicQuestionActorExtraction = input.actorExtraction
+    ? {
+        ...input.actorExtraction,
+        evidenceRefs: input.actorExtraction.evidenceRefs.map(cleanText).filter(Boolean),
+      }
+    : {
+        status: "unverified",
+        source: "not_available",
+        independentFromCandidateProvider: false,
+        evidenceRefs: [],
+      };
+  const commonResultParams = {
+    candidatePublicQuestion,
+    actorExtraction,
+    originalSafetyDecision: safety.decision,
+    candidateSafetyDecision: candidateSafety.decision,
+    findingKinds,
+  };
   const targetActors = input.actorContexts.filter((actor) => actor.role === "target");
   const procedureActors = input.actorContexts.filter((actor) => actor.role === "procedure_subject");
   const candidateActorRelations = input.actorContexts.map((actor) => ({
@@ -267,10 +349,10 @@ export function evaluatePublicQuestionGeneralization(
 
   if (isFactOrTruthQuestion(originalInput) || isFactOrTruthQuestion(candidatePublicQuestion)) {
     return result(input, {
+      ...commonResultParams,
       outcome: "fact_or_truth_question_blocked",
       releaseState: "blocked",
       publicQuestion: null,
-      findingKinds,
       reasons: [
         "facts_and_truth_are_not_preference_ballots",
         ...(isFactOrTruthQuestion(originalInput) ? ["factual_or_truth_origin_must_be_preserved"] : []),
@@ -279,38 +361,36 @@ export function evaluatePublicQuestionGeneralization(
     });
   }
 
-  if (
-    input.actorContexts.some(
-      (actor) => actor.evidenceRefs.map(cleanText).filter(Boolean).length === 0,
-    )
-  ) {
+  if (safety.decision === "blocked" || candidateSafety.decision === "blocked") {
     return result(input, {
-      outcome: "actor_context_evidence_review_required",
-      releaseState: "review_required",
+      ...commonResultParams,
+      outcome: "safety_blocked",
+      releaseState: "blocked",
       publicQuestion: null,
-      findingKinds,
-      reasons: ["named_actor_context_requires_evidence"],
-      explanation: "Eine Akteursnennung benötigt einen belegten Kontext, bevor ein öffentlicher Entwurf entstehen kann.",
+      reasons: [
+        "create_input_safety_blocked",
+        ...(safety.decision === "blocked" ? ["original_input_safety_blocked"] : []),
+        ...(candidateSafety.decision === "blocked" ? ["candidate_question_safety_blocked"] : []),
+      ],
+      explanation: "Die bestehende Create-Sicherheitsprüfung blockiert diese Frage.",
     });
   }
 
-  const procedure = input.procedure;
   if (
-    procedure?.entityBindingNecessary === true &&
-    procedure.evidenceRefs.some((ref) => cleanText(ref).length > 0) &&
-    procedureActors.length > 0 &&
-    isDecisionQuestion(candidatePublicQuestion) &&
-    !hasAccusationOrCharacterJudgment &&
-    candidateSafety.decision !== "blocked" &&
-    candidateSafety.decision !== "moderation_required"
+    safety.decision === "moderation_required" ||
+    candidateSafety.decision === "moderation_required"
   ) {
     return result(input, {
-      outcome: "entity_specific_procedure_review_required",
+      ...commonResultParams,
+      outcome: "safety_review_required",
       releaseState: "review_required",
-      publicQuestion: candidatePublicQuestion,
-      findingKinds,
-      reasons: ["entity_binding_is_procedure_specific", "human_review_before_public_release"],
-      explanation: "Die Akteursbindung ist verfahrensbezogen und muss vor einer öffentlichen Freigabe geprüft werden.",
+      publicQuestion: null,
+      reasons: [
+        "create_input_safety_requires_moderation",
+        ...(safety.decision === "moderation_required" ? ["original_input_moderation_required"] : []),
+        ...(candidateSafety.decision === "moderation_required" ? ["candidate_question_moderation_required"] : []),
+      ],
+      explanation: "Die Frage benötigt die bestehende Moderationsprüfung und darf nicht als normaler Entwurf weitergehen.",
     });
   }
 
@@ -319,29 +399,21 @@ export function evaluatePublicQuestionGeneralization(
     normalized(candidatePublicQuestion) !== normalized(originalInput) &&
     !candidateStillTargetsNamedActor &&
     isDecisionQuestion(candidatePublicQuestion) &&
-    candidateSafety.decision !== "blocked" &&
-    candidateSafety.decision !== "moderation_required" &&
     candidateSafety.decision !== "factcheck_required" &&
     !CHARACTER_OR_SANCTION_RE.test(candidatePublicQuestion);
-
-  if (hasValidGeneralization) {
-    return result(input, {
-      outcome: "generalized_from_named_actor",
-      releaseState: "draft_allowed",
-      publicQuestion: candidatePublicQuestion,
-      findingKinds,
-      reasons: ["named_actor_removed_from_ballot_target", "general_rule_or_measure_retained"],
-      explanation:
-        "Ich habe die Frage auf die allgemeine Regel dahinter formuliert, damit nicht ein einzelner Akteur zum Abstimmungsziel wird.",
-    });
-  }
+  const procedure = input.procedure;
+  const hasValidProcedureContext =
+    procedure?.entityBindingNecessary === true &&
+    procedure.evidenceRefs.some((ref) => cleanText(ref).length > 0) &&
+    procedureActors.length > 0 &&
+    isDecisionQuestion(candidatePublicQuestion);
 
   if (namedActorsInInput.length > 0 && hasAccusationOrCharacterJudgment) {
     return result(input, {
+      ...commonResultParams,
       outcome: "accusation_or_character_judgment_blocked",
       releaseState: "blocked",
       publicQuestion: null,
-      findingKinds,
       reasons: ["accusation_character_or_sanction_targets_named_actor"],
       explanation: "Anschuldigungen, Charakterurteile und Sanktionen gegen benannte Akteure werden nicht als öffentliche Abstimmung erzeugt.",
     });
@@ -349,10 +421,10 @@ export function evaluatePublicQuestionGeneralization(
 
   if (targetActors.some((actor) => actor.type === "person")) {
     return result(input, {
+      ...commonResultParams,
       outcome: "personal_targeting_blocked",
       releaseState: "blocked",
       publicQuestion: null,
-      findingKinds,
       reasons: ["person_is_ballot_target"],
       explanation: "Eine Person darf nicht Ziel einer normalen öffentlichen Abstimmung sein.",
     });
@@ -360,25 +432,27 @@ export function evaluatePublicQuestionGeneralization(
 
   if (semanticTargetActors.some((actor) => actor.type === "person")) {
     return result(input, {
+      ...commonResultParams,
       outcome: "personal_targeting_blocked",
       releaseState: "blocked",
       publicQuestion: null,
-      findingKinds,
       reasons: ["person_is_semantic_ballot_target", "actor_role_conflicts_with_candidate_targeting"],
       explanation: "Eine Person darf unabhängig von ihrer gelieferten Akteursrolle nicht Ziel einer normalen öffentlichen Abstimmung sein.",
     });
   }
 
   if (
-    targetActors.length > 0 ||
-    semanticTargetActors.length > 0 ||
-    ambiguousCandidateActors.length > 0
+    !hasValidGeneralization &&
+    !hasValidProcedureContext &&
+    (targetActors.length > 0 ||
+      semanticTargetActors.length > 0 ||
+      ambiguousCandidateActors.length > 0)
   ) {
     return result(input, {
+      ...commonResultParams,
       outcome: "named_actor_targeting_review_required",
       releaseState: "review_required",
       publicQuestion: null,
-      findingKinds,
       reasons: [
         ...(semanticTargetActors.length > 0 ? ["actor_role_conflicts_with_candidate_targeting"] : []),
         ...(ambiguousCandidateActors.length > 0 ? ["actor_targeting_semantics_ambiguous"] : []),
@@ -389,33 +463,106 @@ export function evaluatePublicQuestionGeneralization(
     });
   }
 
-  if (input.actorContexts.length > 0) {
+  const nonAllowSafetyDecisions = [safety.decision, candidateSafety.decision].filter(
+    (decision) => decision !== "allow",
+  );
+  if (nonAllowSafetyDecisions.length > 0) {
     return result(input, {
-      outcome: "actor_context_retained",
-      releaseState: "draft_allowed",
-      publicQuestion: candidatePublicQuestion,
-      findingKinds,
-      reasons: ["actor_is_context_not_ballot_target"],
-      explanation: "Der Akteur bleibt als belegter Kontext erhalten und ist nicht das Abstimmungsziel.",
+      ...commonResultParams,
+      outcome: "safety_review_required",
+      releaseState: "review_required",
+      publicQuestion: null,
+      reasons: [
+        "create_input_safety_not_cleared",
+        ...Array.from(new Set(nonAllowSafetyDecisions)).map((decision) => `safety_decision:${decision}`),
+      ],
+      explanation: "Die bestehende Create-Sicherheitsprüfung ist nicht vollständig freigegeben; ein normaler öffentlicher Entwurf bleibt gesperrt.",
+    });
+  }
+
+  if (
+    input.actorContexts.some(
+      (actor) => actor.evidenceRefs.map(cleanText).filter(Boolean).length === 0,
+    )
+  ) {
+    return result(input, {
+      ...commonResultParams,
+      outcome: "actor_context_evidence_review_required",
+      releaseState: "review_required",
+      publicQuestion: null,
+      reasons: ["named_actor_context_requires_evidence"],
+      explanation: "Eine Akteursnennung benötigt einen belegten Kontext, bevor ein öffentlicher Entwurf entstehen kann.",
     });
   }
 
   if (!isDecisionQuestion(candidatePublicQuestion)) {
     return result(input, {
+      ...commonResultParams,
       outcome: "named_actor_targeting_review_required",
       releaseState: "review_required",
       publicQuestion: null,
-      findingKinds,
       reasons: ["decision_question_missing_or_unclear"],
       explanation: "Die Eingabe benötigt eine überprüfbare Formulierung als Entscheidungsfrage.",
     });
   }
 
+  if (
+    actorExtraction.status !== "complete" ||
+    actorExtraction.independentFromCandidateProvider !== true
+  ) {
+    return result(input, {
+      ...commonResultParams,
+      outcome: "actor_extraction_review_required",
+      releaseState: "review_required",
+      publicQuestion: candidatePublicQuestion,
+      reasons: [
+        "actor_extraction_not_independently_complete",
+        `actor_extraction_status:${actorExtraction.status}`,
+        `actor_extraction_source:${actorExtraction.source}`,
+      ],
+      explanation: "Die Akteurs-/Entity-Erkennung ist nicht unabhängig vollständig belegt; die Frage bleibt im Human Review.",
+    });
+  }
+
+  if (hasValidProcedureContext) {
+    return result(input, {
+      ...commonResultParams,
+      outcome: "entity_specific_procedure_review_required",
+      releaseState: "review_required",
+      publicQuestion: candidatePublicQuestion,
+      reasons: ["entity_binding_is_procedure_specific", "human_review_before_public_release"],
+      explanation: "Die Akteursbindung ist verfahrensbezogen und muss vor einer öffentlichen Freigabe geprüft werden.",
+    });
+  }
+
+  if (hasValidGeneralization) {
+    return result(input, {
+      ...commonResultParams,
+      outcome: "generalized_from_named_actor",
+      releaseState: "draft_allowed",
+      publicQuestion: candidatePublicQuestion,
+      reasons: ["named_actor_removed_from_ballot_target", "general_rule_or_measure_retained"],
+      explanation:
+        "Ich habe die Frage auf die allgemeine Regel dahinter formuliert, damit nicht ein einzelner Akteur zum Abstimmungsziel wird.",
+    });
+  }
+
+  if (input.actorContexts.length > 0) {
+    return result(input, {
+      ...commonResultParams,
+      outcome: "actor_context_retained",
+      releaseState: "draft_allowed",
+      publicQuestion: candidatePublicQuestion,
+      reasons: ["actor_is_context_not_ballot_target"],
+      explanation: "Der Akteur bleibt als belegter Kontext erhalten und ist nicht das Abstimmungsziel.",
+    });
+  }
+
   return result(input, {
+    ...commonResultParams,
     outcome: "already_generalized",
     releaseState: "draft_allowed",
     publicQuestion: candidatePublicQuestion,
-    findingKinds,
     reasons: ["general_rule_measure_or_priority_is_ballot_target"],
     explanation: "Die Frage richtet sich bereits auf eine allgemeine Regel, Maßnahme oder Priorität.",
   });

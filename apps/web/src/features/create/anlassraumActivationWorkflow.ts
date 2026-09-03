@@ -6,6 +6,10 @@ import type {
   AnlassraumRuntimeStatus,
   AnlassraumRuntimeVisibility,
 } from "@/features/create/anlassraumRuntime";
+import {
+  evaluatePublicQuestionGeneralization,
+  type PublicQuestionGeneralizationResult,
+} from "@/features/create/safety/publicQuestionGeneralization";
 
 export const ANLASSRAUM_ACTIVATION_STATUSES = [
   "draft",
@@ -37,6 +41,7 @@ export const ANLASSRAUM_ACTIVATION_BLOCKERS = [
   "graph_context_pending",
   "dossier_context_pending",
   "public_copy_missing",
+  "public_question_guard_blocked",
   "unsafe_auto_publish",
   "insufficient_audit_context",
 ] as const;
@@ -134,6 +139,7 @@ export type AnlassraumActivationDraft = {
   title: string;
   workingTitle: string;
   trigger: string;
+  questionGuard: PublicQuestionGeneralizationResult;
   description: string;
   relatedDossierId: string | null;
   recognizedStandpoints: string[];
@@ -323,6 +329,22 @@ export function getAnlassraumActivationBlockers(
   if (!hasText(record.title)) blockers.add("missing_title");
   if (!hasText(record.trigger)) blockers.add("missing_trigger");
   if (!hasText(record.description)) blockers.add("missing_description");
+  const questionGuard =
+    record.questionGuard ??
+    evaluatePublicQuestionGeneralization({
+      originalInput: record.description,
+      candidatePublicQuestion: record.trigger,
+      actorContexts: [],
+      actorExtraction: {
+        status: "unverified",
+        source: "not_available",
+        independentFromCandidateProvider: false,
+        evidenceRefs: [],
+      },
+    });
+  if (questionGuard.releaseState === "blocked") {
+    blockers.add("public_question_guard_blocked");
+  }
   if (
     !hasText(record.title) ||
     !hasText(record.trigger) ||
@@ -399,6 +421,19 @@ export function buildAnlassraumActivationDraft(
   const visibility = input.visibility ?? defaultVisibilityFromStatus(status);
   const publicAccessMode =
     input.publicAccessMode ?? defaultPublicAccessMode(status);
+  const questionGuard =
+    input.runtimeRecord.questionGuard ??
+    evaluatePublicQuestionGeneralization({
+      originalInput: input.runtimeRecord.description,
+      candidatePublicQuestion: input.runtimeRecord.trigger,
+      actorContexts: [],
+      actorExtraction: {
+        status: "unverified",
+        source: "create_analysis",
+        independentFromCandidateProvider: false,
+        evidenceRefs: input.runtimeRecord.graphReferences,
+      },
+    });
 
   const draft: AnlassraumActivationDraft = {
     id: `anlassraum-activation:${input.runtimeRecord.sourceHandoffId}`,
@@ -416,6 +451,7 @@ export function buildAnlassraumActivationDraft(
     title: input.runtimeRecord.title,
     workingTitle: input.runtimeRecord.workingTitle,
     trigger: input.runtimeRecord.trigger,
+    questionGuard,
     description: input.runtimeRecord.description,
     relatedDossierId: input.runtimeRecord.relatedDossierId,
     recognizedStandpoints: unique(input.runtimeRecord.recognizedStandpoints),
@@ -756,6 +792,8 @@ export function getAnlassraumActivationBlockerLabel(
       return "Dossier-Kontext ist noch nicht belastbar geklärt.";
     case "public_copy_missing":
       return "Für die öffentliche Lesart fehlen noch belastbare Textbausteine.";
+    case "public_question_guard_blocked":
+      return "Die Leitfrage ist durch den Public-Question-Guard blockiert.";
     case "unsafe_auto_publish":
       return "Öffentliche Sichtbarkeit darf nicht als Seiteneffekt entstehen.";
     case "insufficient_audit_context":

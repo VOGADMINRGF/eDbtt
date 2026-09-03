@@ -9,6 +9,10 @@ import type {
   ParticipationSpaceRuntimeStatus,
   ParticipationSpaceRuntimeVisibility,
 } from "@/features/create/participationSpaceRuntime";
+import {
+  evaluatePublicQuestionGeneralization,
+  type PublicQuestionGeneralizationResult,
+} from "@/features/create/safety/publicQuestionGeneralization";
 
 export const PARTICIPATION_SPACE_PUBLISH_STATUSES = [
   "draft",
@@ -43,6 +47,7 @@ export const PARTICIPATION_SPACE_PUBLISH_BLOCKERS = [
   "anlassraum_context_pending",
   "public_copy_missing",
   "moderation_policy_missing",
+  "public_question_guard_blocked",
   "unsafe_auto_publish",
   "insufficient_audit_context",
 ] as const;
@@ -132,6 +137,7 @@ export type ParticipationSpacePublishDraft = {
   workingTitle: string;
   description: string;
   participationQuestion: string;
+  questionGuard: PublicQuestionGeneralizationResult;
   publicHeadline: string;
   publicSummary: string;
   moderationPolicy: string | null;
@@ -282,6 +288,19 @@ export function buildParticipationSpacePublishDraft(
     trimOrNull(input.createdSpace?.updatedAt) ??
     trimOrNull(input.runtimeRecord.updatedAt) ??
     createdAt;
+  const questionGuard =
+    input.runtimeRecord.questionGuard ??
+    evaluatePublicQuestionGeneralization({
+      originalInput: input.runtimeRecord.description,
+      candidatePublicQuestion: input.runtimeRecord.participationQuestion,
+      actorContexts: [],
+      actorExtraction: {
+        status: "unverified",
+        source: "create_analysis",
+        independentFromCandidateProvider: false,
+        evidenceRefs: input.runtimeRecord.graphReferences,
+      },
+    });
   const draft: ParticipationSpacePublishDraft = {
     id: `participation-space-publish:${input.runtimeRecord.sourceHandoffId}`,
     sourceHandoffId: input.runtimeRecord.sourceHandoffId,
@@ -305,6 +324,7 @@ export function buildParticipationSpacePublishDraft(
     participationQuestion: String(
       input.runtimeRecord.participationQuestion || "",
     ).trim(),
+    questionGuard,
     publicHeadline:
       trimOrNull(input.publicHeadline) ??
       trimOrNull(input.createdSpace?.publicHeadline) ??
@@ -379,6 +399,22 @@ function getBaseBlockers(
   if (!hasText(draft.title)) blockers.push("missing_title");
   if (!hasText(draft.participationQuestion)) blockers.push("missing_question");
   if (!hasText(draft.description)) blockers.push("missing_description");
+  const questionGuard =
+    draft.questionGuard ??
+    evaluatePublicQuestionGeneralization({
+      originalInput: draft.description,
+      candidatePublicQuestion: draft.participationQuestion,
+      actorContexts: [],
+      actorExtraction: {
+        status: "unverified",
+        source: "not_available",
+        independentFromCandidateProvider: false,
+        evidenceRefs: [],
+      },
+    });
+  if (questionGuard.releaseState === "blocked") {
+    blockers.push("public_question_guard_blocked");
+  }
   if (draft.sourceStatus === "source_review_pending") {
     blockers.push("source_review_pending");
   }
@@ -749,6 +785,8 @@ export function getParticipationSpacePublishBlockerLabel(
       return "Öffentliche Kurzbeschreibung oder Headline fehlt.";
     case "moderation_policy_missing":
       return "Moderations- und Freigaberahmen fehlt.";
+    case "public_question_guard_blocked":
+      return "Die Beteiligungsfrage ist durch den Public-Question-Guard blockiert.";
     case "unsafe_auto_publish":
       return "Öffentliche Sichtbarkeit als Side Effect bleibt gesperrt.";
     case "insufficient_audit_context":

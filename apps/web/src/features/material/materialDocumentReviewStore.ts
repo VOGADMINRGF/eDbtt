@@ -3,6 +3,10 @@ import "server-only";
 import crypto from "node:crypto";
 import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { persistCreateSavedWorkstate } from "@/features/create/createSavedWorkstateRepo";
+import {
+  evaluatePublicQuestionGeneralization,
+  type PublicQuestionGeneralizationResult,
+} from "@/features/create/safety/publicQuestionGeneralization";
 import type { MaterialExtractionJob } from "./materialExtractionJobs";
 import type { MaterialGraphFirstContext, MaterialGraphRecommendedAction } from "./materialGraphFirstContext";
 import type { MaterialStructuredDraftResult } from "./materialStructuredDrafts";
@@ -17,6 +21,7 @@ export type MaterialReviewSelection = {
   text: string;
   rationale: string;
   sourceAnchors: string[];
+  questionGuard: PublicQuestionGeneralizationResult;
   options: Array<{
     text: string;
     source: "document" | "ai_suggestion" | "human_edit";
@@ -67,6 +72,48 @@ function clone<T>(value: T): T {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function normalizeQuestionText(value: string): string {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function guardUpdatedSelection(
+  existing: MaterialReviewSelection,
+  selection: MaterialReviewSelection,
+): MaterialReviewSelection {
+  const nextText = normalizeQuestionText(selection.text);
+  const guardedText = normalizeQuestionText(
+    existing.questionGuard.publicQuestion ?? existing.questionGuard.candidatePublicQuestion,
+  );
+  if (nextText === guardedText) {
+    return {
+      ...clone(selection),
+      sourceAnchors: clone(existing.sourceAnchors),
+      questionGuard: clone(existing.questionGuard),
+    };
+  }
+
+  const questionGuard = evaluatePublicQuestionGeneralization({
+    originalInput: existing.questionGuard.originalInput,
+    candidatePublicQuestion: nextText,
+    actorContexts: existing.questionGuard.actorContexts,
+    actorExtraction: {
+      status: "unverified",
+      source: "human_review",
+      independentFromCandidateProvider: false,
+      evidenceRefs: existing.questionGuard.evidenceRefs,
+    },
+    procedure: existing.questionGuard.procedure,
+  });
+
+  return {
+    ...clone(selection),
+    text: nextText,
+    sourceAnchors: clone(existing.sourceAnchors),
+    questionGuard,
+    options: questionGuard.releaseState === "blocked" ? [] : clone(selection.options),
+  };
 }
 
 function createInMemoryRepo(): MaterialReviewRepository {
@@ -149,6 +196,7 @@ export async function createMaterialDocumentReviewSession(input: {
       text: question.text,
       rationale: question.rationale,
       sourceAnchors: clone(question.sourceAnchors),
+      questionGuard: clone(question.generalization),
       options: input.drafts.options
         .filter((option) => option.questionRef === question.id)
         .map((option) => ({ text: option.text, source: option.source })),
@@ -184,7 +232,12 @@ export async function updateMaterialDocumentReviewSelections(input: {
   if (input.selections.some((selection) => !existingIds.has(selection.questionId))) {
     throw new Error("material_review_question_unknown");
   }
-  session.selections = clone(input.selections);
+  const existingById = new Map(
+    session.selections.map((selection) => [selection.questionId, selection]),
+  );
+  session.selections = input.selections.map((selection) =>
+    guardUpdatedSelection(existingById.get(selection.questionId)!, selection),
+  );
   session.updatedAt = nowIso();
   await repository().save(session);
   return session;
@@ -201,6 +254,9 @@ export async function prepareSelectedMaterialQuestions(input: {
   const selected = session.selections.filter((selection) => selection.selected);
   if (selected.length === 0) throw new Error("material_review_selection_required");
   if (selected.some((selection) => !selection.action)) throw new Error("material_review_action_required");
+  if (selected.some((selection) => selection.questionGuard.releaseState === "blocked")) {
+    throw new Error("material_review_question_blocked");
+  }
 
   const records = await Promise.all(
     selected.map((selection) =>
@@ -209,7 +265,7 @@ export async function prepareSelectedMaterialQuestions(input: {
         organizationId: session.organizationId,
         visibility: session.organizationId ? "organization_internal" : "private",
         type: "question_candidate",
-        status: "prepared",
+        status: selection.questionGuard.requiresHumanReview ? "needs_review" : "prepared",
         sourceAnalysisId: session.id,
         parentTopicId: session.graphFirst.matchedTopicIds[0] ?? null,
         title: selection.text,
@@ -229,6 +285,9 @@ export async function prepareSelectedMaterialQuestions(input: {
           materialId: session.materialId,
           materialReviewAction: selection.action,
           suggestedOptions: selection.options.map((option) => option.text).slice(0, 12),
+        },
+        privateReviewEvidence: {
+          publicQuestionGuard: clone(selection.questionGuard),
         },
         resumeHref: `/create?materialReviewId=${encodeURIComponent(session.id)}`,
       }),
