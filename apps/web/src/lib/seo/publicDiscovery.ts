@@ -5,6 +5,8 @@ export const DEFAULT_OPENGRAPH_IMAGE_PATH = "/opengraph-image";
 
 export const PUBLIC_DISCOVERY_PATHS = [
   "/",
+  "/warum-edebatte",
+  "/vergleich/consul",
   "/themen",
   "/runden",
   "/beteiligung",
@@ -38,6 +40,13 @@ type SitemapEntry = {
 function normalizePath(path: string): string {
   if (!path) return "/";
   return path.startsWith("/") ? path : `/${path}`;
+}
+
+function publicPriority(path: string): number {
+  if (path === "/") return 1;
+  if (path === "/warum-edebatte") return 0.9;
+  if (path.startsWith("/vergleich/")) return 0.8;
+  return 0.7;
 }
 
 export function resolveSeoImageUrl(path = DEFAULT_OPENGRAPH_IMAGE_PATH): string {
@@ -76,7 +85,7 @@ export function buildPublicDiscoverySitemap(): SitemapEntry[] {
   return PUBLIC_DISCOVERY_PATHS.map((path) => ({
     url: new URL(path, BRAND.baseUrl).toString(),
     changeFrequency: path === "/" ? "daily" : "weekly",
-    priority: path === "/" ? 1 : 0.7,
+    priority: publicPriority(path),
   }));
 }
 
@@ -88,6 +97,12 @@ export function buildHomeStructuredData() {
     url: BRAND.baseUrl,
     inLanguage: "de-DE",
     description: BRAND.tagline_de,
+    about: [
+      "digitale Bürgerbeteiligung",
+      "gesellschaftliche Willensbildung",
+      "evidenzbasierte Deliberation",
+      "Agenda-Setting",
+    ],
     publisher: {
       "@type": "Organization",
       name: BRAND.name,
