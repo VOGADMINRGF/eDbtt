@@ -115,11 +115,13 @@ export type ParticipationSpacePublishAuditEntry = {
     | "publication_requested"
     | "publication_approved"
     | "publication_rejected"
+    | "question_guard_reviewed"
     | "published_public";
   actorUserId: string | null;
   note: string | null;
   blockers: ParticipationSpacePublishBlocker[];
   status: ParticipationSpacePublishStatus;
+  questionGuardReleaseState?: PublicQuestionGeneralizationResult["releaseState"] | null;
 };
 
 export type ParticipationSpacePublishDraft = {
@@ -197,6 +199,7 @@ type BuildDraftInput = {
     updatedAt?: string | null;
   } | null;
   creationAudited: boolean;
+  questionGuard?: PublicQuestionGeneralizationResult | null;
   status?: ParticipationSpacePublishStatus;
   visibility?: ParticipationSpacePublicVisibility;
   publicHeadline?: string | null;
@@ -211,6 +214,12 @@ type BuildDraftInput = {
   rejectedBy?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+};
+
+export type ParticipationSpaceQuestionGuardReviewInput = {
+  actorExtractionSource: "entity_registry" | "actor_graph" | "human_review";
+  evidenceRefs: string[];
+  reviewedAt?: string | null;
 };
 
 function nowIso() {
@@ -289,6 +298,7 @@ export function buildParticipationSpacePublishDraft(
     trimOrNull(input.runtimeRecord.updatedAt) ??
     createdAt;
   const questionGuard =
+    input.questionGuard ??
     input.runtimeRecord.questionGuard ??
     evaluatePublicQuestionGeneralization({
       originalInput: input.runtimeRecord.description,
@@ -374,6 +384,44 @@ export function buildParticipationSpacePublishDraft(
   return {
     ...draft,
     blockers: getParticipationSpacePublishBlockers(draft),
+  };
+}
+
+export function reviewParticipationSpaceQuestionGuard(
+  record: ParticipationSpacePublishRecord,
+  input: ParticipationSpaceQuestionGuardReviewInput,
+): ParticipationSpacePublishRecord {
+  if (
+    !["entity_registry", "actor_graph", "human_review"].includes(
+      input.actorExtractionSource,
+    )
+  ) {
+    throw new Error("public_question_guard_review_source_invalid");
+  }
+  const evidenceRefs = unique(input.evidenceRefs);
+  if (evidenceRefs.length === 0) {
+    throw new Error("public_question_guard_review_evidence_required");
+  }
+  const questionGuard = evaluatePublicQuestionGeneralization({
+    originalInput: record.questionGuard.originalInput,
+    candidatePublicQuestion: record.participationQuestion,
+    actorContexts: record.questionGuard.actorContexts,
+    actorExtraction: {
+      status: "complete",
+      source: input.actorExtractionSource,
+      independentFromCandidateProvider: true,
+      evidenceRefs,
+    },
+    procedure: record.questionGuard.procedure,
+  });
+  const reviewed = {
+    ...record,
+    questionGuard,
+    updatedAt: trimOrNull(input.reviewedAt) ?? nowIso(),
+  };
+  return {
+    ...reviewed,
+    blockers: getParticipationSpacePublishBlockers(reviewed),
   };
 }
 

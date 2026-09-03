@@ -11,6 +11,7 @@ import {
   canPublishAnlassraum,
   getAnlassraumActivationBlockers,
   publishAnlassraumAfterReview,
+  reviewAnlassraumQuestionGuard,
   type AnlassraumActivationRecord,
 } from "@/features/create/anlassraumActivationWorkflow";
 import {
@@ -230,6 +231,66 @@ describe("anlassraum activation workflow", () => {
     expect(activated.ok).toBe(false);
     if (!activated.ok) {
       expect(activated.blockers).toContain("public_question_guard_blocked");
+    }
+  });
+
+  it("requires an evidence-backed guard review before explicit activation", () => {
+    const unresolvedQuestionGuard = buildAnlassraumRuntimeDraftFromHandoff(
+      buildHandoffRecord(),
+    ).questionGuard;
+    const record = buildActivationRecord({
+      questionGuard: unresolvedQuestionGuard,
+    });
+
+    expect(() =>
+      reviewAnlassraumQuestionGuard(record, {
+        actorExtractionSource: "material_provider" as never,
+        evidenceRefs: ["self-attested:material-provider"],
+      }),
+    ).toThrow("public_question_guard_review_source_invalid");
+    expect(() =>
+      reviewAnlassraumQuestionGuard(record, {
+        actorExtractionSource: "actor_graph",
+        evidenceRefs: [" "],
+      }),
+    ).toThrow("public_question_guard_review_evidence_required");
+
+    const reviewed = reviewAnlassraumQuestionGuard(record, {
+      actorExtractionSource: "actor_graph",
+      evidenceRefs: ["actor-graph:anlassraum-question-guard-1"],
+      reviewedAt: "2026-07-01T09:15:00.000Z",
+    });
+
+    expect(reviewed.questionGuard.releaseState).toBe("draft_allowed");
+    expect(reviewed.questionGuard.actorExtraction).toEqual({
+      status: "complete",
+      source: "actor_graph",
+      independentFromCandidateProvider: true,
+      evidenceRefs: ["actor-graph:anlassraum-question-guard-1"],
+    });
+    expect(reviewed.blockers).not.toContain("public_question_guard_blocked");
+    expect(reviewed.status).toBe("draft");
+    expect(reviewed.visibility).toBe("editorial_workspace");
+    expect(reviewed.roomIsPublic).toBe(false);
+
+    const approved = approveAnlassraumActivation(reviewed, {
+      actorUserId: "admin-1",
+      reason: "Aktivierung nach Guard-Review freigegeben.",
+      origin: "admin_review",
+      approvedAt: "2026-07-01T09:20:00.000Z",
+    });
+    const activated = activateAnlassraumAfterReview(approved, {
+      actorUserId: "admin-1",
+      reason: "Intern aktivieren.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T09:30:00.000Z",
+    });
+
+    expect(activated.ok).toBe(true);
+    if (activated.ok) {
+      expect(activated.record.status).toBe("activated");
+      expect(activated.record.visibility).toBe("active_internal");
+      expect(activated.record.roomIsPublic).toBe(false);
     }
   });
 

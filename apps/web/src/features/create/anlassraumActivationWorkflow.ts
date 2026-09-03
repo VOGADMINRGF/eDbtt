@@ -118,11 +118,13 @@ export type AnlassraumActivationAuditEntry = {
     | "publication_requested"
     | "publication_approved"
     | "publication_rejected"
+    | "question_guard_reviewed"
     | "published_public";
   actorUserId: string | null;
   note: string | null;
   blockers: AnlassraumActivationBlocker[];
   status: AnlassraumActivationStatus;
+  questionGuardReleaseState?: PublicQuestionGeneralizationResult["releaseState"] | null;
 };
 
 export type AnlassraumActivationDraft = {
@@ -185,6 +187,7 @@ type BuildDraftInput = {
     updatedAt?: string | null;
   } | null;
   creationAudited: boolean;
+  questionGuard?: PublicQuestionGeneralizationResult | null;
   status?: AnlassraumActivationStatus;
   visibility?: AnlassraumPublicVisibility;
   publicAccessMode?: AnlassraumPublicAccessMode;
@@ -197,6 +200,12 @@ type BuildDraftInput = {
   rejectedBy?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+};
+
+export type AnlassraumQuestionGuardReviewInput = {
+  actorExtractionSource: "entity_registry" | "actor_graph" | "human_review";
+  evidenceRefs: string[];
+  reviewedAt?: string | null;
 };
 
 type TransitionResult =
@@ -422,6 +431,7 @@ export function buildAnlassraumActivationDraft(
   const publicAccessMode =
     input.publicAccessMode ?? defaultPublicAccessMode(status);
   const questionGuard =
+    input.questionGuard ??
     input.runtimeRecord.questionGuard ??
     evaluatePublicQuestionGeneralization({
       originalInput: input.runtimeRecord.description,
@@ -487,6 +497,40 @@ export function buildAnlassraumActivationDraft(
   };
 
   return withBlockers(draft);
+}
+
+export function reviewAnlassraumQuestionGuard(
+  record: AnlassraumActivationRecord,
+  input: AnlassraumQuestionGuardReviewInput,
+): AnlassraumActivationRecord {
+  if (
+    !["entity_registry", "actor_graph", "human_review"].includes(
+      input.actorExtractionSource,
+    )
+  ) {
+    throw new Error("public_question_guard_review_source_invalid");
+  }
+  const evidenceRefs = unique(input.evidenceRefs);
+  if (evidenceRefs.length === 0) {
+    throw new Error("public_question_guard_review_evidence_required");
+  }
+  const questionGuard = evaluatePublicQuestionGeneralization({
+    originalInput: record.questionGuard.originalInput,
+    candidatePublicQuestion: record.trigger,
+    actorContexts: record.questionGuard.actorContexts,
+    actorExtraction: {
+      status: "complete",
+      source: input.actorExtractionSource,
+      independentFromCandidateProvider: true,
+      evidenceRefs,
+    },
+    procedure: record.questionGuard.procedure,
+  });
+  return withBlockers({
+    ...record,
+    questionGuard,
+    updatedAt: trimOrNull(input.reviewedAt) ?? nowIso(),
+  });
 }
 
 export function canApproveAnlassraumActivation(

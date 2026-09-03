@@ -10,6 +10,7 @@ import {
   publishAnlassraumAfterReview,
   rejectAnlassraumActivation as rejectAnlassraumActivationRecord,
   rejectAnlassraumPublication as rejectAnlassraumPublicationRecord,
+  reviewAnlassraumQuestionGuard as reviewAnlassraumQuestionGuardRecord,
   type AnlassraumActivationAuditContext,
   type AnlassraumActivationAuditEntry,
   type AnlassraumActivationRecord,
@@ -292,6 +293,7 @@ async function buildAnlassraumActivationRecord(
           updatedAt: runtimeRecord.updatedAt,
         },
     creationAudited: hasRuntimeCreatedAudit(runtimeRecord),
+    questionGuard: existing?.questionGuard ?? null,
     status: existing?.status,
     visibility: existing?.visibility,
     publicAccessMode: existing?.publicAccessMode,
@@ -503,6 +505,39 @@ export async function approveAnlassraumActivation(input: {
     anlassraumId: updated.anlassraumId,
   });
   return updated;
+}
+
+export async function reviewAnlassraumQuestionGuard(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  actorExtractionSource: "entity_registry" | "actor_graph" | "human_review";
+  evidenceRefs: string[];
+  note?: string | null;
+}) {
+  const record = await getAnlassraumActivationRecord(input.sourceHandoffId);
+  if (!record) throw new Error("anlassraum_activation_record_not_found");
+
+  const reviewedAt = nowIso();
+  const reviewedRecord = reviewAnlassraumQuestionGuardRecord(record, {
+    actorExtractionSource: input.actorExtractionSource,
+    evidenceRefs: input.evidenceRefs,
+    reviewedAt,
+  });
+
+  await saveRecord(reviewedRecord);
+  await recordAudit(input.sourceHandoffId, {
+    at: reviewedAt,
+    action: "question_guard_reviewed",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      `Public-Question-Guard erneut bewertet: ${reviewedRecord.questionGuard.releaseState}.`,
+    blockers: reviewedRecord.blockers,
+    status: reviewedRecord.status,
+    anlassraumId: reviewedRecord.anlassraumId,
+    questionGuardReleaseState: reviewedRecord.questionGuard.releaseState,
+  });
+  return reviewedRecord;
 }
 
 export async function rejectAnlassraumActivation(input: {

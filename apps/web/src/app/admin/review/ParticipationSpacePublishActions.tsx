@@ -11,6 +11,7 @@ import {
 } from "@/features/create/participationSpacePublishWorkflow";
 
 type ParticipationSpacePublishAction =
+  | "reviewParticipationSpaceQuestionGuard"
   | "approveParticipationSpaceActivation"
   | "rejectParticipationSpaceActivation"
   | "activateApprovedParticipationSpace"
@@ -25,6 +26,8 @@ type Props = {
 async function postAction(input: {
   sourceHandoffId: string;
   action: ParticipationSpacePublishAction;
+  actorExtractionSource?: "human_review";
+  evidenceRefs?: string[];
 }) {
   const response = await fetch(
     `/api/admin/participation-space-publish/${encodeURIComponent(input.sourceHandoffId)}`,
@@ -35,6 +38,10 @@ async function postAction(input: {
       },
       body: JSON.stringify({
         action: input.action,
+        ...(input.actorExtractionSource
+          ? { actorExtractionSource: input.actorExtractionSource }
+          : {}),
+        ...(input.evidenceRefs ? { evidenceRefs: input.evidenceRefs } : {}),
       }),
     },
   );
@@ -49,14 +56,24 @@ export default function ParticipationSpacePublishActions({ record }: Props) {
   const [pendingAction, setPendingAction] =
     useState<ParticipationSpacePublishAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [questionGuardEvidenceRef, setQuestionGuardEvidenceRef] = useState("");
 
-  async function runAction(action: ParticipationSpacePublishAction) {
+  async function runAction(
+    action: ParticipationSpacePublishAction,
+    reviewEvidenceRef?: string,
+  ) {
     setPendingAction(action);
     setError(null);
     try {
       await postAction({
         sourceHandoffId: record.sourceHandoffId,
         action,
+        ...(reviewEvidenceRef
+          ? {
+              actorExtractionSource: "human_review" as const,
+              evidenceRefs: [reviewEvidenceRef],
+            }
+          : {}),
       });
       startTransition(() => router.refresh());
     } catch (actionError) {
@@ -90,6 +107,46 @@ export default function ParticipationSpacePublishActions({ record }: Props) {
         Es gibt keinen Auto-Publish, keine Auto-Aktivierung, keinen Auto-Graph
         und keinen Auto-Merge.
       </p>
+
+      {record.questionGuard.releaseState === "review_required" ? (
+        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
+          <label
+            className="block text-xs font-semibold text-amber-950"
+            htmlFor={`participation-space-question-guard-evidence-${record.sourceHandoffId}`}
+          >
+            Belastbare Review-Evidenz
+          </label>
+          <input
+            id={`participation-space-question-guard-evidence-${record.sourceHandoffId}`}
+            data-testid={`participation-space-question-guard-evidence-${record.sourceHandoffId}`}
+            value={questionGuardEvidenceRef}
+            onChange={(event) => setQuestionGuardEvidenceRef(event.target.value)}
+            placeholder="z. B. human-review:ticket-123"
+            className="mt-2 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-[rgb(var(--fg))]"
+          />
+          <button
+            type="button"
+            data-testid={`review-participation-space-question-guard-${record.sourceHandoffId}`}
+            disabled={
+              questionGuardEvidenceRef.trim().length === 0 ||
+              pendingAction === "reviewParticipationSpaceQuestionGuard"
+            }
+            onClick={() =>
+              runAction(
+                "reviewParticipationSpaceQuestionGuard",
+                questionGuardEvidenceRef.trim(),
+              )
+            }
+            className="mt-2 rounded-full border border-amber-400 px-4 py-2 text-xs font-semibold text-amber-950 disabled:opacity-60"
+          >
+            Question Guard mit Evidenz erneut prüfen
+          </button>
+          <p className="mt-2 text-xs text-amber-900">
+            Die erneute Prüfung ändert nur den Guard-State. Aktivierung und
+            Veröffentlichung bleiben separate, explizite Schritte.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button

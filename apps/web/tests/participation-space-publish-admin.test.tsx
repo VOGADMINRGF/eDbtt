@@ -203,6 +203,17 @@ describe("participation space publish admin ui", () => {
         })}
       />,
     );
+    const reviewRequiredMarkup = renderToStaticMarkup(
+      <ParticipationSpacePublishActions
+        record={buildRecord({
+          questionGuard: evaluatePublicQuestionGeneralization({
+            originalInput:
+              "Welche Maßnahmen sollten sichere Schulwege zuerst verbessern?",
+            actorContexts: [],
+          }),
+        })}
+      />,
+    );
 
     expect(draftMarkup).toContain(
       'data-testid="activate-participation-space-handoff-1" disabled=""',
@@ -218,6 +229,15 @@ describe("participation space publish admin ui", () => {
     );
     expect(approvedPublicationMarkup).toContain(
       "Öffentliche Sichtbarkeit entsteht nur nach expliziter Veröffentlichung.",
+    );
+    expect(reviewRequiredMarkup).toContain(
+      'data-testid="participation-space-question-guard-evidence-handoff-1"',
+    );
+    expect(reviewRequiredMarkup).toContain(
+      'data-testid="review-participation-space-question-guard-handoff-1" disabled=""',
+    );
+    expect(draftMarkup).not.toContain(
+      "review-participation-space-question-guard-handoff-1",
     );
   });
 });

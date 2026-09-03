@@ -8,12 +8,13 @@ import {
   publishApprovedParticipationSpace,
   rejectParticipationSpaceActivation,
   rejectParticipationSpacePublication,
+  reviewParticipationSpaceQuestionGuard,
 } from "@/features/create/participationSpaceRuntimeServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BodySchema = z
+const ExistingActionSchema = z
   .object({
     action: z.enum([
       "approveParticipationSpaceActivation",
@@ -25,6 +26,23 @@ const BodySchema = z
     ]),
   })
   .strict();
+
+const ReviewActionSchema = z
+  .object({
+    action: z.literal("reviewParticipationSpaceQuestionGuard"),
+    actorExtractionSource: z.enum([
+      "entity_registry",
+      "actor_graph",
+      "human_review",
+    ]),
+    evidenceRefs: z.array(z.string().trim().min(1).max(500)).min(1),
+  })
+  .strict();
+
+const BodySchema = z.discriminatedUnion("action", [
+  ExistingActionSchema,
+  ReviewActionSchema,
+]);
 
 export async function POST(
   req: NextRequest,
@@ -50,12 +68,19 @@ export async function POST(
     const body = BodySchema.parse(await req.json());
 
     const result =
-      body.action === "approveParticipationSpaceActivation"
-        ? await approveParticipationSpaceActivation({
+      body.action === "reviewParticipationSpaceQuestionGuard"
+        ? await reviewParticipationSpaceQuestionGuard({
             sourceHandoffId,
             actorUserId,
+            actorExtractionSource: body.actorExtractionSource,
+            evidenceRefs: body.evidenceRefs,
           })
-        : body.action === "rejectParticipationSpaceActivation"
+        : body.action === "approveParticipationSpaceActivation"
+          ? await approveParticipationSpaceActivation({
+              sourceHandoffId,
+              actorUserId,
+            })
+          : body.action === "rejectParticipationSpaceActivation"
           ? await rejectParticipationSpaceActivation({
               sourceHandoffId,
               actorUserId,

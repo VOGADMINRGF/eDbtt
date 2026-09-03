@@ -11,6 +11,7 @@ import {
   canPublishParticipationSpace,
   getParticipationSpacePublishBlockers,
   publishParticipationSpaceAfterReview,
+  reviewParticipationSpaceQuestionGuard,
   type ParticipationSpacePublishRecord,
 } from "@/features/create/participationSpacePublishWorkflow";
 import {
@@ -241,6 +242,81 @@ describe("participation space publish workflow", () => {
     if (!published.ok) {
       expect(published.blockers).toContain("public_question_guard_blocked");
     }
+  });
+
+  it("persists an evidence-backed guard review before explicit activation and publication", () => {
+    const unresolvedQuestionGuard = buildParticipationSpaceRuntimeDraftFromHandoff(
+      buildHandoffRecord(),
+    ).questionGuard;
+    const record = buildPublishRecord({
+      questionGuard: unresolvedQuestionGuard,
+    });
+
+    expect(() =>
+      reviewParticipationSpaceQuestionGuard(record, {
+        actorExtractionSource: "material_provider" as never,
+        evidenceRefs: ["self-attested:material-provider"],
+      }),
+    ).toThrow("public_question_guard_review_source_invalid");
+    expect(() =>
+      reviewParticipationSpaceQuestionGuard(record, {
+        actorExtractionSource: "human_review",
+        evidenceRefs: [" "],
+      }),
+    ).toThrow("public_question_guard_review_evidence_required");
+
+    const reviewed = reviewParticipationSpaceQuestionGuard(record, {
+      actorExtractionSource: "human_review",
+      evidenceRefs: ["human-review:participation-question-guard-1"],
+      reviewedAt: "2026-06-30T09:15:00.000Z",
+    });
+
+    expect(reviewed.questionGuard.releaseState).toBe("draft_allowed");
+    expect(reviewed.questionGuard.actorExtraction).toEqual({
+      status: "complete",
+      source: "human_review",
+      independentFromCandidateProvider: true,
+      evidenceRefs: ["human-review:participation-question-guard-1"],
+    });
+    expect(reviewed.blockers).not.toContain("public_question_guard_blocked");
+    expect(reviewed.status).toBe("draft");
+    expect(reviewed.visibility).toBe("editorial_workspace");
+
+    const approvedActivation = approveParticipationSpaceActivation(reviewed, {
+      actorUserId: "admin-1",
+      reason: "Aktivierung nach Guard-Review freigegeben.",
+      origin: "admin_review",
+      approvedAt: "2026-06-30T09:20:00.000Z",
+    });
+    const activated = activateParticipationSpaceAfterReview(approvedActivation, {
+      actorUserId: "admin-1",
+      reason: "Intern aktivieren.",
+      origin: "participation_space_publish_workflow",
+      approvedAt: "2026-06-30T09:30:00.000Z",
+    });
+    expect(activated.ok).toBe(true);
+    if (!activated.ok) return;
+
+    const approvedPublication = approveParticipationSpacePublication(
+      activated.record,
+      {
+        actorUserId: "admin-1",
+        reason: "Veröffentlichung separat freigegeben.",
+        origin: "admin_review",
+        approvedAt: "2026-06-30T09:40:00.000Z",
+      },
+    );
+    const published = publishParticipationSpaceAfterReview(
+      approvedPublication,
+      {
+        actorUserId: "admin-1",
+        reason: "Explizit veröffentlichen.",
+        origin: "participation_space_publish_workflow",
+        approvedAt: "2026-06-30T09:50:00.000Z",
+      },
+    );
+
+    expect(published.ok).toBe(true);
   });
 
   it("keeps created participation spaces non-public until explicit publication", () => {

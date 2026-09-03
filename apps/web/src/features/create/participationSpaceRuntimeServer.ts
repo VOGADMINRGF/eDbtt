@@ -12,6 +12,7 @@ import {
   approveParticipationSpacePublication as approveParticipationSpacePublicationRecord,
   buildParticipationSpacePublishDraft,
   publishParticipationSpaceAfterReview,
+  reviewParticipationSpaceQuestionGuard as reviewParticipationSpaceQuestionGuardRecord,
   type ParticipationSpacePublishAuditContext,
   type ParticipationSpacePublishAuditEntry,
   type ParticipationSpacePublishRecord,
@@ -832,6 +833,7 @@ async function buildParticipationSpacePublishRecord(
           updatedAt: runtimeRecord.updatedAt,
         },
     creationAudited: hasRuntimeCreatedAudit(runtimeRecord),
+    questionGuard: existing?.questionGuard ?? null,
     status: existing?.status ?? "draft",
     visibility: existing?.visibility ?? "editorial_workspace",
     publicHeadline: existing?.publicHeadline ?? null,
@@ -1161,6 +1163,41 @@ export async function approveParticipationSpaceActivation(input: {
     participationSpaceId: approvedRecord.participationSpaceId,
   });
   return approvedRecord;
+}
+
+export async function reviewParticipationSpaceQuestionGuard(input: {
+  sourceHandoffId: string;
+  actorUserId: string;
+  actorExtractionSource: "entity_registry" | "actor_graph" | "human_review";
+  evidenceRefs: string[];
+  note?: string | null;
+}) {
+  const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
+  if (!record) {
+    throw new Error("participation_space_publish_record_not_found");
+  }
+
+  const reviewedAt = nowIso();
+  const reviewedRecord = reviewParticipationSpaceQuestionGuardRecord(record, {
+    actorExtractionSource: input.actorExtractionSource,
+    evidenceRefs: input.evidenceRefs,
+    reviewedAt,
+  });
+
+  await savePublishRecord(reviewedRecord);
+  await recordPublishAudit(input.sourceHandoffId, {
+    at: reviewedAt,
+    action: "question_guard_reviewed",
+    actorUserId: input.actorUserId,
+    note:
+      trimOrNull(input.note) ??
+      `Public-Question-Guard erneut bewertet: ${reviewedRecord.questionGuard.releaseState}.`,
+    blockers: reviewedRecord.blockers,
+    status: reviewedRecord.status,
+    participationSpaceId: reviewedRecord.participationSpaceId,
+    questionGuardReleaseState: reviewedRecord.questionGuard.releaseState,
+  });
+  return reviewedRecord;
 }
 
 export async function rejectParticipationSpaceActivation(input: {

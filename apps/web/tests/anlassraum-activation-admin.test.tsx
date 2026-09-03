@@ -182,6 +182,17 @@ describe("anlassraum activation admin ui", () => {
         })}
       />,
     );
+    const reviewRequiredMarkup = renderToStaticMarkup(
+      <AnlassraumActivationActions
+        record={buildRecord({
+          questionGuard: evaluatePublicQuestionGeneralization({
+            originalInput:
+              "Welche Maßnahmen sollten sichere Schulwege zuerst verbessern?",
+            actorContexts: [],
+          }),
+        })}
+      />,
+    );
 
     expect(reviewOnlyMarkup).toContain(
       'data-testid="publish-anlassraum-handoff-1" disabled=""',
@@ -189,6 +200,15 @@ describe("anlassraum activation admin ui", () => {
     expect(approvedMarkup).toContain('data-testid="publish-anlassraum-handoff-2"');
     expect(approvedMarkup).not.toContain(
       'data-testid="publish-anlassraum-handoff-2" disabled=""',
+    );
+    expect(reviewRequiredMarkup).toContain(
+      'data-testid="anlassraum-question-guard-evidence-handoff-1"',
+    );
+    expect(reviewRequiredMarkup).toContain(
+      'data-testid="review-anlassraum-question-guard-handoff-1" disabled=""',
+    );
+    expect(reviewOnlyMarkup).not.toContain(
+      "review-anlassraum-question-guard-handoff-1",
     );
   });
 });
