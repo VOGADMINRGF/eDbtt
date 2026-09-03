@@ -74,12 +74,12 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
         {
           number: "03",
           title: "Optionen",
-          body: "Erst aus einem nachvollziehbaren Problemverständnis können unterschiedliche Handlungsoptionen, Prioritäten und Zielkonflikte sichtbar werden.",
+          body: "Aus einem nachvollziehbaren Problemverständnis können unterschiedliche Handlungsoptionen, Prioritäten und Zielkonflikte sichtbar werden.",
         },
         {
           number: "04",
           title: "Anschluss",
-          body: "Danach können Beteiligung, Entscheidung und der Übergang zu den passenden politischen, gesellschaftlichen oder administrativen Stellen folgen.",
+          body: "Erst danach folgen Beteiligung, Priorisierung und der Übergang zu passenden politischen, gesellschaftlichen oder administrativen Stellen.",
         },
       ]
     : [
@@ -96,12 +96,12 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
         {
           number: "03",
           title: "Options",
-          body: "A transparent understanding of the problem can then surface different options, priorities and trade-offs.",
+          body: "A transparent understanding of the problem can surface different options, priorities and trade-offs.",
         },
         {
           number: "04",
           title: "Connect",
-          body: "Participation, decisions and hand-off to the appropriate political, civic or administrative actors can follow afterwards.",
+          body: "Participation, prioritisation and hand-off to appropriate political, civic or administrative actors can follow afterwards.",
         },
       ];
 
@@ -115,7 +115,7 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
         <div className="relative mx-auto max-w-[76rem] px-5 py-12 sm:px-8 sm:py-16 lg:px-10 lg:py-20">
           <div className="mx-auto max-w-5xl text-center">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
-              {de ? "Dein Anliegen zählt." : "Your concern matters."}
+              {de ? "Beteiligung beginnt vor dem Verfahren." : "Participation starts before the process."}
             </p>
             <h1 className="mt-5 text-balance text-5xl font-black leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
               {de ? "Was sollte sich ändern?" : "What should change?"}
@@ -180,15 +180,15 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
               </p>
               <h2 className="mt-3 max-w-xl text-3xl font-black tracking-[-0.03em] sm:text-5xl">
                 {de
-                  ? "Nicht erst, wenn die Verwaltung eine Frage stellt."
-                  : "Not only after an institution has framed the question."}
+                  ? "Nicht erst mitreden, wenn die Frage schon feststeht."
+                  : "Do not wait until the question has already been framed."}
               </h2>
             </div>
             <div className="border-l-2 border-cyan-400 pl-6">
               <p className="text-base leading-7 text-[color:var(--muted)]">
                 {de
-                  ? "Viele digitale Beteiligungsangebote organisieren ein bereits eröffnetes Verfahren oder einen formulierten Vorschlag. eDebatte setzt noch früher an: beim ungeklärten Anliegen – bevor feststehen muss, welches Problem genau vorliegt oder zwischen welchen Lösungen entschieden werden soll."
-                  : "Many digital participation tools organise an already opened process or a formulated proposal. eDebatte starts earlier: with an unresolved concern, before the exact problem or the set of solutions has to be fixed."}
+                  ? "Viele digitale Beteiligungsangebote sind besonders stark, wenn ein Verfahren, Projekt oder Vorschlag bereits benannt ist. eDebatte setzt noch früher an: beim ungeklärten Anliegen – bevor feststehen muss, welches Problem genau vorliegt oder zwischen welchen Lösungen entschieden werden soll."
+                  : "Many digital participation tools are strongest once a process, project or proposal has already been defined. eDebatte starts earlier: with an unresolved concern, before the exact problem or set of solutions has to be fixed."}
               </p>
             </div>
           </div>
@@ -206,14 +206,14 @@ export default function HomeGoToMarketLanding({ experience }: Props) {
           <div className="mt-8 flex flex-col gap-4 rounded-[1.5rem] border border-cyan-500/35 bg-cyan-500/5 p-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-3xl text-sm leading-6 text-[color:var(--muted)]">
               {de
-                ? "Bürgerinitiiert heißt nicht verwaltungsfern: Kommunen, Behörden, Politik, Wissenschaft und Organisationen bleiben wichtige Wissens- und Umsetzungspartner. Sie müssen nur nicht die Voraussetzung dafür sein, dass ein gesellschaftliches Problem überhaupt sichtbar und strukturiert wird."
-                : "Citizen-initiated does not mean disconnected from institutions: municipalities, public bodies, politics, science and organisations remain important knowledge and implementation partners. They simply do not have to be the prerequisite for a public problem to become visible and structured."}
+                ? "Citizen-first heißt nicht verwaltungsfern: Kommunen, Behörden, Politik, Wissenschaft und Organisationen bleiben wichtige Wissens-, Verfahrens- und Umsetzungspartner. Sie müssen nur nicht die Voraussetzung dafür sein, dass ein gesellschaftliches Problem überhaupt sichtbar und strukturiert wird."
+                : "Citizen-first does not mean disconnected from institutions: municipalities, public bodies, politics, science and organisations remain important knowledge, process and implementation partners. They simply do not have to be the prerequisite for a public problem to become visible and structured."}
             </p>
             <Link
-              href="/vergleich/consul"
+              href="/warum-edebatte"
               className="shrink-0 text-sm font-black text-cyan-700 hover:underline dark:text-cyan-300"
             >
-              {de ? "Vergleich mit CONSUL & Decidim" : "Compare with CONSUL & Decidim"} →
+              {de ? "Warum das anders ist" : "Why this is different"} →
             </Link>
           </div>
         </div>
