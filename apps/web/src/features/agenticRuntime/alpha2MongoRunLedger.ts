@@ -1,8 +1,11 @@
 import type { Model } from "mongoose";
 import { mongo, mongoose } from "@core/db/mongoose";
+import { findAlpha2CapabilityRoute } from "@/features/agenticRuntime/alpha2AgentFleetContract";
 import {
   Alpha2RunRecordSchema,
+  assertAlpha2InitialRunPersistence,
   assertAlpha2RunEvolution,
+  type Alpha2ActorPrincipal,
   type Alpha2RunRecord,
 } from "@/features/agenticRuntime/alpha2RunLifecycleContract";
 import {
@@ -165,6 +168,76 @@ function assertWallClockCasBoundary(
   }
 }
 
+function assertCanonicalInitialHumanGate(run: Alpha2RunRecord) {
+  const gate = run.humanGate;
+  if (run.status === "queued") {
+    if (
+      gate.state !== "not_required" ||
+      gate.reason !== undefined ||
+      gate.gateRef !== undefined ||
+      gate.resumeMode !== undefined ||
+      gate.decisionRef !== undefined ||
+      gate.decidedAt !== undefined ||
+      gate.decisionActor !== undefined
+    ) {
+      throw new Error("alpha2_invalid_initial_queued_human_gate");
+    }
+    return;
+  }
+
+  if (
+    run.status === "human_gate" &&
+    (gate.state !== "pending" ||
+      gate.resumeMode !== "start_new_attempt" ||
+      gate.decisionRef !== undefined ||
+      gate.decidedAt !== undefined ||
+      gate.decisionActor !== undefined)
+  ) {
+    throw new Error("alpha2_invalid_initial_pending_human_gate");
+  }
+}
+
+function samePrincipal(left: Alpha2ActorPrincipal, right: Alpha2ActorPrincipal) {
+  return left.actorId === right.actorId && left.roleId === right.roleId;
+}
+
+function assertAuthenticatedReviewCasBoundary(
+  existing: Alpha2RunRecord,
+  incoming: Alpha2RunRecord,
+  authenticatedActor?: Alpha2ActorPrincipal,
+) {
+  const independentReviewRequired = Boolean(
+    findAlpha2CapabilityRoute(existing.route.capabilityClass)?.independentReviewRequired,
+  );
+  const isProtectedReviewExit =
+    existing.status === "review" &&
+    ["running", "completed", "human_gate"].includes(incoming.status);
+  if (!independentReviewRequired || !isProtectedReviewExit) return;
+
+  if (!authenticatedActor) {
+    throw new Error("alpha2_review_cas_requires_authenticated_actor");
+  }
+
+  const primaryActor = existing.primaryActor;
+  const assignedReviewActor = existing.assignedReviewActor;
+  if (!primaryActor || !assignedReviewActor) {
+    throw new Error("alpha2_review_principal_binding_missing");
+  }
+  if (authenticatedActor.actorId === primaryActor.actorId) {
+    throw new Error("alpha2_review_cas_actor_matches_primary_principal");
+  }
+  if (!samePrincipal(authenticatedActor, assignedReviewActor)) {
+    throw new Error("alpha2_review_cas_actor_not_assigned");
+  }
+
+  if (incoming.status !== "human_gate") {
+    const decisionActor = incoming.humanGate.decisionActor;
+    if (!decisionActor || !samePrincipal(decisionActor, authenticatedActor)) {
+      throw new Error("alpha2_review_decision_actor_auth_mismatch");
+    }
+  }
+}
+
 export class Alpha2MongoRunLedger implements Alpha2RunLedger {
   async createOrGet(run: Alpha2RunRecord): Promise<Alpha2RunLedgerCreateResult> {
     const validated = Alpha2RunRecordSchema.parse(run);
@@ -176,6 +249,9 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
       assertAlpha2LedgerIdentity(record.run, validated);
       return { record, created: false };
     }
+
+    assertAlpha2InitialRunPersistence(validated);
+    assertCanonicalInitialHumanGate(validated);
 
     try {
       const created = await Model.create({
@@ -217,6 +293,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     resumeAfterMs?: number;
     initializeWallClock?: { maxWallClockMs?: number };
     stampCheckpointId?: string;
+    authenticatedActor?: Alpha2ActorPrincipal;
   }): Promise<Alpha2VersionedRun> {
     const run = Alpha2RunRecordSchema.parse(input.run);
     const Model = await Alpha2LedgerModel();
@@ -229,6 +306,7 @@ export class Alpha2MongoRunLedger implements Alpha2RunLedger {
     const existingRun = toVersionedRun(existing).run;
     assertAlpha2LedgerIdentity(existingRun, run);
     assertAlpha2RunEvolution(existingRun, run);
+    assertAuthenticatedReviewCasBoundary(existingRun, run, input.authenticatedActor);
     assertWallClockCasBoundary(existingRun, run, input.initializeWallClock);
     const resumeAfterMs =
       input.resumeAfterMs === undefined

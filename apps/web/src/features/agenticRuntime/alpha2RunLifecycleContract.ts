@@ -1,12 +1,14 @@
 import { z } from "zod";
 import {
-  AGENT_ROLE_IDS,
-  type AgentRoleId,
-} from "@/features/agenticRuntime/agentRegistryBootstrapContract";
+  Alpha2RoleIdSchema,
+  findAlpha2CapabilityRoute,
+  isAlpha2OrganizationRoleId,
+  resolveAlpha2Role,
+  type Alpha2RoleId,
+} from "@/features/agenticRuntime/alpha2AgentFleetContract";
 import {
   AGENT_SAFE_TRACE_ARTIFACT_TYPES,
   type AgentSafeTraceArtifactRef,
-  type AgentSafeTraceStep,
 } from "@/features/agenticRuntime/agentRunArtifactSafeTraceContract";
 
 export const ALPHA2_RUN_STATUSES = [
@@ -57,7 +59,10 @@ export type Alpha2RiskClass = (typeof ALPHA2_RISK_CLASSES)[number];
 export type Alpha2GateState = (typeof ALPHA2_GATE_STATES)[number];
 export type Alpha2RouteMode = (typeof ALPHA2_ROUTE_MODES)[number];
 export type Alpha2SafeTraceArtifactRef = AgentSafeTraceArtifactRef;
-export type Alpha2SafeTraceStepRef = Pick<AgentSafeTraceStep, "stepId" | "roleId">;
+export type Alpha2SafeTraceStepRef = {
+  stepId: string;
+  roleId: Alpha2RoleId;
+};
 
 const Alpha2RunStatusSchema = z.enum(ALPHA2_RUN_STATUSES);
 const Alpha2RunKindSchema = z.enum(ALPHA2_RUN_KINDS);
@@ -66,7 +71,6 @@ const Alpha2GateStateSchema = z.enum(ALPHA2_GATE_STATES);
 const Alpha2RouteModeSchema = z.enum(ALPHA2_ROUTE_MODES);
 const Alpha2GateResumeModeSchema = z.enum(ALPHA2_GATE_RESUME_MODES);
 const Alpha2PreExecutorResumeModeSchema = z.enum(ALPHA2_PRE_EXECUTOR_RESUME_MODES);
-const AgentRoleIdSchema = z.enum(AGENT_ROLE_IDS);
 const DECIDED_HUMAN_GATE_STATES = new Set<Alpha2GateState>([
   "approved",
   "rejected",
@@ -97,7 +101,7 @@ export const Alpha2SafeTraceArtifactRefSchema = z
 export const Alpha2SafeTraceStepRefSchema = z
   .object({
     stepId: z.string().min(1),
-    roleId: AgentRoleIdSchema,
+    roleId: Alpha2RoleIdSchema,
   })
   .strict();
 
@@ -128,6 +132,15 @@ export const Alpha2ModelRouteSchema = z
     }
   });
 
+export const Alpha2ActorPrincipalSchema = z
+  .object({
+    actorId: z.string().min(1),
+    roleId: Alpha2RoleIdSchema,
+  })
+  .strict();
+
+export const Alpha2GateDecisionActorSchema = Alpha2ActorPrincipalSchema;
+
 export const Alpha2HumanGateSchema = z
   .object({
     state: Alpha2GateStateSchema,
@@ -136,6 +149,7 @@ export const Alpha2HumanGateSchema = z
     resumeMode: Alpha2GateResumeModeSchema.optional(),
     decisionRef: z.string().min(1).optional(),
     decidedAt: z.string().datetime().optional(),
+    decisionActor: Alpha2GateDecisionActorSchema.optional(),
   })
   .strict()
   .superRefine((gate, ctx) => {
@@ -172,8 +186,10 @@ export const Alpha2RunRecordSchema = z
     taskId: z.string().min(1),
     kind: Alpha2RunKindSchema,
     status: Alpha2RunStatusSchema,
-    primaryRole: AgentRoleIdSchema,
-    supportingRoles: z.array(AgentRoleIdSchema).default([]),
+    primaryRole: Alpha2RoleIdSchema,
+    supportingRoles: z.array(Alpha2RoleIdSchema).default([]),
+    primaryActor: Alpha2ActorPrincipalSchema.optional(),
+    assignedReviewActor: Alpha2ActorPrincipalSchema.optional(),
     riskClass: Alpha2RiskClassSchema,
     humanGate: Alpha2HumanGateSchema,
     humanGateHistory: z.array(Alpha2HumanGateSchema).default([]),
@@ -195,6 +211,80 @@ export const Alpha2RunRecordSchema = z
   })
   .strict()
   .superRefine((run, ctx) => {
+    const capabilityRoute = findAlpha2CapabilityRoute(run.route.capabilityClass);
+
+    if (isAlpha2OrganizationRoleId(run.primaryRole)) {
+      const primaryRole = resolveAlpha2Role(run.primaryRole);
+
+      if (!capabilityRoute) {
+        ctx.addIssue({
+          code: "custom",
+          message: `alpha2_capability_route_not_found:${run.route.capabilityClass}`,
+        });
+      } else if (!primaryRole.capabilities.includes(run.route.capabilityClass)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `alpha2_primary_role_capability_mismatch:${run.primaryRole}:${run.route.capabilityClass}`,
+        });
+      }
+
+    }
+
+    if (capabilityRoute?.independentReviewRequired) {
+      if (run.primaryRole === "review_agent") {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_independent_reviewer_must_differ_from_primary",
+        });
+      }
+      if (!run.supportingRoles.includes("review_agent")) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_independent_review_role_required",
+        });
+      }
+      if (!run.primaryActor) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_primary_actor_required_for_independent_review",
+        });
+      } else if (run.primaryActor.roleId !== run.primaryRole) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_primary_actor_role_mismatch",
+        });
+      }
+      if (!run.assignedReviewActor) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_assigned_review_actor_required",
+        });
+      } else if (
+        run.assignedReviewActor.roleId !== "review_agent" ||
+        !run.supportingRoles.includes(run.assignedReviewActor.roleId)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_assigned_review_actor_not_assigned",
+        });
+      }
+      if (
+        run.primaryActor &&
+        run.assignedReviewActor &&
+        run.primaryActor.actorId === run.assignedReviewActor.actorId
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "alpha2_independent_reviewer_principal_must_differ_from_primary",
+        });
+      }
+    } else if (run.primaryActor && run.primaryActor.roleId !== run.primaryRole) {
+      ctx.addIssue({
+        code: "custom",
+        message: "alpha2_primary_actor_role_mismatch",
+      });
+    }
+
     if (run.parentRunId === null && run.rootRunId !== run.runId) {
       ctx.addIssue({ code: "custom", message: "alpha2_root_run_must_reference_itself" });
     }
@@ -241,6 +331,8 @@ export const Alpha2RunRecordSchema = z
 
 export type Alpha2Budget = z.infer<typeof Alpha2BudgetSchema>;
 export type Alpha2ModelRoute = z.infer<typeof Alpha2ModelRouteSchema>;
+export type Alpha2ActorPrincipal = z.infer<typeof Alpha2ActorPrincipalSchema>;
+export type Alpha2GateDecisionActor = z.infer<typeof Alpha2GateDecisionActorSchema>;
 export type Alpha2HumanGate = z.infer<typeof Alpha2HumanGateSchema>;
 export type Alpha2Checkpoint = z.infer<typeof Alpha2CheckpointSchema>;
 export type Alpha2RunRecord = z.infer<typeof Alpha2RunRecordSchema>;
@@ -283,10 +375,46 @@ function hasCurrentReviewDecision(
   );
 }
 
-function hasBoundAlpha2ReviewCompletionApproval(
-  run: Alpha2ReviewDecisionState,
+function requiresIndependentAlpha2Review(run: Alpha2RunRecord) {
+  return Boolean(
+    findAlpha2CapabilityRoute(run.route.capabilityClass)?.independentReviewRequired,
+  );
+}
+
+function assertAssignedIndependentReviewActor(
+  run: Alpha2RunRecord,
   humanGate: Alpha2HumanGate,
 ) {
+  if (!requiresIndependentAlpha2Review(run)) return;
+
+  const actor = humanGate.decisionActor;
+  if (!actor) {
+    throw new Error("alpha2_review_approval_requires_actor_identity");
+  }
+  const primaryActor = run.primaryActor;
+  const assignedReviewActor = run.assignedReviewActor;
+  if (!primaryActor || !assignedReviewActor) {
+    throw new Error("alpha2_review_principal_binding_missing");
+  }
+  if (
+    actor.actorId === primaryActor.actorId ||
+    actor.roleId === primaryActor.roleId
+  ) {
+    throw new Error("alpha2_review_approval_actor_matches_primary_principal");
+  }
+  if (
+    actor.actorId !== assignedReviewActor.actorId ||
+    actor.roleId !== assignedReviewActor.roleId
+  ) {
+    throw new Error("alpha2_review_approval_actor_not_assigned");
+  }
+}
+
+function hasBoundAlpha2ReviewCompletionApproval(
+  run: Alpha2RunRecord,
+  humanGate: Alpha2HumanGate,
+) {
+  assertAssignedIndependentReviewActor(run, humanGate);
   return hasCurrentReviewDecision(
     run,
     humanGate,
@@ -295,10 +423,34 @@ function hasBoundAlpha2ReviewCompletionApproval(
 }
 
 function hasBoundAlpha2ReviewResumeApproval(
-  run: Alpha2ReviewDecisionState,
+  run: Alpha2RunRecord,
   humanGate: Alpha2HumanGate,
 ) {
+  assertAssignedIndependentReviewActor(run, humanGate);
   return hasCurrentReviewDecision(run, humanGate, alpha2ReviewResumeGateRef(run));
+}
+
+export function assertAlpha2InitialRunPersistence(run: Alpha2RunRecord) {
+  if (run.status !== "queued" && run.status !== "human_gate") {
+    throw new Error(`alpha2_invalid_initial_run_status:${run.status}`);
+  }
+  if (run.attempt !== 0) {
+    throw new Error("alpha2_invalid_initial_run_attempt");
+  }
+  if (run.createdAt !== run.updatedAt) {
+    throw new Error("alpha2_invalid_initial_run_timestamps");
+  }
+  if (
+    run.startedAt !== undefined ||
+    run.wallClockDeadlineAt !== undefined ||
+    run.finishedAt !== undefined ||
+    run.resumeAt !== undefined ||
+    run.preExecutorResumeMode !== undefined ||
+    run.checkpoints.length > 0 ||
+    run.humanGateHistory.length > 0
+  ) {
+    throw new Error("alpha2_invalid_initial_run_lifecycle_state");
+  }
 }
 
 const ALLOWED_TRANSITIONS: Record<Alpha2RunStatus, readonly Alpha2RunStatus[]> = {
@@ -343,8 +495,10 @@ export function createAlpha2RunRecord(input: {
   idempotencyKey: string;
   taskId: string;
   kind: Alpha2RunKind;
-  primaryRole: AgentRoleId;
-  supportingRoles?: AgentRoleId[];
+  primaryRole: Alpha2RoleId;
+  supportingRoles?: Alpha2RoleId[];
+  primaryActor?: Alpha2ActorPrincipal;
+  assignedReviewActor?: Alpha2ActorPrincipal;
   riskClass: Alpha2RiskClass;
   route: Alpha2ModelRoute;
   budget?: Partial<Alpha2Budget>;
@@ -385,6 +539,8 @@ export function createAlpha2RunRecord(input: {
     supportingRoles: Array.from(new Set(input.supportingRoles ?? [])).filter(
       (role) => role !== input.primaryRole,
     ),
+    primaryActor: input.primaryActor,
+    assignedReviewActor: input.assignedReviewActor,
     riskClass: input.riskClass,
     humanGate: initialHumanGate,
     humanGateHistory: [],
@@ -510,6 +666,13 @@ export function transitionAlpha2Run(
   } = {},
 ): Alpha2RunRecord {
   assertAlpha2RunTransition(run.status, to);
+  if (
+    to === "completed" &&
+    run.status !== "review" &&
+    findAlpha2CapabilityRoute(run.route.capabilityClass)?.independentReviewRequired
+  ) {
+    throw new Error("alpha2_independent_review_required_before_completion");
+  }
   const now = input.now ?? new Date().toISOString();
 
   const replacesPriorReviewDecision =
@@ -705,6 +868,12 @@ export function assertAlpha2RunEvolution(
   ) {
     throw new Error("alpha2_role_assignments_are_immutable");
   }
+  if (
+    !sameLifecycleValue(existing.primaryActor, incoming.primaryActor) ||
+    !sameLifecycleValue(existing.assignedReviewActor, incoming.assignedReviewActor)
+  ) {
+    throw new Error("alpha2_principal_assignments_are_immutable");
+  }
   if (existing.createdAt !== incoming.createdAt) {
     throw new Error("alpha2_run_created_at_is_immutable");
   }
@@ -716,6 +885,13 @@ export function assertAlpha2RunEvolution(
 
   if (existing.status !== incoming.status) {
     assertAlpha2RunTransition(existing.status, incoming.status);
+  }
+  if (
+    incoming.status === "completed" &&
+    existing.status !== "review" &&
+    findAlpha2CapabilityRoute(existing.route.capabilityClass)?.independentReviewRequired
+  ) {
+    throw new Error("alpha2_independent_review_required_before_completion");
   }
 
   assertAppendOnlyPrefix(
