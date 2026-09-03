@@ -54,6 +54,8 @@ describe("public discovery contract", () => {
       "/vergleich/your-priorities",
       "/vergleich/crowdinsights",
       "/vergleich/werdenktwas",
+      "/en/why-edebatte",
+      "/en/civic-tech-landscape",
     ];
 
     for (const path of expectedPaths) expect(PUBLIC_DISCOVERY_PATHS).toContain(path);
@@ -62,10 +64,29 @@ describe("public discovery contract", () => {
     expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/warum-edebatte", priority: 0.95 }));
     expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/vergleich", priority: 0.9 }));
     expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/vergleich/polis", priority: 0.8 }));
+    expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/en/why-edebatte", priority: 0.95 }));
+  });
+
+  it("pairs the German and English strategic pillars with hreflang sitemap alternates", () => {
+    const sitemap = buildPublicDiscoverySitemap();
+    const why = sitemap.find((entry) => entry.url.endsWith("/warum-edebatte"));
+    const whyEn = sitemap.find((entry) => entry.url.endsWith("/en/why-edebatte"));
+    const landscape = sitemap.find((entry) => entry.url.endsWith("/vergleich"));
+    const landscapeEn = sitemap.find((entry) => entry.url.endsWith("/en/civic-tech-landscape"));
+
+    expect(why?.alternates?.languages).toMatchObject({
+      de: "https://www.edebatte.org/warum-edebatte",
+      en: "https://www.edebatte.org/en/why-edebatte",
+      "x-default": "https://www.edebatte.org/warum-edebatte",
+    });
+    expect(whyEn?.alternates?.languages).toEqual(why?.alternates?.languages);
+    expect(landscapeEn?.alternates?.languages).toEqual(landscape?.alternates?.languages);
   });
 
   it("keeps comparison copy honest about strong citizen-led alternatives", () => {
     const whySource = readFileSync(resolve(process.cwd(), "src/app/warum-edebatte/page.tsx"), "utf8");
+    const whyEnSource = readFileSync(resolve(process.cwd(), "src/app/en/why-edebatte/page.tsx"), "utf8");
+    const landscapeEnSource = readFileSync(resolve(process.cwd(), "src/app/en/civic-tech-landscape/page.tsx"), "utf8");
     const consulSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/consul/page.tsx"), "utf8");
     const decidimSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/decidim/page.tsx"), "utf8");
     const prioritiesSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/your-priorities/page.tsx"), "utf8");
@@ -73,6 +94,8 @@ describe("public discovery contract", () => {
 
     expect(whySource).toContain("democratic problem-solving");
     expect(whySource).toContain("lokal bis global");
+    expect(whyEnSource).toContain("Participation starts before the process");
+    expect(landscapeEnSource).toContain("The moat cannot be a feature checklist");
     expect(consulSource).toContain("CONSUL besitzt bereits echte Bottom-up-Mechanismen");
     expect(decidimSource).toContain("Bürgerinitiativen und Agenda-Setting");
     expect(prioritiesSource).toContain("kommt dem eDebatte-Zielbild sehr nahe");
