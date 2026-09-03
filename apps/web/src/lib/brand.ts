@@ -6,7 +6,7 @@ export const BRAND = {
   supportEmail: "support@edebatte.org",
   membershipEmail: "members@edebatte.org",
   tagline_de:
-    "Aktuelle Entwicklungen, Quellen, Positionen und Beteiligungsmöglichkeiten nachvollziehbar verbinden.",
+    "Beteiligung beginnt vor dem Verfahren: Anliegen, Quellen, Perspektiven und Handlungsoptionen nachvollziehbar verbinden.",
   tagline_en:
-    "Connect current developments, sources, positions and participation opportunities transparently.",
+    "Participation starts before the process: connect concerns, sources, perspectives and options transparently.",
 } as const;
