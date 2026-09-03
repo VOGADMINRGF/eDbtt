@@ -9,7 +9,7 @@ import { buildHomeStructuredData, buildPublicPageMetadata } from "@/lib/seo/publ
 
 const HOME_TITLE = "eDebatte – Vom Anliegen zur gemeinsamen Agenda";
 const HOME_DESCRIPTION =
-  "Beteiligung beginnt vor dem Verfahren: Anliegen einbringen, Quellen und Perspektiven einordnen und mögliche Handlungsoptionen gemeinsam sichtbar machen.";
+  "Demokratische Problemlösung beginnt vor dem Verfahren: Anliegen, Evidenz, Perspektiven und Handlungsoptionen verbinden – von lokal bis global.";
 
 const HOME_STRUCTURED_DATA = JSON.stringify(buildHomeStructuredData());
 
