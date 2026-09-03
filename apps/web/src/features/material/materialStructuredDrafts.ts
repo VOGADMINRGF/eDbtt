@@ -3,6 +3,12 @@ import { callMistral } from "@features/ai/providers/mistral";
 import { callAnthropic } from "@features/ai/providers/anthropic";
 import { LANE_ROUTING_POLICY } from "@/features/ai/providerRoleRouting";
 import type { MaterialGraphFirstContext } from "@/features/material/materialGraphFirstContext";
+import {
+  evaluatePublicQuestionGeneralization,
+  type PublicQuestionActorContext,
+  type PublicQuestionGeneralizationResult,
+  type PublicQuestionProcedureContext,
+} from "@/features/create/safety/publicQuestionGeneralization";
 
 export const MATERIAL_ANALYSIS_UNIT_CHARS = 60_000;
 export const MATERIAL_ANALYSIS_MAX_CHUNKS = 12;
@@ -19,9 +25,14 @@ export type MaterialAnalysisUsage = {
 export type MaterialStructuredQuestionDraft = {
   id: string;
   theme: string;
+  originalInput: string;
+  publicQuestion: string;
   text: string;
   rationale: string;
   sourceAnchors: string[];
+  actorContexts: PublicQuestionActorContext[];
+  procedure: PublicQuestionProcedureContext | null;
+  generalization: PublicQuestionGeneralizationResult;
   reviewState: "draft";
 };
 
@@ -39,6 +50,7 @@ export type MaterialStructuredDraftResult = {
   decisionPoints: string[];
   questions: MaterialStructuredQuestionDraft[];
   options: MaterialStructuredOptionDraft[];
+  questionGuardReviews: PublicQuestionGeneralizationResult[];
   claimsOrSourceHints: Array<{ text: string; sourceAnchors: string[] }>;
   uncertainties: string[];
   provenance: string[];
@@ -54,6 +66,40 @@ export type MaterialStructuredDraftResult = {
 };
 
 const shortText = z.string().trim().min(1).max(800);
+const ActorContextSchema = z
+  .object({
+    id: z.string().trim().min(1).max(80),
+    name: z.string().trim().min(1).max(200),
+    type: z.enum(["person", "company", "party", "organization", "public_body", "media", "other"]),
+    role: z.enum([
+      "source",
+      "initiator",
+      "affected_party",
+      "competent_authority",
+      "position_holder",
+      "documented_case",
+      "procedure_subject",
+      "context",
+      "target",
+    ]),
+    evidenceRefs: z.array(shortText).min(1).max(8),
+  })
+  .strict();
+const ProcedureContextSchema = z
+  .object({
+    kind: z.enum([
+      "permit",
+      "procurement",
+      "merger",
+      "statute",
+      "parliamentary_procedure",
+      "administrative_procedure",
+      "other",
+    ]),
+    entityBindingNecessary: z.boolean(),
+    evidenceRefs: z.array(shortText).min(1).max(8),
+  })
+  .strict();
 const ProviderPayloadSchema = z
   .object({
     themes: z.array(shortText.max(160)).max(16),
@@ -64,9 +110,12 @@ const ProviderPayloadSchema = z
           .object({
             id: z.string().trim().regex(/^q-[a-z0-9-]{1,48}$/),
             theme: shortText.max(160),
+            originalInput: shortText,
             text: shortText.max(500).refine((value) => value.endsWith("?"), "question_mark_required"),
             rationale: shortText,
             sourceAnchors: z.array(shortText).min(1).max(8),
+            actorContexts: z.array(ActorContextSchema).max(12),
+            procedure: ProcedureContextSchema.nullable(),
           })
           .strict(),
       )
@@ -187,9 +236,44 @@ export function parseMaterialStructuredDraftPayload(input: {
   graphProvenance?: string[];
 }): ParsedDrafts {
   const raw = ProviderPayloadSchema.parse(JSON.parse(input.providerText));
-  const questions = raw.questions
-    .filter((question) => question.sourceAnchors.every((anchor) => groundedInDocument(anchor, input.documentText)))
-    .map((question) => ({ ...question, reviewState: "draft" as const }));
+  const guardedQuestions = raw.questions
+    .filter(
+      (question) =>
+        groundedInDocument(question.originalInput, input.documentText) &&
+        question.sourceAnchors.every((anchor) => groundedInDocument(anchor, input.documentText)) &&
+        question.actorContexts.every(
+          (actor) =>
+            groundedInDocument(actor.name, input.documentText) &&
+            actor.evidenceRefs.every((ref) => groundedInDocument(ref, input.documentText)),
+        ) &&
+        (question.procedure === null ||
+          question.procedure.evidenceRefs.every((ref) => groundedInDocument(ref, input.documentText))),
+    )
+    .map((question) => ({
+      question,
+      generalization: evaluatePublicQuestionGeneralization({
+        originalInput: question.originalInput,
+        candidatePublicQuestion: question.text,
+        actorContexts: question.actorContexts,
+        procedure: question.procedure,
+      }),
+    }));
+  const questionGuardReviews = guardedQuestions.map(({ generalization }) => generalization);
+  const questions = guardedQuestions
+    .filter(
+      ({ generalization }) =>
+        (generalization.releaseState === "draft_allowed" ||
+          generalization.outcome === "entity_specific_procedure_review_required") &&
+        generalization.publicQuestion !== null,
+    )
+    .map(({ question, generalization }) => ({
+      ...question,
+      procedure: question.procedure ?? null,
+      text: generalization.publicQuestion!,
+      publicQuestion: generalization.publicQuestion!,
+      generalization,
+      reviewState: "draft" as const,
+    }));
   const questionIds = new Set(questions.map((question) => question.id));
   const options = raw.options.filter(
     (option) =>
@@ -209,6 +293,7 @@ export function parseMaterialStructuredDraftPayload(input: {
     decisionPoints: raw.decisionPoints,
     questions,
     options,
+    questionGuardReviews,
     claimsOrSourceHints,
     uncertainties: raw.uncertainties,
     provenance: Array.from(new Set(["material_full_text", ...(input.graphProvenance ?? [])])),
@@ -229,7 +314,7 @@ function promptFor(input: {
     coverageSummary: input.graph.coverageSummary,
     gapSummary: input.graph.gapSummary,
   };
-  return `Du strukturierst Teil ${input.chunkIndex + 1} von ${input.chunkCount} eines privaten Dokuments für einen menschlichen eDebatte-Review. Du veröffentlichst nichts, entscheidest nicht über Wahrheit und erzeugst keine Runde. Faktenbehauptungen sind Quellenhinweise, niemals Abstimmungsfragen. Fragen betreffen nur Entscheidungen, Prioritäten, Bewertungen oder Erfahrungen. Bestehendes eDebatte-Wissen wird zuerst wiederverwendet, weitergeführt oder ergänzt; neue Fragen nur für echte Lücken. Dokumentoptionen müssen wörtlich im vorliegenden Dokumentteil vorkommen. Ergänzende Optionen erhalten source="ai_suggestion" und dürfen nicht als Dokumentinhalt erscheinen. Jeder sourceAnchor muss ein kurzes wörtliches Zitat aus dem vorliegenden Dokumentteil sein. Keine Quellen, Gegenpositionen oder Mehrheiten erfinden.\n\nGraph-Kontext:\n${JSON.stringify(graphSummary)}\n\nDokumentteil ${input.chunkIndex + 1}/${input.chunkCount}:\n${input.text}\n\nAntworte ausschließlich als valides JSON ohne Markdown und exakt mit diesen Feldern:\n{"themes":["..."],"decisionPoints":["..."],"questions":[{"id":"q-kurze-id","theme":"...","text":"...?","rationale":"...","sourceAnchors":["wörtlicher Textanker"]}],"options":[{"questionRef":"q-kurze-id","text":"...","source":"document","needsReview":true}],"claimsOrSourceHints":[{"text":"...","sourceAnchors":["wörtlicher Textanker"]}],"uncertainties":["..."]}\nFür source ist ausschließlich "document" oder "ai_suggestion" zulässig.\nMaximal 20 Fragen pro Dokumentteil. Jede Frage und Option bleibt ein KI-Entwurf für menschliche Auswahl und Bearbeitung.`;
+  return `Du strukturierst Teil ${input.chunkIndex + 1} von ${input.chunkCount} eines privaten Dokuments für einen menschlichen eDebatte-Review. Du veröffentlichst nichts, entscheidest nicht über Wahrheit und erzeugst keine Runde. Faktenbehauptungen sind Quellenhinweise, niemals Abstimmungsfragen. Fragen betreffen nur Entscheidungen, Prioritäten, Bewertungen oder Erfahrungen. Vor Fragen und Optionen gilt: Über die Sache abstimmen, nicht über Personen, Parteien, Unternehmen oder andere Akteure. Formuliere text als allgemeine Regel-, Maßnahmen- oder Entscheidungsfrage. Bewahre die wörtliche Ausgangsformulierung in originalInput. Akteure bleiben mit belegter Rolle in actorContexts; role="target" nur, wenn die Ausgangsformulierung den Akteur tatsächlich zum Abstimmungsziel macht. Ein unvermeidbar akteursgebundenes Verfahren wird in procedure belegt, sonst ist procedure null. Bestehendes eDebatte-Wissen wird zuerst wiederverwendet, weitergeführt oder ergänzt; neue Fragen nur für echte Lücken. Dokumentoptionen müssen wörtlich im vorliegenden Dokumentteil vorkommen. Ergänzende Optionen erhalten source="ai_suggestion" und dürfen nicht als Dokumentinhalt erscheinen. originalInput, jeder sourceAnchor, Akteursname und evidenceRef müssen kurze wörtliche Ausschnitte aus dem vorliegenden Dokumentteil sein. Keine Quellen, Gegenpositionen, Positionen, Bias-/Trust-Wertungen oder Mehrheiten erfinden.\n\nGraph-Kontext:\n${JSON.stringify(graphSummary)}\n\nDokumentteil ${input.chunkIndex + 1}/${input.chunkCount}:\n${input.text}\n\nAntworte ausschließlich als valides JSON ohne Markdown und exakt mit diesen Feldern:\n{"themes":["..."],"decisionPoints":["..."],"questions":[{"id":"q-kurze-id","theme":"...","originalInput":"wörtliche Ausgangsformulierung","text":"allgemeine Entscheidungsfrage ...?","rationale":"...","sourceAnchors":["wörtlicher Textanker"],"actorContexts":[{"id":"actor-kurze-id","name":"wörtlicher Akteursname","type":"person|company|party|organization|public_body|media|other","role":"source|initiator|affected_party|competent_authority|position_holder|documented_case|procedure_subject|context|target","evidenceRefs":["wörtlicher Beleganker"]}],"procedure":null}],"options":[{"questionRef":"q-kurze-id","text":"...","source":"document","needsReview":true}],"claimsOrSourceHints":[{"text":"...","sourceAnchors":["wörtlicher Textanker"]}],"uncertainties":["..."]}\nFür source, actor type und actor role sind ausschließlich die angegebenen Werte zulässig.\nMaximal 20 Fragen pro Dokumentteil. Jede Frage und Option bleibt ein KI-Entwurf für menschliche Auswahl und Bearbeitung.`;
 }
 
 function emptyResult(
@@ -244,6 +329,7 @@ function emptyResult(
     decisionPoints: [],
     questions: [],
     options: [],
+    questionGuardReviews: [],
     claimsOrSourceHints: [],
     uncertainties: [],
     provenance: [],
@@ -276,6 +362,7 @@ function mergeChunkDrafts(chunks: ParsedDrafts[]): ParsedDrafts {
     decisionPoints: uniqueStrings(chunks.flatMap((chunk) => chunk.decisionPoints), 80),
     questions: chunks.flatMap((chunk) => chunk.questions).slice(0, 200),
     options: chunks.flatMap((chunk) => chunk.options).slice(0, 600),
+    questionGuardReviews: chunks.flatMap((chunk) => chunk.questionGuardReviews).slice(0, 200),
     claimsOrSourceHints: chunks.flatMap((chunk) => chunk.claimsOrSourceHints).slice(0, 160),
     uncertainties: uniqueStrings(chunks.flatMap((chunk) => chunk.uncertainties), 80),
     provenance: uniqueStrings(chunks.flatMap((chunk) => chunk.provenance)),

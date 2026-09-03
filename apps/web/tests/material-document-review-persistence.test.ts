@@ -14,6 +14,7 @@ import {
 import type { MaterialExtractionJob } from "@/features/material/materialExtractionJobs";
 import type { MaterialGraphFirstContext } from "@/features/material/materialGraphFirstContext";
 import type { MaterialStructuredDraftResult } from "@/features/material/materialStructuredDrafts";
+import type { PublicQuestionGeneralizationResult } from "@/features/create/safety/publicQuestionGeneralization";
 
 const graph: MaterialGraphFirstContext = {
   matchedTopicIds: ["vereinsheim"],
@@ -31,13 +32,29 @@ const graph: MaterialGraphFirstContext = {
   noAutoPublish: true,
 };
 
+const questionGeneralization: PublicQuestionGeneralizationResult = {
+  originalInput: "Wie soll umgebaut werden?",
+  publicQuestion: "Wie soll umgebaut werden?",
+  outcome: "already_generalized",
+  releaseState: "draft_allowed",
+  actorContexts: [],
+  findingKinds: [],
+  reasons: ["general_rule_measure_or_priority_is_ballot_target"],
+  explanation: "Die Frage richtet sich bereits auf eine allgemeine Entscheidung.",
+  requiresHumanReview: false,
+  noAutoPublish: true,
+  noPositionInference: true,
+  noBiasOrTrustInference: true,
+};
+
 const drafts: MaterialStructuredDraftResult = {
   provider: "mistral",
   status: "generated",
   themes: ["Vereinsheim"],
   decisionPoints: ["Umbau"],
-  questions: [{ id: "q-umbau", theme: "Vereinsheim", text: "Wie soll umgebaut werden?", rationale: "Entscheidung nötig.", sourceAnchors: ["barrierefreier Umbau"], reviewState: "draft" }],
+  questions: [{ id: "q-umbau", theme: "Vereinsheim", originalInput: "Wie soll umgebaut werden?", publicQuestion: "Wie soll umgebaut werden?", text: "Wie soll umgebaut werden?", rationale: "Entscheidung nötig.", sourceAnchors: ["barrierefreier Umbau"], actorContexts: [], procedure: null, generalization: questionGeneralization, reviewState: "draft" }],
   options: [{ questionRef: "q-umbau", text: "Variante A", source: "document", needsReview: true }],
+  questionGuardReviews: [questionGeneralization],
   claimsOrSourceHints: [],
   uncertainties: [],
   provenance: ["material_full_text"],
