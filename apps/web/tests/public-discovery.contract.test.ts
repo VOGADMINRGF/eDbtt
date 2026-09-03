@@ -34,6 +34,7 @@ describe("public discovery contract", () => {
       inLanguage: "de-DE",
     });
     expect(data.description).toContain("gemeinsamen Agenda");
+    expect(data.description).toContain("lokal bis global");
     expect(data.about).toContain("Agenda-Setting");
     expect(data.about).toContain("civic collective intelligence");
     expect(data.about).toContain("public reasoning");
