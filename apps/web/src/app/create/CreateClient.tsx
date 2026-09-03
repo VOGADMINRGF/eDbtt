@@ -107,6 +107,7 @@ import CreateDraftNextActionGate from "./CreateDraftNextActionGate";
 import CreateStartDraftHandoff from "./CreateStartDraftHandoff";
 import { useCreateStartDraftRestore } from "./createStartDraftRestore";
 import { VoxyAvatar } from "@/components/voxy/VoxyGuide";
+import { VoxyAiSystemDisclosure } from "@/components/ai/AiTransparencyDisclosure";
 import {
   buildCreateSupportFailureCopy,
   getCreateVoxyCopy,
@@ -471,6 +472,7 @@ function CreateSubmittedContributionBubble(props: {
 }
 
 function CreateAssistantStatusBubble(props: {
+  locale: CreateVoxyLocale;
   eyebrow?: string;
   title: string;
   body: string;
@@ -478,6 +480,7 @@ function CreateAssistantStatusBubble(props: {
   chips?: string[];
   largeAvatar?: boolean;
   announce?: boolean;
+  showAiSystemDisclosure?: boolean;
 }) {
   return (
     <div
@@ -511,6 +514,11 @@ function CreateAssistantStatusBubble(props: {
           ) : null}
           <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))] md:text-[1.35rem]">{props.title}</p>
           <p className="mt-3 text-base leading-relaxed text-[rgb(var(--fg))] md:text-[17px]">{props.body}</p>
+          {props.showAiSystemDisclosure ? (
+            <div className="mt-4">
+              <VoxyAiSystemDisclosure locale={props.locale} />
+            </div>
+          ) : null}
           {props.chips?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {props.chips.map((chip) => (
@@ -1904,6 +1912,7 @@ export default function CreateClient({
           locale={surfaceLocale}
         />
         <CreateAssistantStatusBubble
+          locale={surfaceLocale}
           eyebrow={
             isStarting
               ? surfaceLocale === "en"
@@ -1929,8 +1938,10 @@ export default function CreateClient({
         className="create-chat-spine relative flex min-h-[18rem] min-w-0 items-start pt-1 before:absolute before:left-[27px] before:top-8 before:h-[calc(100%-3rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))] md:min-h-[22rem] md:pt-2"
       >
         <CreateAssistantStatusBubble
+          locale={surfaceLocale}
           title={voxyCopy.greeting}
           body={voxyCopy.intro}
+          showAiSystemDisclosure
           chips={
             surfaceLocale === "en"
               ? ["Organize topics", "Sharpen questions", "Check sources"]

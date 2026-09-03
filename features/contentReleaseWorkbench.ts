@@ -25,6 +25,17 @@ import {
   persistedCreateHandoffStatementId,
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
+import {
+  AI_TRANSPARENCY_STATUSES,
+  getAiTransparencyLabelKey,
+  validateAiTransparencyRecord,
+  type AiTransparencyRecord,
+  type AiTransparencyResponsibleRole,
+} from "@features/ai/aiTransparencyContract";
+import {
+  getReviewQueueOperationRecord,
+  listReviewQueueOperationAuditEvents,
+} from "@features/reviewQueueOperations";
 
 export const CONTENT_RELEASE_TARGET_TYPES = ["dossier", "anlassraum", "topic_page"] as const;
 export type ContentReleaseTargetType = (typeof CONTENT_RELEASE_TARGET_TYPES)[number];
@@ -148,6 +159,16 @@ const ContentReleaseTargetRecordSchema = z
     noSocialPublishing: z.literal(true),
     noAutomaticOfficialResponse: z.literal(true),
     noAutoFinalization: z.literal(true),
+    aiTransparency: z
+      .custom<AiTransparencyRecord>((value) => {
+        try {
+          return validateAiTransparencyRecord(value as AiTransparencyRecord).length === 0;
+        } catch {
+          return false;
+        }
+      })
+      .nullable()
+      .optional(),
     revokable: z.literal(true),
     archivable: z.literal(true),
   })
@@ -164,6 +185,10 @@ const ContentReleaseAuditEventSchema = z
     targetType: z.enum(CONTENT_RELEASE_TARGET_TYPES),
     action: z.enum(CONTENT_RELEASE_AUDIT_ACTIONS),
     byUserId: z.string().trim().min(1),
+    actorRole: z.string().trim().min(1).nullable().optional(),
+    targetId: z.string().trim().min(1).nullable().optional(),
+    artifactId: z.string().trim().min(1).nullable().optional(),
+    aiTransparencyStatus: z.enum(AI_TRANSPARENCY_STATUSES).nullable().optional(),
     note: z.string().trim().min(1).nullable().optional(),
     at: z.string().datetime({ offset: true }),
   })
@@ -260,6 +285,38 @@ export type ContentReleaseWorkbenchTarget = {
   canArchive: boolean;
   canCreateQrLink: boolean;
   auditEvents: ContentPublishAuditEvent[];
+  aiTransparencyReadiness: ContentReleaseAiTransparencyReadiness;
+};
+
+export const CONTENT_RELEASE_AI_CLASSIFICATIONS = [
+  "human_only",
+  "ai_assisted",
+  "ai_generated_reviewed",
+] as const;
+
+export type ContentReleaseAiClassification =
+  (typeof CONTENT_RELEASE_AI_CLASSIFICATIONS)[number];
+
+export type ContentReleaseAiTransparencyReadiness = {
+  classification: ContentReleaseAiClassification | null;
+  visibleLabelKey: AiTransparencyRecord["visibleLabelKey"];
+  humanReview: {
+    completed: boolean;
+    completedAt: string | null;
+    auditRef: string | null;
+  };
+  editorialApproval: {
+    approved: boolean;
+    approvedAt: string | null;
+    auditRef: string | null;
+    responsibleRole: AiTransparencyResponsibleRole | null;
+  };
+  blockers: Array<
+    | "classification_required"
+    | "human_review_event_missing"
+    | "editorial_approval_pending"
+    | "source_target_binding_missing"
+  >;
 };
 
 export type PrepareContentReleaseTargetInput = {
@@ -277,6 +334,9 @@ export type UpdateContentReleaseTargetInput = {
   action: Exclude<ContentReleaseAction, "prepare_target">;
   requestedBy: string;
   note?: string | null;
+  aiTransparency?: AiTransparencyRecord | null;
+  occurredAt?: string;
+  actorRole?: AiTransparencyResponsibleRole | null;
 };
 
 export type ContentReleaseRepository = {
@@ -356,8 +416,74 @@ function recordIdFor(
   return `content-release-${targetType}-${stableHash(`${sourceKind}:${sourceResultId}:${targetType}`).slice(0, 18)}`;
 }
 
-function auditEventIdFor(recordId: string, action: ContentReleaseAuditAction, at: string) {
+export function contentReleaseReviewItemIdForSource(
+  sourceKind: ContentReleaseSourceKind,
+  sourceResultId: string,
+) {
+  return sourceKind === "create_handoff"
+    ? `create_handoff:persisted:${sourceResultId}`
+    : `region_source_result:${sourceResultId}`;
+}
+
+export function contentReleaseArtifactIdForRecord(
+  record: Pick<
+    ContentReleaseTargetRecord,
+    "id" | "targetType" | "targetId"
+  >,
+) {
+  return `content-release:${record.id}:${record.targetType}:${record.targetId}`;
+}
+
+export function contentReleaseAuditEventIdFor(
+  recordId: string,
+  action: ContentReleaseAuditAction,
+  at: string,
+) {
   return `content-release-audit-${stableHash(`${recordId}:${action}:${at}`).slice(0, 18)}`;
+}
+
+function assertServerBoundAiTransparencyForPublicAction(input: {
+  existing: ContentReleaseTargetRecord;
+  action: Exclude<ContentReleaseAction, "prepare_target">;
+  requestedBy: string;
+  actorRole?: AiTransparencyResponsibleRole | null;
+  occurredAt?: string;
+  aiTransparency?: AiTransparencyRecord | null;
+}) {
+  if (input.action !== "make_visible" && input.action !== "prepare_publication") return;
+  const record = input.aiTransparency;
+  const binding = record?.integrityBinding;
+  if (!record || !binding || !input.actorRole || !input.occurredAt) {
+    throw new Error("ai_transparency_server_binding_required");
+  }
+  const artifactId = contentReleaseArtifactIdForRecord(input.existing);
+  const auditAction = contentReleaseAuditActionForAction(input.action);
+  const approvalAuditRef = contentReleaseAuditEventIdFor(
+    input.existing.id,
+    auditAction,
+    input.occurredAt,
+  );
+  if (
+    !CONTENT_RELEASE_AI_CLASSIFICATIONS.includes(
+      record.status as ContentReleaseAiClassification,
+    ) ||
+    validateAiTransparencyRecord(record).length > 0 ||
+    binding.sourceKind !== input.existing.sourceKind ||
+    binding.sourceId !== input.existing.sourceResultId ||
+    binding.targetKind !== input.existing.targetType ||
+    binding.targetId !== input.existing.targetId ||
+    binding.contentReleaseRecordId !== input.existing.id ||
+    binding.artifactId !== artifactId ||
+    record.artifactId !== artifactId ||
+    binding.actorUserId !== input.requestedBy ||
+    binding.actorRole !== input.actorRole ||
+    binding.reviewAuditRef !== record.humanReview.auditRef ||
+    binding.approvalAuditRef !== approvalAuditRef ||
+    binding.approvalAuditRef !== record.editorialApproval.auditRef ||
+    record.editorialApproval.responsibleRole !== input.actorRole
+  ) {
+    throw new Error("ai_transparency_server_binding_mismatch");
+  }
 }
 
 function dossierIdForSourceResult(sourceResultId: string) {
@@ -663,7 +789,7 @@ function nextVisibilityStateForAction(
   }
 }
 
-function auditActionForVisibilityAction(
+export function contentReleaseAuditActionForAction(
   action: Exclude<ContentReleaseAction, "prepare_target">,
 ): ContentReleaseAuditAction {
   switch (action) {
@@ -1303,7 +1429,6 @@ export function getContentReleasePersistenceState() {
 function buildRecord(params: {
   sourceKind: ContentReleaseSourceKind;
   sourceResultId: string;
-  sourceReviewItemId: string;
   regionId: string | null;
   organizationId: string | null;
   targetType: ContentReleaseTargetType;
@@ -1319,7 +1444,10 @@ function buildRecord(params: {
     id: recordIdFor(params.sourceKind, params.sourceResultId, params.targetType),
     sourceKind: params.sourceKind,
     sourceResultId: params.sourceResultId,
-    sourceReviewItemId: params.sourceReviewItemId,
+    sourceReviewItemId: contentReleaseReviewItemIdForSource(
+      params.sourceKind,
+      params.sourceResultId,
+    ),
     regionId: params.regionId,
     organizationId: params.organizationId,
     targetType: params.targetType,
@@ -1340,6 +1468,7 @@ function buildRecord(params: {
     noSocialPublishing: true,
     noAutomaticOfficialResponse: true,
     noAutoFinalization: true,
+    aiTransparency: null,
     revokable: true,
     archivable: true,
   });
@@ -1382,7 +1511,6 @@ export async function prepareContentReleaseTargetFromSourceResult(
     const record = buildRecord({
       sourceKind: input.sourceKind,
       sourceResultId: result.id,
-      sourceReviewItemId: `region_source_result:${result.id}`,
       regionId: result.regionId,
       organizationId: input.organizationId ?? result.organizationId ?? null,
       targetType: input.targetType,
@@ -1394,7 +1522,7 @@ export async function prepareContentReleaseTargetFromSourceResult(
     });
     await getRepo().saveTargetRecord(record);
     await getRepo().appendAuditEvent({
-      id: auditEventIdFor(record.id, "prepared", record.updatedAt),
+      id: contentReleaseAuditEventIdFor(record.id, "prepared", record.updatedAt),
       recordId: record.id,
       sourceKind: record.sourceKind,
       sourceResultId: record.sourceResultId,
@@ -1431,7 +1559,6 @@ export async function prepareContentReleaseTargetFromSourceResult(
   const record = buildRecord({
     sourceKind: input.sourceKind,
     sourceResultId: handoff.id,
-    sourceReviewItemId: `create_handoff:${handoff.id}`,
     regionId: handoff.regionId,
     organizationId: input.organizationId ?? handoff.organizationId ?? null,
     targetType: input.targetType,
@@ -1443,7 +1570,7 @@ export async function prepareContentReleaseTargetFromSourceResult(
   });
   await getRepo().saveTargetRecord(record);
   await getRepo().appendAuditEvent({
-    id: auditEventIdFor(record.id, "prepared", record.updatedAt),
+    id: contentReleaseAuditEventIdFor(record.id, "prepared", record.updatedAt),
     recordId: record.id,
     sourceKind: record.sourceKind,
     sourceResultId: record.sourceResultId,
@@ -1465,27 +1592,47 @@ export async function updateContentReleaseTargetFromSourceResult(
     input.targetType,
   );
   if (!existing) throw new Error("content_release_target_not_prepared");
+  assertServerBoundAiTransparencyForPublicAction({
+    existing,
+    action: input.action,
+    requestedBy: input.requestedBy,
+    actorRole: input.actorRole,
+    occurredAt: input.occurredAt,
+    aiTransparency: input.aiTransparency,
+  });
   const nextVisibilityState = nextVisibilityStateForAction(existing.visibilityState, input.action);
   if (nextVisibilityState === "public_official") {
     throw new Error("public_official_requires_official_release");
   }
-  const updatedAt = isoNow();
+  const updatedAt = input.occurredAt ?? isoNow();
   const next = ContentReleaseTargetRecordSchema.parse({
     ...existing,
+    sourceReviewItemId: contentReleaseReviewItemIdForSource(
+      existing.sourceKind,
+      existing.sourceResultId,
+    ),
     visibilityState: nextVisibilityState,
+    aiTransparency:
+      input.aiTransparency === undefined
+        ? existing.aiTransparency ?? null
+        : input.aiTransparency,
     updatedByUserId: input.requestedBy,
     updatedAt,
   });
   await getRepo().saveTargetRecord(next);
-  const auditAction = auditActionForVisibilityAction(input.action);
+  const auditAction = contentReleaseAuditActionForAction(input.action);
   await getRepo().appendAuditEvent({
-    id: auditEventIdFor(next.id, auditAction, updatedAt),
+    id: contentReleaseAuditEventIdFor(next.id, auditAction, updatedAt),
     recordId: next.id,
     sourceKind: next.sourceKind,
     sourceResultId: next.sourceResultId,
     targetType: next.targetType,
     action: auditAction,
     byUserId: input.requestedBy,
+    actorRole: input.actorRole ?? null,
+    targetId: next.targetId,
+    artifactId: contentReleaseArtifactIdForRecord(next),
+    aiTransparencyStatus: next.aiTransparency?.status ?? null,
     note: input.note ?? null,
     at: updatedAt,
   });
@@ -1538,6 +1685,104 @@ export async function getContentReleaseTargetRecordByTargetId(
   return getRepo().getTargetRecordByTargetId(targetType, targetId);
 }
 
+async function getContentReleaseReviewTruth(
+  sourceKind: ContentReleaseSourceKind,
+  sourceResultId: string,
+) {
+  const reviewItemId = contentReleaseReviewItemIdForSource(
+    sourceKind,
+    sourceResultId,
+  );
+  const [operation, events] = await Promise.all([
+    getReviewQueueOperationRecord(reviewItemId),
+    listReviewQueueOperationAuditEvents(reviewItemId),
+  ]);
+  const reviewEvent = events.find(
+    (event) =>
+      event.action === "mark_ready" &&
+      event.nextOperationalStatus === "ready" &&
+      event.itemId === reviewItemId,
+  );
+  return {
+    completed: operation?.operationalStatus === "ready" && Boolean(reviewEvent),
+    completedAt: reviewEvent?.at ?? null,
+    auditRef: reviewEvent?.id ?? null,
+  };
+}
+
+function buildContentReleaseAiTransparencyReadiness(input: {
+  record: ContentReleaseTargetRecord | null;
+  auditEvents: ContentReleaseAuditEvent[];
+  reviewTruth: Awaited<ReturnType<typeof getContentReleaseReviewTruth>>;
+}): ContentReleaseAiTransparencyReadiness {
+  const transparency = input.record?.aiTransparency ?? null;
+  const classification =
+    transparency &&
+    CONTENT_RELEASE_AI_CLASSIFICATIONS.includes(
+      transparency.status as ContentReleaseAiClassification,
+    )
+      ? (transparency.status as ContentReleaseAiClassification)
+      : null;
+  const binding = transparency?.integrityBinding ?? null;
+  const artifactId = input.record
+    ? contentReleaseArtifactIdForRecord(input.record)
+    : null;
+  const approvalEvent = binding
+    ? input.auditEvents.find(
+        (event) =>
+          event.id === binding.approvalAuditRef &&
+          event.recordId === binding.contentReleaseRecordId &&
+          event.sourceKind === binding.sourceKind &&
+          event.sourceResultId === binding.sourceId &&
+          event.targetType === binding.targetKind &&
+          event.targetId === binding.targetId &&
+          event.artifactId === binding.artifactId &&
+          event.byUserId === binding.actorUserId &&
+          event.actorRole === binding.actorRole,
+      )
+    : null;
+  const bindingMatches = Boolean(
+    input.record &&
+      binding &&
+      binding.sourceKind === input.record.sourceKind &&
+      binding.sourceId === input.record.sourceResultId &&
+      binding.targetKind === input.record.targetType &&
+      binding.targetId === input.record.targetId &&
+      binding.contentReleaseRecordId === input.record.id &&
+      binding.artifactId === artifactId &&
+      binding.reviewAuditRef === input.reviewTruth.auditRef &&
+      approvalEvent,
+  );
+  const editorialApproval =
+    bindingMatches && transparency?.editorialApproval.approved
+      ? transparency.editorialApproval
+      : {
+          approved: false,
+          approvedAt: null,
+          auditRef: null,
+          responsibleRole: null,
+        };
+  const blockers: ContentReleaseAiTransparencyReadiness["blockers"] = [];
+  if (!classification) blockers.push("classification_required");
+  if (!input.reviewTruth.completed) blockers.push("human_review_event_missing");
+  if (!editorialApproval.approved) blockers.push("editorial_approval_pending");
+  if (transparency && !bindingMatches) blockers.push("source_target_binding_missing");
+
+  return {
+    classification,
+    visibleLabelKey: classification
+      ? getAiTransparencyLabelKey({
+          status: classification,
+          contentKind: "text",
+          humanReviewed: input.reviewTruth.completed,
+        })
+      : null,
+    humanReview: input.reviewTruth,
+    editorialApproval,
+    blockers,
+  };
+}
+
 export async function buildContentReleaseWorkbenchTargets(params: {
   sourceKind: ContentReleaseSourceKind;
   result: RegionSourceTestResult;
@@ -1550,6 +1795,10 @@ export async function buildContentReleaseWorkbenchTargets(params: {
   );
   const auditByRecord = await listContentReleaseAuditEventsForRecords(
     existingRecords.map((record) => record.id),
+  );
+  const reviewTruth = await getContentReleaseReviewTruth(
+    params.sourceKind,
+    params.result.id,
   );
   const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
   return Promise.all(CONTENT_RELEASE_TARGET_TYPES.map(async (targetType): Promise<ContentReleaseWorkbenchTarget> => {
@@ -1596,6 +1845,11 @@ export async function buildContentReleaseWorkbenchTargets(params: {
         canArchiveFromState(preview.visibilityState),
       canCreateQrLink: Boolean(qrHref),
       auditEvents: preview.auditEvents,
+      aiTransparencyReadiness: buildContentReleaseAiTransparencyReadiness({
+        record,
+        auditEvents: preview.auditEvents,
+        reviewTruth,
+      }),
     };
   }));
 }
@@ -1612,6 +1866,10 @@ export async function buildContentReleaseWorkbenchTargetsForCreateHandoff(params
   );
   const auditByRecord = await listContentReleaseAuditEventsForRecords(
     existingRecords.map((record) => record.id),
+  );
+  const reviewTruth = await getContentReleaseReviewTruth(
+    params.sourceKind,
+    params.record.id,
   );
   const recordByType = new Map(existingRecords.map((record) => [record.targetType, record]));
   return Promise.all(CONTENT_RELEASE_TARGET_TYPES.map(async (targetType): Promise<ContentReleaseWorkbenchTarget> => {
@@ -1661,6 +1919,11 @@ export async function buildContentReleaseWorkbenchTargetsForCreateHandoff(params
         canArchiveFromState(preview.visibilityState),
       canCreateQrLink: Boolean(qrHref),
       auditEvents: preview.auditEvents,
+      aiTransparencyReadiness: buildContentReleaseAiTransparencyReadiness({
+        record: existing,
+        auditEvents: preview.auditEvents,
+        reviewTruth,
+      }),
     };
   }));
 }

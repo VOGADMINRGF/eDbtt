@@ -152,6 +152,11 @@ describe("/create start surface", () => {
     expect(html).toContain("Anhang");
     expect(html).toContain("Sprache");
     expect(html).toContain("Details &amp; Transparenz");
+    expect(html).toContain(
+      "Voxy ist ein KI-System. Antworten und Vorschläge können unvollständig oder fehlerhaft sein. Inhalte werden nicht automatisch veröffentlicht.",
+    );
+    expect(html).toContain('data-ai-system-disclosure="voxy"');
+    expect(html).toContain('href="/ki-transparenz#voxy"');
     expect(html).toContain("create-primary-intake");
     expect(html).toContain('data-create-workspace-shell="true"');
     expect(html).toContain('data-create-shell-layout="wide"');

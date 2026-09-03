@@ -3,7 +3,13 @@
 import { useState } from "react";
 import VerificationStatusPanel from "./VerificationStatusPanel";
 import ShareDeepLinkActions from "@/components/mobile/ShareDeepLinkActions";
+import {
+  AiTransparencyLabel,
+  VoxyAiSystemDisclosure,
+} from "@/components/ai/AiTransparencyDisclosure";
 import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
+import { useOptionalLanguagePreferences } from "@/context/LocaleContext";
+import type { AiTransparencyPublicView } from "@features/ai/aiTransparencyContract";
 import type { E150JourneyKey, E150Lane } from "@features/ai/e150/journeyProfiles";
 import type {
   ResearchUsed,
@@ -58,6 +64,7 @@ type CompanionResponse = {
     text: string;
     followUps: string[];
     disclaimers: string[];
+    aiTransparency: AiTransparencyPublicView;
   };
   error?: string;
   message?: string;
@@ -75,6 +82,8 @@ type RouteBoundCompanionPanelProps = {
 
 export default function RouteBoundCompanionPanel(props: RouteBoundCompanionPanelProps) {
   const privacyGate = usePrivacyGate();
+  const languagePreferences = useOptionalLanguagePreferences();
+  const transparencyLocale = languagePreferences?.locale === "en" ? "en" : "de";
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +134,8 @@ export default function RouteBoundCompanionPanel(props: RouteBoundCompanionPanel
         </p>
       </div>
 
+      <VoxyAiSystemDisclosure locale={transparencyLocale} compact />
+
       <VerificationStatusPanel
         lane={props.parentStatus?.lane}
         status={props.parentStatus?.status ?? null}
@@ -174,6 +185,13 @@ export default function RouteBoundCompanionPanel(props: RouteBoundCompanionPanel
 
       {answer ? (
         <div className="space-y-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+          <AiTransparencyLabel
+            locale={transparencyLocale}
+            status={answer.aiTransparency.status}
+            contentKind={answer.aiTransparency.contentKind}
+            humanReviewed={answer.aiTransparency.humanReviewed}
+            labelKey={answer.aiTransparency.visibleLabelKey}
+          />
           <VerificationStatusPanel
             lane={answer.lane}
             status={null}

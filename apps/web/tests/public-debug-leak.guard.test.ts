@@ -12,6 +12,8 @@ const PUBLIC_SURFACE_FILES = [
   "src/app/dossier/ui.tsx",
   "src/app/themen/page.tsx",
   "src/features/home/HomeSplitVoxyLanding.tsx",
+  "src/app/ki-transparenz/page.tsx",
+  "src/components/ai/AiTransparencyDisclosure.tsx",
 ] as const;
 
 const FORBIDDEN_PUBLIC_DEBUG_TERMS = [

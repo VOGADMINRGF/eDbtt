@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   prepareContentReleaseTargetFromSourceResult,
-  updateContentReleaseTargetFromSourceResult,
+  CONTENT_RELEASE_AI_CLASSIFICATIONS,
 } from "@features/contentReleaseWorkbench";
 import { getPersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import {
@@ -16,6 +16,10 @@ import {
   regionScopeFromRegionAccessContext,
 } from "@features/region";
 import { getRegionSourceTestResultById } from "@features/region/server/sourceConnectionRuntime";
+import {
+  executeServerAuthoritativeContentReleaseAction,
+  resolveServerAiTransparencyResponsibleRole,
+} from "@/features/ai/aiTransparencyContentReleaseServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +39,7 @@ const ContentReleaseBodySchema = z
     targetType: z.enum(["dossier", "anlassraum", "topic_page"]),
     action: ContentReleaseActionSchema,
     note: z.string().trim().min(1).optional(),
+    aiClassification: z.enum(CONTENT_RELEASE_AI_CLASSIFICATIONS).optional(),
   })
   .strict();
 
@@ -136,6 +141,12 @@ export async function POST(req: NextRequest) {
       return denied("content_release_visibility_forbidden");
     }
     if (
+      (body.action === "make_visible" || body.action === "prepare_publication") &&
+      !canPreparePublicationStep
+    ) {
+      return denied("content_release_publication_forbidden");
+    }
+    if (
       (body.action === "prepare_publication" ||
         body.action === "retract_visibility" ||
         body.action === "archive_target") &&
@@ -144,14 +155,34 @@ export async function POST(req: NextRequest) {
       return denied("content_release_publication_forbidden");
     }
 
-    const record = await updateContentReleaseTargetFromSourceResult({
+    const release = await executeServerAuthoritativeContentReleaseAction({
       sourceKind: body.sourceKind,
-      sourceResultId: body.sourceId,
+      sourceId: body.sourceId,
       targetType: body.targetType,
       action: body.action,
-      requestedBy: gate.actor.userId,
-      note: body.note,
+      classification: body.aiClassification ?? null,
+      actor: {
+        userId: gate.actor.userId,
+        responsibleRole: resolveServerAiTransparencyResponsibleRole({
+          role: gate.actor.role,
+          isAdmin: gate.actor.isAdmin === true,
+        }),
+      },
+      note: body.note ?? null,
     });
+    if (!release.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "ai_transparency_guard_blocked",
+          message:
+            "KI-Transparenzstatus, menschliche Prüfung, redaktionelle Freigabe, Kennzeichnung und Provenienz müssen vor öffentlicher Sichtbarkeit vollständig dokumentiert sein.",
+          blockers: release.blockers,
+        },
+        { status: 409 },
+      );
+    }
+    const record = release.target;
     return NextResponse.json(
       {
         ok: true,

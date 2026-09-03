@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   requireGovernanceActorOrResponse: vi.fn(),
   buildOrganizationDashboardReadModel: vi.fn(),
   prepareContentReleaseTargetFromSourceResult: vi.fn(),
-  updateContentReleaseTargetFromSourceResult: vi.fn(),
+  executeServerAuthoritativeContentReleaseAction: vi.fn(),
 }));
 
 vi.mock("@/lib/server/auth/governance", () => ({
@@ -30,10 +30,17 @@ vi.mock("@features/contentReleaseWorkbench", async () => {
     ...actual,
     prepareContentReleaseTargetFromSourceResult: (...args: unknown[]) =>
       mocks.prepareContentReleaseTargetFromSourceResult(...args),
-    updateContentReleaseTargetFromSourceResult: (...args: unknown[]) =>
-      mocks.updateContentReleaseTargetFromSourceResult(...args),
   };
 });
+
+vi.mock("@/features/ai/aiTransparencyContentReleaseServer", () => ({
+  executeServerAuthoritativeContentReleaseAction: (...args: unknown[]) =>
+    mocks.executeServerAuthoritativeContentReleaseAction(...args),
+  resolveServerAiTransparencyResponsibleRole: (input: {
+    role?: string | null;
+    isAdmin: boolean;
+  }) => (input.isAdmin ? "admin" : input.role ?? null),
+}));
 
 import { POST } from "@/app/api/account/organization/review/content-release/route";
 
@@ -119,6 +126,30 @@ function buildEntitlementSummary(overrides: Partial<Record<string, unknown>> = {
   };
 }
 
+function buildOpenReviewReadModel() {
+  return {
+    organization: {
+      primaryOrganizationId: "org-1",
+    },
+    entitlementSummary: buildEntitlementSummary(),
+    openReviewItems: [
+      {
+        id: "create_handoff:own-1",
+        contentReleaseWorkbench: {
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targets: [{ targetType: "topic_page" }],
+        },
+        moderationPermission: {
+          canPrepareOwnContentRelease: true,
+          canMakeOwnContentVisible: true,
+          canArchiveOwnContent: true,
+        },
+      },
+    ],
+  };
+}
+
 describe("/api/account/organization/review/content-release", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -131,10 +162,15 @@ describe("/api/account/organization/review/content-release", () => {
       roles: ["user"],
       requestScope: buildRequestScope(),
     });
-    mocks.updateContentReleaseTargetFromSourceResult.mockResolvedValue({
-      id: "content-release-1",
-      visibilityState: "public_reviewed",
-      noPublicOfficial: true,
+    mocks.executeServerAuthoritativeContentReleaseAction.mockResolvedValue({
+      allowed: true,
+      blockers: [],
+      target: {
+        id: "content-release-1",
+        visibilityState: "public_reviewed",
+        noPublicOfficial: true,
+      },
+      aiTransparency: null,
     });
     mocks.prepareContentReleaseTargetFromSourceResult.mockResolvedValue({
       id: "content-release-1",
@@ -144,30 +180,57 @@ describe("/api/account/organization/review/content-release", () => {
   });
 
   it("lets publication-approved organizations manage visibility without setting public_official", async () => {
-    mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
-      organization: {
-        primaryOrganizationId: "org-1",
-      },
-      entitlementSummary: buildEntitlementSummary(),
-      openReviewItems: [
-        {
-          id: "create_handoff:own-1",
-          contentReleaseWorkbench: {
-            sourceKind: "create_handoff",
-            sourceId: "handoff-1",
-            targets: [
-              {
-                targetType: "topic_page",
-              },
-            ],
-          },
-          moderationPermission: {
-            canPrepareOwnContentRelease: true,
-            canMakeOwnContentVisible: true,
-            canArchiveOwnContent: true,
-          },
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(
+      buildOpenReviewReadModel(),
+    );
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/content-release", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targetType: "topic_page",
+          action: "make_visible",
+          aiClassification: "human_only",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(mocks.executeServerAuthoritativeContentReleaseAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceKind: "create_handoff",
+        sourceId: "handoff-1",
+        targetType: "topic_page",
+        action: "make_visible",
+        classification: "human_only",
+        actor: {
+          userId: "user-1",
+          responsibleRole: "institutional_actor",
         },
-      ],
+      }),
+    );
+    expect(body.requestScope).toMatchObject({
+      organizationId: "org-1",
+      isOperatorMode: false,
+    });
+    expect(body.record.noPublicOfficial).toBe(true);
+  });
+
+  it("blocks public visibility fail-closed when AI transparency truth is missing", async () => {
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(
+      buildOpenReviewReadModel(),
+    );
+    mocks.executeServerAuthoritativeContentReleaseAction.mockResolvedValueOnce({
+      allowed: false,
+      blockers: ["classification_required"],
+      target: null,
+      aiTransparency: null,
     });
 
     const response = await POST(
@@ -182,30 +245,67 @@ describe("/api/account/organization/review/content-release", () => {
         headers: { "content-type": "application/json" },
       }),
     );
-
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(mocks.updateContentReleaseTargetFromSourceResult).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourceKind: "create_handoff",
-        sourceResultId: "handoff-1",
-        targetType: "topic_page",
-        action: "make_visible",
-        requestedBy: "user-1",
-      }),
-    );
-    expect(body.requestScope).toMatchObject({
-      organizationId: "org-1",
-      isOperatorMode: false,
-    });
-    expect(mocks.updateContentReleaseTargetFromSourceResult).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        visibilityState: "public_official",
-      }),
-    );
+    expect(response.status).toBe(409);
+    expect(body.error).toBe("ai_transparency_guard_blocked");
+    expect(body.blockers).toContain("classification_required");
   });
+
+  it.each([
+    ["frei erfundene auditRef", { humanReview: { auditRef: "forged-review" } }],
+    ["gefälschte responsibleRole", { editorialApproval: { responsibleRole: "admin" } }],
+    ["approved true", { editorialApproval: { approved: true } }],
+    ["completed true", { humanReview: { completed: true } }],
+    ["fremde Artifact-ID", { artifactId: "foreign-artifact" }],
+    ["fremde Source-ID", { integrityBinding: { sourceId: "foreign-source" } }],
+    ["anderes Target", { integrityBinding: { targetId: "foreign-target" } }],
+    ["clientseitiges human_only", { status: "human_only" }],
+    ["manipulierte Provenienz", { provenance: { verificationRef: "forged-trace" } }],
+  ])("rejects client-asserted %s before the authoritative resolver", async (_label, aiTransparency) => {
+    mocks.buildOrganizationDashboardReadModel.mockResolvedValue(
+      buildOpenReviewReadModel(),
+    );
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/account/organization/review/content-release", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "create_handoff",
+          sourceId: "handoff-1",
+          targetType: "topic_page",
+          action: "make_visible",
+          aiClassification: "human_only",
+          aiTransparency,
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.executeServerAuthoritativeContentReleaseAction).not.toHaveBeenCalled();
+  });
+
+  it.each(["unknown", "ai_generated_unreviewed"])(
+    "rejects unsupported classification %s fail-closed",
+    async (aiClassification) => {
+      const response = await POST(
+        new NextRequest("http://localhost/api/account/organization/review/content-release", {
+          method: "POST",
+          body: JSON.stringify({
+            sourceKind: "create_handoff",
+            sourceId: "handoff-1",
+            targetType: "topic_page",
+            action: "make_visible",
+            aiClassification,
+          }),
+          headers: { "content-type": "application/json" },
+        }),
+      );
+      expect(response.status).toBe(400);
+      expect(mocks.executeServerAuthoritativeContentReleaseAction).not.toHaveBeenCalled();
+    },
+  );
 
   it("blocks visibility changes when the organization lacks publication permission", async () => {
     mocks.buildOrganizationDashboardReadModel.mockResolvedValue({
@@ -248,7 +348,7 @@ describe("/api/account/organization/review/content-release", () => {
     );
 
     expect(response.status).toBe(403);
-    expect(mocks.updateContentReleaseTargetFromSourceResult).not.toHaveBeenCalled();
+    expect(mocks.executeServerAuthoritativeContentReleaseAction).not.toHaveBeenCalled();
   });
 
   it("blocks content release writes for evidence-required or non-writing memberships", async () => {

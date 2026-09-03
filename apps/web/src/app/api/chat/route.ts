@@ -6,6 +6,12 @@ import {
   runRouteBoundCompanionPresentationPass,
   type RouteBoundCompanionContextKind,
 } from "@features/ai/e150/routeBoundCompanion";
+import {
+  toAiTransparencyPublicView,
+  type AiTransparencyRecord,
+} from "@features/ai/aiTransparencyContract";
+import { buildAiProvenanceFromSafeTrace } from "@/features/ai/aiTransparencySafeTraceAdapter";
+import { buildAgentSafeTraceStep } from "@/features/agenticRuntime/agentRunArtifactSafeTraceContract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -123,6 +129,66 @@ export async function POST(req: NextRequest) {
     }),
   });
   const presentedAnswer = presentationPassResult.answer;
+  const createdAt = new Date().toISOString();
+  const safeTrace = buildAgentSafeTraceStep({
+    taskId: "AI-ACT-ARTICLE-50-TRANSPARENCY-01",
+    stepId: `route-bound-companion:${resolved.contextKind}:response`,
+    surface: "/api/chat",
+    userSafeLabel: "Routegebundene Voxy-Antwort",
+    status: "review_required",
+    confidenceLabel: "review_required",
+    requiredHumanAction: "review_before_publish",
+    inputArtifacts: [
+      {
+        id: `companion:${resolved.contextKind}:input`,
+        type: "human_input",
+        label: "Nutzerfrage im routegebundenen Kontext",
+        reviewState: "present",
+      },
+    ],
+    outputArtifacts: [
+      {
+        id: `companion:${resolved.contextKind}:output`,
+        type: "planner_followup",
+        label: "Ungeprüfte Companion-Antwort",
+        reviewState: "review_required",
+      },
+    ],
+    evidenceRefs: [
+      `companion-context:${resolved.contextKind}`,
+      `journey-profile:${resolved.journeyProfile}`,
+    ],
+    reviewState: "review_required",
+    publishState: "publish_blocked",
+    primaryRole: "personal_voxy",
+    supportingRoles: ["governance_compliance"],
+  });
+  const transparencyRecord = {
+    artifactId: `route-bound-companion:${resolved.contextKind}:response`,
+    contentKind: "text",
+    createdAt,
+    modifiedAt: null,
+    status: "ai_generated_unreviewed",
+    humanReview: {
+      completed: false,
+      completedAt: null,
+      auditRef: null,
+    },
+    editorialApproval: {
+      approved: false,
+      approvedAt: null,
+      auditRef: null,
+      responsibleRole: null,
+    },
+    intendedPublic: false,
+    publicInterest: true,
+    visibleLabelKey: "ai_generated_unreviewed",
+    labelAccessible: true,
+    originalContentRef: null,
+    derivativeContentRef: `companion:${resolved.contextKind}:presented-answer`,
+    deepfakeDisclosureApplied: false,
+    provenance: buildAiProvenanceFromSafeTrace(safeTrace),
+  } satisfies AiTransparencyRecord;
 
   return NextResponse.json({
     ok: true,
@@ -153,6 +219,7 @@ export async function POST(req: NextRequest) {
       text: presentedAnswer.text,
       followUps: presentedAnswer.followUps,
       disclaimers: presentedAnswer.disclaimers,
+      aiTransparency: toAiTransparencyPublicView(transparencyRecord),
       rules: [
         "route_bound_profile_reuse",
         "no_silent_research_on_standard_lane",
