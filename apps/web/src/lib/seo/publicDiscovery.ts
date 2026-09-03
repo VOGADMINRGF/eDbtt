@@ -6,7 +6,15 @@ export const DEFAULT_OPENGRAPH_IMAGE_PATH = "/opengraph-image";
 export const PUBLIC_DISCOVERY_PATHS = [
   "/",
   "/warum-edebatte",
+  "/vergleich",
   "/vergleich/consul",
+  "/vergleich/decidim",
+  "/vergleich/govocal",
+  "/vergleich/make-org",
+  "/vergleich/polis",
+  "/vergleich/your-priorities",
+  "/vergleich/crowdinsights",
+  "/vergleich/werdenktwas",
   "/themen",
   "/runden",
   "/beteiligung",
@@ -44,7 +52,8 @@ function normalizePath(path: string): string {
 
 function publicPriority(path: string): number {
   if (path === "/") return 1;
-  if (path === "/warum-edebatte") return 0.9;
+  if (path === "/warum-edebatte") return 0.95;
+  if (path === "/vergleich") return 0.9;
   if (path.startsWith("/vergleich/")) return 0.8;
   return 0.7;
 }
@@ -94,14 +103,20 @@ export function buildHomeStructuredData() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: BRAND.name,
+    alternateName: "eDebatte – democratic problem-solving infrastructure",
     url: BRAND.baseUrl,
     inLanguage: "de-DE",
     description: BRAND.tagline_de,
     about: [
       "digitale Bürgerbeteiligung",
       "gesellschaftliche Willensbildung",
-      "evidenzbasierte Deliberation",
       "Agenda-Setting",
+      "evidenzbasierte Deliberation",
+      "democratic problem-solving",
+      "civic collective intelligence",
+      "public reasoning",
+      "deliberative democracy",
+      "citizen participation",
     ],
     publisher: {
       "@type": "Organization",
