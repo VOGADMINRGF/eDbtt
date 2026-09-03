@@ -4,9 +4,9 @@ import { buildPublicPageMetadata } from "@/lib/seo/publicDiscovery";
 
 /* page-contract: delegated-h1 */
 
-const HOME_TITLE = "eDebatte – Bürgerbeteiligung beginnt vor dem Verfahren";
+const HOME_TITLE = "eDebatte – Gesellschaftliche Willensbildung vor dem Verfahren";
 const HOME_DESCRIPTION =
-  "Vom ungeklärten Anliegen zur gemeinsamen Agenda: Quellen, Perspektiven und Handlungsoptionen strukturieren, bevor ein formelles Verfahren beginnt.";
+  "Vom Anliegen zur gemeinsamen Agenda: Problemklärung, Evidenz, Perspektiven und Handlungsoptionen verbinden – für demokratische Zusammenarbeit von lokal bis global.";
 
 export const metadata: Metadata = {
   ...buildPublicPageMetadata({
