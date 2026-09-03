@@ -124,7 +124,8 @@ describe("public question generalization and anti-targeting contract", () => {
   });
 
   it("retains an organization as a documented source without making it the target", () => {
-    const question = "Welche Regeln sollten für kommunale Hitzepläne gelten?";
+    const question =
+      "Sollten die von der WHO empfohlenen Hitzeschutzmaßnahmen übernommen werden?";
     const result = evaluatePublicQuestionGeneralization({
       originalInput: question,
       actorContexts: [actor({ name: "WHO", type: "organization", role: "source" })],
@@ -154,6 +155,54 @@ describe("public question generalization and anti-targeting contract", () => {
 
     expect(result.outcome).toBe("fact_or_truth_question_blocked");
     expect(result.releaseState).toBe("blocked");
+  });
+
+  it("blocks an AI-generated normative candidate when the original is factual", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Stimmt es, dass die Emissionen seit 2020 gesunken sind?",
+      candidatePublicQuestion: "Soll Deutschland die Emissionen stärker senken?",
+      actorContexts: [],
+    });
+
+    expect(result.outcome).toBe("fact_or_truth_question_blocked");
+    expect(result.releaseState).toBe("blocked");
+    expect(result.publicQuestion).toBeNull();
+    expect(result.reasons).toContain("factual_or_truth_origin_must_be_preserved");
+  });
+
+  it("rejects a company target even when upstream labels it as a source", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Soll Nestlé diese Kampagne fortsetzen dürfen?",
+      actorContexts: [actor({ role: "source" })],
+    });
+
+    expect(result.outcome).toBe("named_actor_targeting_review_required");
+    expect(result.releaseState).toBe("review_required");
+    expect(result.publicQuestion).toBeNull();
+    expect(result.reasons).toContain("actor_role_conflicts_with_candidate_targeting");
+  });
+
+  it("rejects a party target even when upstream labels it as context", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Soll Partei X Leistung Y abschaffen dürfen?",
+      actorContexts: [actor({ name: "Partei X", type: "party", role: "context" })],
+    });
+
+    expect(result.outcome).toBe("named_actor_targeting_review_required");
+    expect(result.releaseState).toBe("review_required");
+    expect(result.reasons).toContain("actor_role_conflicts_with_candidate_targeting");
+  });
+
+  it("routes ambiguous actor semantics to review instead of trusting the supplied role", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Welche Regeln sollten gemeinsam mit Nestlé entwickelt werden?",
+      actorContexts: [actor({ role: "context" })],
+    });
+
+    expect(result.outcome).toBe("named_actor_targeting_review_required");
+    expect(result.releaseState).toBe("review_required");
+    expect(result.publicQuestion).toBeNull();
+    expect(result.reasons).toContain("actor_targeting_semantics_ambiguous");
   });
 
   it("requires review when a named organization remains the target without a generalization", () => {

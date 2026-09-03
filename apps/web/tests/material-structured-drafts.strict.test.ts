@@ -148,4 +148,52 @@ describe("material structured draft validation", () => {
       }),
     ]);
   });
+
+  it("drops question and option drafts when a company target is mislabelled as source", () => {
+    const targetedDocument =
+      "Soll Nestlé diese Kampagne fortsetzen dürfen? Nestlé ist Betreiber der Kampagne.";
+    const parsed = parseMaterialStructuredDraftPayload({
+      providerText: payload({
+        questions: [
+          {
+            id: "q-company",
+            theme: "Kampagne",
+            originalInput: "Soll Nestlé diese Kampagne fortsetzen dürfen?",
+            text: "Soll Nestlé diese Kampagne fortsetzen dürfen?",
+            rationale: "Unternehmensbezogene Ausgangsfrage.",
+            sourceAnchors: ["Nestlé"],
+            actorContexts: [
+              {
+                id: "actor-nestle",
+                name: "Nestlé",
+                type: "company",
+                role: "source",
+                evidenceRefs: ["Nestlé"],
+              },
+            ],
+            procedure: null,
+          },
+        ],
+        options: [
+          {
+            questionRef: "q-company",
+            text: "Kampagne fortsetzen",
+            source: "ai_suggestion",
+            needsReview: true,
+          },
+        ],
+      }),
+      documentText: targetedDocument,
+    });
+
+    expect(parsed.questions).toEqual([]);
+    expect(parsed.options).toEqual([]);
+    expect(parsed.questionGuardReviews).toEqual([
+      expect.objectContaining({
+        outcome: "named_actor_targeting_review_required",
+        releaseState: "review_required",
+        reasons: expect.arrayContaining(["actor_role_conflicts_with_candidate_targeting"]),
+      }),
+    ]);
+  });
 });

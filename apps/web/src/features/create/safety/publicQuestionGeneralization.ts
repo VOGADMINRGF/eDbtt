@@ -85,7 +85,7 @@ export type EvaluatePublicQuestionGeneralizationInput = {
 const FACT_OR_TRUTH_QUESTION_RE =
   /^(?:stimmt\s+es|stimmt|trifft\s+es\s+zu|ist\s+es\s+(?:wahr|richtig)|is\s+it\s+true|is\s+the\s+claim\s+correct|did|does|do)\b.*\?$/iu;
 const DECISION_QUESTION_RE =
-  /\b(soll(?:te|ten)?|muss|müssen|darf|dürfen|welche\s+(?:regel|regeln|maßnahme|maßnahmen|option|optionen|priorität|prioritäten)|unter\s+welchen\s+voraussetzungen|bis\s+zu\s+welchem|should|must|may|which\s+(?:rule|rules|measure|measures|option|options|priority|priorities)|under\s+which\s+conditions)\b/iu;
+  /\b(soll(?:en|te|ten)?|muss|müssen|darf|dürfen|welche\s+(?:regel|regeln|maßnahme|maßnahmen|option|optionen|priorität|prioritäten)|unter\s+welchen\s+voraussetzungen|bis\s+zu\s+welchem|should|must|may|which\s+(?:rule|rules|measure|measures|option|options|priority|priorities)|under\s+which\s+conditions)\b/iu;
 const NORMATIVE_EVALUATION_QUESTION_RE =
   /^(?:ist|sind|is|are)\b.*\b(sinnvoll|gerecht|vertretbar|angemessen|wünschenswert|wuenschenswert|fair|reasonable|appropriate|desirable)\s*\?$/iu;
 const CHARACTER_OR_SANCTION_RE =
@@ -116,6 +116,56 @@ function includesActorName(question: string, actor: PublicQuestionActorContext):
   const questionKey = normalized(question);
   const actorKey = normalized(actor.name);
   return actorKey.length > 1 && (` ${questionKey} `).includes(` ${actorKey} `);
+}
+
+type ActorCandidateRelation = "absent" | "context" | "normative_target" | "ambiguous";
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function classifyActorCandidateRelation(
+  question: string,
+  actor: PublicQuestionActorContext,
+): ActorCandidateRelation {
+  const questionKey = normalized(question);
+  const actorKey = normalized(actor.name);
+  if (!actorKey || !includesActorName(question, actor)) return "absent";
+
+  const actorPattern = escapeRegExp(actorKey).replace(/\s+/g, "\\s+");
+  const articlePattern = "(?:der|die|das|den|dem|des|ein|eine|einer|einem|einen|the)?";
+  const modalPattern = "(?:soll|sollen|sollte|sollten|darf|dürfen|muss|müssen|should|may|must)";
+  const explicitTargetPatterns = [
+    new RegExp(`\\b${modalPattern}\\s+${articlePattern}\\s*${actorPattern}(?=\\s|$)`, "u"),
+    new RegExp(`(?:^|\\s)(?:über|ueber|gegen)\\s+${articlePattern}\\s*${actorPattern}(?=\\s|$)`, "u"),
+  ];
+  if (explicitTargetPatterns.some((pattern) => pattern.test(questionKey))) {
+    return "normative_target";
+  }
+
+  const explicitContextPatterns = [
+    new RegExp(
+      `\\b(?:laut|gemäß|gemaess)\\s+${articlePattern}\\s*${actorPattern}(?=\\s|$)`,
+      "u",
+    ),
+    new RegExp(
+      `\\bvon\\s+${articlePattern}\\s*${actorPattern}\\s+(?:empfohlen|vorgeschlagen|veröffentlicht|veroeffentlicht|dokumentiert|berichtet)\\w*\\b`,
+      "u",
+    ),
+    new RegExp(
+      `\\bnach\\s+(?:den\\s+)?(?:angaben|empfehlungen|berichten|leitlinien)\\s+(?:von|der|des)\\s+${actorPattern}(?=\\s|$)`,
+      "u",
+    ),
+    new RegExp(
+      `\\baccording\\s+to\\s+(?:the\\s+)?${actorPattern}(?=\\s|$)|(?:^|\\s)${actorPattern}[-\\s]+(?:recommended|reported|documented)\\b`,
+      "u",
+    ),
+  ];
+  if (explicitContextPatterns.some((pattern) => pattern.test(questionKey))) {
+    return "context";
+  }
+
+  return "ambiguous";
 }
 
 function isFactOrTruthQuestion(question: string): boolean {
@@ -193,24 +243,38 @@ export function evaluatePublicQuestionGeneralization(
   );
   const targetActors = input.actorContexts.filter((actor) => actor.role === "target");
   const procedureActors = input.actorContexts.filter((actor) => actor.role === "procedure_subject");
+  const candidateActorRelations = input.actorContexts.map((actor) => ({
+    actor,
+    relation: classifyActorCandidateRelation(candidatePublicQuestion, actor),
+  }));
+  const semanticTargetActors = candidateActorRelations
+    .filter(({ relation }) => relation === "normative_target")
+    .map(({ actor }) => actor);
+  const ambiguousCandidateActors = candidateActorRelations
+    .filter(({ relation }) => relation === "ambiguous")
+    .map(({ actor }) => actor);
   const namedActorsInInput = input.actorContexts.filter(
     (actor) => includesActorName(originalInput, actor) || includesActorName(candidatePublicQuestion, actor),
   );
-  const candidateStillTargetsNamedActor = targetActors.some((actor) =>
-    includesActorName(candidatePublicQuestion, actor),
-  );
+  const candidateStillTargetsNamedActor = targetActors.some((actor) => {
+    const relation = candidateActorRelations.find(({ actor: entry }) => entry.id === actor.id)?.relation;
+    return relation === "normative_target" || relation === "ambiguous";
+  });
   const hasAccusationOrCharacterJudgment =
     findingKinds.some((kind) => ACCUSATION_FINDINGS.has(kind)) ||
     CHARACTER_OR_SANCTION_RE.test(originalInput) ||
     CHARACTER_OR_SANCTION_RE.test(candidatePublicQuestion);
 
-  if (isFactOrTruthQuestion(candidatePublicQuestion)) {
+  if (isFactOrTruthQuestion(originalInput) || isFactOrTruthQuestion(candidatePublicQuestion)) {
     return result(input, {
       outcome: "fact_or_truth_question_blocked",
       releaseState: "blocked",
       publicQuestion: null,
       findingKinds,
-      reasons: ["facts_and_truth_are_not_preference_ballots"],
+      reasons: [
+        "facts_and_truth_are_not_preference_ballots",
+        ...(isFactOrTruthQuestion(originalInput) ? ["factual_or_truth_origin_must_be_preserved"] : []),
+      ],
       explanation: "Fakten- und Wahrheitsfragen werden nicht als öffentliche Präferenzabstimmung erzeugt.",
     });
   }
@@ -294,13 +358,33 @@ export function evaluatePublicQuestionGeneralization(
     });
   }
 
-  if (targetActors.length > 0) {
+  if (semanticTargetActors.some((actor) => actor.type === "person")) {
+    return result(input, {
+      outcome: "personal_targeting_blocked",
+      releaseState: "blocked",
+      publicQuestion: null,
+      findingKinds,
+      reasons: ["person_is_semantic_ballot_target", "actor_role_conflicts_with_candidate_targeting"],
+      explanation: "Eine Person darf unabhängig von ihrer gelieferten Akteursrolle nicht Ziel einer normalen öffentlichen Abstimmung sein.",
+    });
+  }
+
+  if (
+    targetActors.length > 0 ||
+    semanticTargetActors.length > 0 ||
+    ambiguousCandidateActors.length > 0
+  ) {
     return result(input, {
       outcome: "named_actor_targeting_review_required",
       releaseState: "review_required",
       publicQuestion: null,
       findingKinds,
-      reasons: ["named_actor_remains_ballot_target", "generalization_missing_or_invalid"],
+      reasons: [
+        ...(semanticTargetActors.length > 0 ? ["actor_role_conflicts_with_candidate_targeting"] : []),
+        ...(ambiguousCandidateActors.length > 0 ? ["actor_targeting_semantics_ambiguous"] : []),
+        "named_actor_remains_ballot_target",
+        "generalization_missing_or_invalid",
+      ],
       explanation: "Vor einem öffentlichen Entwurf ist eine sachliche Generalisierung erforderlich.",
     });
   }
