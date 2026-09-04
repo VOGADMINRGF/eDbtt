@@ -16,7 +16,7 @@ type MobileNavItem = {
 const MOBILE_NAV_ITEMS: readonly MobileNavItem[] = [
   {
     id: "start",
-    href: "/start",
+    href: "/",
     label: "Start",
     isActive: (pathname) => pathname === "/" || pathname === "/start",
     icon: (active) => (
