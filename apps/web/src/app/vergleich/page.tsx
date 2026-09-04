@@ -5,7 +5,7 @@ import { buildPublicPageMetadata } from "@/lib/seo/publicDiscovery";
 
 const TITLE = "eDebatte im internationalen Civic-Tech-Vergleich";
 const DESCRIPTION =
-  "CONSUL, Decidim, Go Vocal, Make.org, Polis, Your Priorities und weitere: Wo eDebatte im internationalen Feld von Civic Tech, Collective Intelligence und digitaler Demokratie ansetzt.";
+  "CONSUL, Decidim, aula, adhocracy+, meinBerlin, CrowdInsights, Go Vocal, Polis, Make.org und weitere: Wo eDebatte im Feld von Civic Tech, Collective Intelligence und digitaler Demokratie ansetzt.";
 
 export const metadata: Metadata = {
   ...buildPublicPageMetadata({ path: "/vergleich", title: TITLE, description: DESCRIPTION, ogType: "website" }),
@@ -13,10 +13,39 @@ export const metadata: Metadata = {
 };
 
 const groups = [
-  { title: "Participatory democracy frameworks", body: "Systeme, die demokratische Prozesse, Proposals, Initiativen, Budgets oder Beteiligungsräume konfigurierbar machen.", links: [["CONSUL Democracy", "/vergleich/consul"], ["Decidim", "/vergleich/decidim"]] },
-  { title: "Community & government engagement", body: "Plattformen, die Verwaltungen und Organisationen bei Konsultationen, Projekten, Ideen, Karten, Umfragen und Auswertung unterstützen.", links: [["Go Vocal / CitizenLab", "/vergleich/govocal"], ["CrowdInsights", "/vergleich/crowdinsights"], ["wer|denkt|was", "/vergleich/werdenktwas"]] },
-  { title: "Mass participation & computational deliberation", body: "Ansätze, die sehr große Mengen an Meinungen, Vorschlägen und Reaktionen strukturieren, Konsensfelder erkennen oder kollektive Prioritäten sichtbar machen.", links: [["Polis", "/vergleich/polis"], ["Make.org", "/vergleich/make-org"]] },
-  { title: "AI + collective intelligence", body: "Systeme, die Problemdefinition, Recherche, Lösungsentwicklung und menschliche Bewertung mit KI-gestützten Workflows verbinden.", links: [["Your Priorities + Policy Synth", "/vergleich/your-priorities"]] },
+  {
+    title: "Participatory democracy frameworks",
+    body: "Systeme, die demokratische Prozesse, Proposals, Initiativen, Ideenräume, Budgets oder Beteiligungsräume konfigurierbar machen.",
+    links: [
+      ["CONSUL Democracy", "/vergleich/consul"],
+      ["Decidim", "/vergleich/decidim"],
+      ["adhocracy+", "/vergleich/adhocracy-plus"],
+      ["aula", "/vergleich/aula"],
+    ],
+  },
+  {
+    title: "Community & government engagement",
+    body: "Plattformen, die Verwaltungen und Organisationen bei Konsultationen, Projekten, Ideen, Karten, Umfragen und Auswertung unterstützen.",
+    links: [
+      ["meinBerlin", "/vergleich/meinberlin"],
+      ["Go Vocal / CitizenLab", "/vergleich/govocal"],
+      ["CrowdInsights", "/vergleich/crowdinsights"],
+      ["wer|denkt|was", "/vergleich/werdenktwas"],
+    ],
+  },
+  {
+    title: "Mass participation & computational deliberation",
+    body: "Ansätze, die sehr große Mengen an Meinungen, Vorschlägen und Reaktionen strukturieren, Konsensfelder erkennen oder kollektive Prioritäten sichtbar machen.",
+    links: [
+      ["Polis", "/vergleich/polis"],
+      ["Make.org", "/vergleich/make-org"],
+    ],
+  },
+  {
+    title: "AI + collective intelligence",
+    body: "Systeme, die Problemdefinition, Recherche, Lösungsentwicklung und menschliche Bewertung mit KI-gestützten Workflows verbinden.",
+    links: [["Your Priorities + Policy Synth", "/vergleich/your-priorities"]],
+  },
 ] as const;
 
 const layers = [
