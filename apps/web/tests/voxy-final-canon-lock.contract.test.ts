@@ -60,7 +60,7 @@ describe("VOXY final canon lock — V3.10.5 / PR #624", () => {
   });
 
   it("04 keeps superseded pre-V3.10.5 visual render workflows retired", () => {
-    const workflowRoot = path.resolve(import.meta.dirname, "../../.github/workflows");
+    const workflowRoot = path.resolve(import.meta.dirname, "../../../.github/workflows");
     for (const fileName of [
       "voxy-first-explainer-video.yml",
       "voxy-animatable-rig-evidence.yml",
