@@ -541,6 +541,8 @@ export function reviewAnlassraumQuestionGuard(
     status: "draft",
     visibility: "editorial_workspace",
     publicAccessMode: "none",
+    roomStatus: "review_required",
+    roomIsPublic: false,
     questionGuard,
     approvedForActivationAt: null,
     approvedForActivationBy: null,
@@ -548,6 +550,18 @@ export function reviewAnlassraumQuestionGuard(
     approvedForPublicationBy: null,
     updatedAt: trimOrNull(input.reviewedAt) ?? nowIso(),
   });
+}
+
+export function isAnlassraumPubliclyReleased(
+  record: AnlassraumActivationRecord,
+): boolean {
+  return (
+    record.status === "published" &&
+    record.visibility === "public" &&
+    record.publicAccessMode === "public_read_only" &&
+    record.roomIsPublic === true &&
+    record.questionGuard.releaseState === "draft_allowed"
+  );
 }
 
 export function canApproveAnlassraumActivation(

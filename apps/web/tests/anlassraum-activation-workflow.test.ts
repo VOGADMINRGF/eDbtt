@@ -10,6 +10,7 @@ import {
   canApproveAnlassraumPublication,
   canPublishAnlassraum,
   getAnlassraumActivationBlockers,
+  isAnlassraumPubliclyReleased,
   publishAnlassraumAfterReview,
   reviewAnlassraumQuestionGuard,
   type AnlassraumActivationRecord,
@@ -24,7 +25,11 @@ import {
   holdQuestionGuardForSerializedReview,
   persistQuestionGuardReviewFailClosed,
 } from "@/features/create/safety/questionGuardReviewPersistence";
-import { createInMemoryAnlassraumActivationWorkflowRepository } from "@/features/create/anlassraumActivationWorkflowServer";
+import {
+  createInMemoryAnlassraumActivationWorkflowRepository,
+  isAnlassraumPublicInputAllowed,
+  setAnlassraumActivationWorkflowRepositoryForTests,
+} from "@/features/create/anlassraumActivationWorkflowServer";
 
 function buildHandoffRecord(): PersistedCreateHandoffRecord {
   return {
@@ -248,6 +253,8 @@ describe("anlassraum activation workflow", () => {
       status: "approved_for_publication",
       visibility: "ready_for_publication_review",
       publicAccessMode: "internal_only",
+      roomStatus: "active",
+      roomIsPublic: true,
       approvedForActivationAt: "2026-07-01T09:05:00.000Z",
       approvedForActivationBy: "admin-before-review",
       approvedForPublicationAt: "2026-07-01T09:10:00.000Z",
@@ -314,6 +321,7 @@ describe("anlassraum activation workflow", () => {
     expect(publicationWithoutNewApproval.ok).toBe(false);
 
     let persistedRecord = record;
+    let underlyingRoomIsPublic = true;
     let persistedAudit:
       | {
           action: string;
@@ -348,6 +356,10 @@ describe("anlassraum activation workflow", () => {
           throw new Error("simulated_audit_persistence_failure");
         },
         persistRecord,
+        afterReservation: async (reservation) => {
+          expect(reservation.questionGuard.releaseState).toBe("review_required");
+          underlyingRoomIsPublic = false;
+        },
         buildReleasedRecord: (reservation) => ({
           ...reviewed,
           version: reservation.version,
@@ -356,6 +368,8 @@ describe("anlassraum activation workflow", () => {
     ).rejects.toThrow("simulated_audit_persistence_failure");
     expect(persistedRecord.questionGuard.releaseState).toBe("review_required");
     expect(persistedRecord.approvedForActivationAt).toBeNull();
+    expect(persistedRecord.roomIsPublic).toBe(false);
+    expect(underlyingRoomIsPublic).toBe(false);
 
     await persistQuestionGuardReviewFailClosed({
       reviewReservation: {
@@ -367,12 +381,17 @@ describe("anlassraum activation workflow", () => {
         persistedAudit = entry;
       },
       persistRecord,
+      afterReservation: async () => {
+        underlyingRoomIsPublic = false;
+      },
       buildReleasedRecord: (reservation) => ({
         ...reviewed,
         version: reservation.version,
       }),
     });
     expect(persistedRecord.questionGuard.releaseState).toBe("draft_allowed");
+    expect(persistedRecord.roomIsPublic).toBe(false);
+    expect(underlyingRoomIsPublic).toBe(false);
     expect(persistedAudit).toEqual(auditEntry);
 
     const approved = approveAnlassraumActivation(persistedRecord, {
@@ -410,6 +429,10 @@ describe("anlassraum activation workflow", () => {
       approvedAt: "2026-07-01T09:50:00.000Z",
     });
     expect(published.ok).toBe(true);
+    if (published.ok) {
+      underlyingRoomIsPublic = published.record.roomIsPublic;
+    }
+    expect(underlyingRoomIsPublic).toBe(true);
   });
 
   it("serializes guard review against stale approval, activation, publication and competing reviews", async () => {
@@ -475,6 +498,7 @@ describe("anlassraum activation workflow", () => {
       visibility: "ready_for_publication_review",
       publicAccessMode: "internal_only",
       roomStatus: "active",
+      roomIsPublic: true,
       approvedForActivationAt: "2026-07-01T09:20:00.000Z",
       approvedForActivationBy: "admin-before-review",
       approvedForPublicationAt: "2026-07-01T09:40:00.000Z",
@@ -568,6 +592,78 @@ describe("anlassraum activation workflow", () => {
     });
     expect(published.status).toBe("published");
     expect(published.version).toBe(5);
+  });
+
+  it("uses the CAS-backed workflow as the public-input boundary and supports legacy version zero", async () => {
+    const repo = createInMemoryAnlassraumActivationWorkflowRepository();
+    setAnlassraumActivationWorkflowRepositoryForTests(repo);
+    try {
+      const publicRecord = buildActivationRecord({
+        status: "published",
+        visibility: "public",
+        publicAccessMode: "public_read_only",
+        roomStatus: "active",
+        roomIsPublic: true,
+        blockers: [],
+      });
+      expect(isAnlassraumPubliclyReleased(publicRecord)).toBe(true);
+      await repo.save(publicRecord);
+      await expect(
+        isAnlassraumPublicInputAllowed({
+          anlassraumId: publicRecord.anlassraumId!,
+          roomIsPublic: true,
+        }),
+      ).resolves.toBe(true);
+
+      const reviewReservation = reviewAnlassraumQuestionGuard(publicRecord, {
+        actorExtractionSource: "human_review",
+        evidenceRefs: ["human-review:legacy-public-room"],
+        reviewedAt: "2026-07-01T10:20:00.000Z",
+      });
+      const reserved = await repo.compareAndSwap({
+        record: {
+          ...reviewReservation,
+          questionGuard: holdQuestionGuardForSerializedReview(
+            publicRecord.questionGuard,
+          ),
+        },
+        expectedVersion: publicRecord.version,
+      });
+      expect(reserved.version).toBe(1);
+      expect(reserved.roomStatus).toBe("review_required");
+      expect(reserved.roomIsPublic).toBe(false);
+      await expect(
+        isAnlassraumPublicInputAllowed({
+          anlassraumId: publicRecord.anlassraumId!,
+          roomIsPublic: true,
+        }),
+      ).resolves.toBe(false);
+
+      const legacyRepo = createInMemoryAnlassraumActivationWorkflowRepository();
+      const { version: _legacyVersion, ...legacyRecord } = publicRecord;
+      await legacyRepo.save(legacyRecord as AnlassraumActivationRecord);
+      const legacyReviewed = reviewAnlassraumQuestionGuard(
+        legacyRecord as AnlassraumActivationRecord,
+        {
+          actorExtractionSource: "entity_registry",
+          evidenceRefs: ["entity-registry:legacy-public-room"],
+          reviewedAt: "2026-07-01T10:21:00.000Z",
+        },
+      );
+      const legacyReserved = await legacyRepo.compareAndSwap({
+        record: {
+          ...legacyReviewed,
+          questionGuard: holdQuestionGuardForSerializedReview(
+            legacyRecord.questionGuard,
+          ),
+        },
+        expectedVersion: 0,
+      });
+      expect(legacyReserved.version).toBe(1);
+      expect(legacyReserved.roomIsPublic).toBe(false);
+    } finally {
+      setAnlassraumActivationWorkflowRepositoryForTests(null);
+    }
   });
 
   it("keeps created anlassraeume non-public until explicit publication", () => {

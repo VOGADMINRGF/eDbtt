@@ -5,6 +5,7 @@ type PersistQuestionGuardReviewFailClosedInput<TRecord, TAuditEntry> = {
   auditEntry: TAuditEntry;
   persistAudit: (entry: TAuditEntry) => Promise<unknown>;
   persistRecord: (record: TRecord) => Promise<TRecord>;
+  afterReservation?: (reservation: TRecord) => Promise<unknown>;
   buildReleasedRecord: (reservation: TRecord) => TRecord;
 };
 
@@ -33,13 +34,15 @@ export function holdQuestionGuardForSerializedReview(
 
 /**
  * Reserves the source version with a still-blocked record, then persists the
- * durable review evidence, and only then releases the reviewed guard with a
- * second CAS write. Audit or release failures can never expose draft_allowed.
+ * fail-closed side effects and durable review evidence, and only then releases
+ * the reviewed guard with a second CAS write. Reservation, audit, side-effect,
+ * or release failures can never expose draft_allowed.
  */
 export async function persistQuestionGuardReviewFailClosed<TRecord, TAuditEntry>(
   input: PersistQuestionGuardReviewFailClosedInput<TRecord, TAuditEntry>,
 ): Promise<TRecord> {
   const reservation = await input.persistRecord(input.reviewReservation);
+  await input.afterReservation?.(reservation);
   await input.persistAudit(input.auditEntry);
   return input.persistRecord(input.buildReleasedRecord(reservation));
 }

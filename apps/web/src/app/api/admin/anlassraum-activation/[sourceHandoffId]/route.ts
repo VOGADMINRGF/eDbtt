@@ -112,7 +112,8 @@ export async function POST(
         ? error.message
         : "anlassraum_activation_action_failed";
     const status =
-      message === "anlassraum_activation_state_conflict"
+      message === "anlassraum_activation_state_conflict" ||
+      message === "anlassraum_visibility_state_conflict"
         ? 409
         : message === "anlassraum_activation_record_not_found"
         ? 404

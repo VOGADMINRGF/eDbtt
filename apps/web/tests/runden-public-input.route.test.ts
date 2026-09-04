@@ -8,12 +8,18 @@ import {
 
 const mocks = vi.hoisted(() => ({
   findRoom: vi.fn(),
+  isAnlassraumPublicInputAllowed: vi.fn(),
 }));
 
 vi.mock("@features/anlassraum/db", () => ({
   anlassraumCol: async () => ({
     findOne: (...args: unknown[]) => mocks.findRoom(...args),
   }),
+}));
+
+vi.mock("@/features/create/anlassraumActivationWorkflowServer", () => ({
+  isAnlassraumPublicInputAllowed: (...args: unknown[]) =>
+    mocks.isAnlassraumPublicInputAllowed(...args),
 }));
 
 import { POST } from "@/app/api/runden/public-input/route";
@@ -41,6 +47,7 @@ describe("public Anlassraum input route", () => {
       isPublic: true,
       regionKey: "berlin-reinickendorf",
     });
+    mocks.isAnlassraumPublicInputAllowed.mockResolvedValue(true);
   });
 
   it("creates a direct public question as review-gated participation signal", async () => {
@@ -113,6 +120,28 @@ describe("public Anlassraum input route", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: false,
       error: "public_anlassraum_not_found",
+    });
+  });
+
+  it("rejects a stale public flag while the canonical activation workflow is review-blocked", async () => {
+    mocks.isAnlassraumPublicInputAllowed.mockResolvedValueOnce(false);
+
+    const res = await POST(
+      buildRequest({
+        anlassraumId: "65f000000000000000000401",
+        kind: "frage",
+        text: "Welche Querung soll zuerst verbessert werden?",
+      }),
+    );
+
+    expect(res.status).toBe(404);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "public_anlassraum_not_found",
+    });
+    expect(mocks.isAnlassraumPublicInputAllowed).toHaveBeenCalledWith({
+      anlassraumId: "65f000000000000000000401",
+      roomIsPublic: true,
     });
   });
 });
