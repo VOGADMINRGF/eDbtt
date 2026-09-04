@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   VOXY_FINAL_CANON,
   assertVoxyFinalCanonBinding,
+  finalVoxyCanonBinding,
   validateVoxyFinalCanonBinding,
 } from "../src/features/voxyVideo/finalCanon";
 
@@ -15,7 +16,7 @@ describe("VOXY final canon lock — V3.10.5 / PR #624", () => {
       schemaVersion: "voxy-final-canon-v3.10.5",
       canonId: "VOXY-V3.10.5-HUMAN-FINAL",
       sourcePullRequest: 624,
-      exactRenderHeadSha: "00ff10e80dc8985da1df64de8e9a6df23b9d13e5",
+      referenceRenderHeadSha: "00ff10e80dc8985da1df64de8e9a6df23b9d13e5",
       humanAcceptanceManifestHeadSha: "c94edbcf5135ee717ac64d9da5db05c09e076c22",
       humanAcceptance: {
         homepageFilm: "accepted",
@@ -38,12 +39,8 @@ describe("VOXY final canon lock — V3.10.5 / PR #624", () => {
     );
   });
 
-  it("02 accepts only the V3.10.5 / PR #624 binding", () => {
-    const binding = {
-      canonId: VOXY_FINAL_CANON.canonId,
-      sourcePullRequest: VOXY_FINAL_CANON.sourcePullRequest,
-      exactRenderHeadSha: VOXY_FINAL_CANON.exactRenderHeadSha,
-    };
+  it("02 accepts only the V3.10.5 / PR #624 reference binding", () => {
+    const binding = finalVoxyCanonBinding();
 
     expect(validateVoxyFinalCanonBinding(binding)).toEqual([]);
     expect(() => assertVoxyFinalCanonBinding(binding)).not.toThrow();
@@ -53,12 +50,12 @@ describe("VOXY final canon lock — V3.10.5 / PR #624", () => {
     const errors = validateVoxyFinalCanonBinding({
       canonId: "VOXY-ANIMATABLE-MASTER-ASSET-01",
       sourcePullRequest: 589,
-      exactRenderHeadSha: "02f7b0cb0dc9188ad3a56c55cf381122dd07fcb2",
+      referenceRenderHeadSha: "02f7b0cb0dc9188ad3a56c55cf381122dd07fcb2",
     });
 
     expect(errors).toContain("voxy_final_canon_id_mismatch");
     expect(errors).toContain("voxy_final_canon_pr_mismatch");
-    expect(errors).toContain("voxy_final_canon_render_head_mismatch");
+    expect(errors).toContain("voxy_final_canon_reference_head_mismatch");
     expect(errors).toContain("voxy_legacy_character_reference_forbidden");
   });
 
