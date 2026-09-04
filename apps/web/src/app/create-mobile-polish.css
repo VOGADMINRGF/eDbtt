@@ -1,0 +1,82 @@
+/* Final mobile-first polish for the public /create workspace.
+ * Keep the citizen's contribution and the next interaction in focus.
+ * This file deliberately targets existing stable create data attributes/classes
+ * so it can land without creating a second Create runtime or flow.
+ */
+
+@media (max-width: 767px) {
+  /* The mobile workspace should use the viewport instead of looking like a
+   * desktop card squeezed into a phone. */
+  [data-create-workspace-shell] {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: auto !important;
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  [data-create-workspace-shell] [data-create-shell-thread] {
+    min-height: 0 !important;
+    padding: 1rem !important;
+  }
+
+  /* The five-step rail repeats information that is already expressed in the
+   * conversation. On a phone it steals the first screen from the input. */
+  [data-create-shell-pipeline] {
+    display: none !important;
+  }
+
+  /* Remove the decorative chat spine requested in mobile acceptance. */
+  .create-chat-spine::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* Voxy remains a guide, not the primary content object. */
+  [data-create-voxy-intro] {
+    display: grid !important;
+    grid-template-columns: 3.25rem minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 0.75rem !important;
+  }
+
+  [data-create-voxy-intro] > div:first-child {
+    margin-top: 0.15rem !important;
+  }
+
+  [data-create-voxy-intro] [data-voxy-avatar] {
+    width: 3.25rem !important;
+    max-width: 3.25rem !important;
+    opacity: 0.78;
+  }
+
+  /* "Thema ordnen / Frage schärfen / Quellen prüfen" duplicates the text
+   * directly above it and competes with the real input. */
+  [data-create-thread-prompt-chip] {
+    display: none !important;
+  }
+
+  /* Input first: comfortable reading while typing, native vertical expansion
+   * and a sensible ceiling so controls remain reachable. */
+  [data-create-composer-bar="true"] {
+    padding: 0.75rem !important;
+  }
+
+  [data-create-composer-bar="true"] textarea {
+    min-height: clamp(16rem, 42svh, 28rem) !important;
+    max-height: 65svh !important;
+    resize: vertical !important;
+    overflow-y: auto !important;
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Keep submitted text readable as text, not as a narrow speech bubble. */
+  .create-chat-message > div:last-child {
+    max-width: 100% !important;
+  }
+}
