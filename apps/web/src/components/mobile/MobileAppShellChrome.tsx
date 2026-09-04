@@ -69,7 +69,7 @@ const MOBILE_NAV_ITEMS: readonly MobileNavItem[] = [
   },
   {
     id: "account",
-    href: "/account",
+    href: "/account#profil",
     label: "Profil",
     isActive: (pathname) => pathname === "/account" || pathname.startsWith("/account/"),
     icon: (active) => (
