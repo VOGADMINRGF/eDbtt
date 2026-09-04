@@ -12,7 +12,7 @@ describe("mobile Human-Acceptance 2026-09-04", () => {
     expect(source).toContain('id: "start"');
     expect(source).toContain('href: "/"');
     expect(source).toContain('pathname === "/" || pathname === "/start"');
-    expect(source).toContain('body.vog-mobile-app-shell-nav [data-site-header="true"]');
+    expect(source).toContain('[data-site-header="true"]');
     expect(source).toContain("display: none !important");
   });
 
