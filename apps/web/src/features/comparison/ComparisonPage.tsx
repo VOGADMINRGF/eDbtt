@@ -152,6 +152,7 @@ export default function ComparisonPage({
   closingBody,
 }: Props) {
   const evidence = resolveComparisonEvidence(platformName);
+  const evidenceId = `comparison-evidence-${platformName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
 
   return (
     <main id="main-content" className="min-h-[100svh] bg-[color:var(--background)] text-[color:var(--foreground)]">
@@ -210,10 +211,10 @@ export default function ComparisonPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-[76rem] px-5 py-12 sm:px-8 sm:py-14 lg:px-10" aria-labelledby={`comparison-evidence-${platformName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+      <section className="mx-auto max-w-[76rem] px-5 py-12 sm:px-8 sm:py-14 lg:px-10" aria-labelledby={evidenceId}>
         <div className="rounded-[1.5rem] border border-[color:var(--border)] bg-[color:var(--surface)]/35 p-5 sm:p-7">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">Quellen & Methodik</p>
-          <h2 id={`comparison-evidence-${platformName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`} className="mt-2 text-2xl font-black tracking-[-0.02em]">
+          <h2 id={evidenceId} className="mt-2 text-2xl font-black tracking-[-0.02em]">
             Nachprüfbar statt Feature-Behauptung
           </h2>
           <div className="mt-4 max-w-5xl space-y-3 text-sm leading-6 text-[color:var(--muted)]">
