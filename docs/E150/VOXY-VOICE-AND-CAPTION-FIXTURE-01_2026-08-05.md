@@ -1,86 +1,81 @@
 # VOXY-VOICE-AND-CAPTION-FIXTURE-01
 
-Stand: 2026-08-07
+Stand: 2026-09-04
 
 ## Ergebnis
 
-Der Voice-/Caption-Slice verarbeitet jetzt eine tatsächliche Audiodatei statt nur vorberechneter Metadaten. Der Exact-Head-Workflow erzeugt lokal eine konkrete deutsche Sprachfixture aus dem committed Transcript, inspiziert die WAV-Datei mit `ffprobe` und EBU-R128, normalisiert sie real mit FFmpeg und erzeugt VTT, SRT und Caption-Timeline auf Basis der tatsächlich gemessenen Audiodauer.
+Der Voice-/Caption-Slice verarbeitet reale lokale Audiodateien statt nur vorberechneter Metadaten. Der Exact-Head-Workflow erzeugt reproduzierbare **deutsche und englische technische Sprachfixtures** aus committed Transkripten, inspiziert die WAV-Dateien mit `ffprobe` und EBU-R128, normalisiert sie real mit FFmpeg und erzeugt WebVTT, SRT und Caption-Timelines auf Basis der gemessenen Audiodauer.
 
-Die Quelle ist bewusst providerneutral und lokal: `espeak-ng` erzeugt die Teststimme innerhalb des GitHub-Runners. Es findet kein Upload an einen Sprachdienst statt und es wird keine reale Person imitiert.
+Wichtig: `espeak-ng` ist **ausschließlich eine lokale CI-/Contract-Fixture**. Diese Stimme ist **nicht** der Voxy-Stimm-Canon und darf keinen Human-Final-Voice-Stand ersetzen. Character-, Visual- und Voice-Canon bleiben getrennt von diesem technischen Caption-/Audiovertrag.
 
-## Reale Quelldatei
+## Reale Quelldateien
 
-Committed Input:
+Committed Inputs:
 
 - `apps/web/public/brands/voxy/fixtures/voice-caption-source-de.txt`
 - `apps/web/public/brands/voxy/fixtures/voice-caption-segments-de.json`
+- `apps/web/public/brands/voxy/fixtures/voice-caption-source-en.txt`
+- `apps/web/public/brands/voxy/fixtures/voice-caption-segments-en.json`
 
-Workflow-Ausgabe:
+Der Workflow erzeugt daraus lokale DE-/EN-WAVs unter `artifacts/voxy-voice-caption/<lang>/`.
 
-- `artifacts/voxy-voice-caption/source-voice-de.wav`
+Vor jeder Evidence-Erzeugung wird fail-closed geprüft, dass das committed gesprochene Transkript und die zusammengesetzten Caption-Segmente textlich übereinstimmen. Bei Drift endet der Lauf mit `spoken_transcript_caption_mismatch`; eine scheinbar gültige Caption-Evidence mit abweichendem gesprochenem Text darf nicht entstehen.
 
-Die Quelldatei wird vor jeder weiteren Verarbeitung mit `ffprobe` und `ffmpeg ebur128=peak=true` untersucht. Dauer, Codec, Sample Rate, Kanäle, integrierte Lautheit, True Peak und SHA-256 werden im Manifest gespeichert.
+## Exact-Head-Bindung
+
+Auf Pull Requests checkt `actions/checkout` explizit `VOXY_EXACT_HEAD_SHA` aus. Anschließend muss `git rev-parse HEAD` exakt diesem SHA entsprechen. Erst danach laufen Contract-Test, Audioerzeugung, Normalisierung und Evidence-Manifest.
+
+Damit darf ein synthetischer Pull-Request-Merge-Commit nicht mehr als Evidence ausgeführt und anschließend fälschlich unter dem PR-Head-SHA protokolliert werden.
 
 ## Tatsächliche Normalisierung
 
-Ausführung:
+Pro Sprache wird die lokale WAV real normalisiert:
 
 ```bash
-ffmpeg -i source-voice-de.wav \
+ffmpeg -i source-voice-<lang>.wav \
   -af loudnorm=I=-16:TP=-1.5:LRA=7 \
-  -ar 48000 -ac 1 normalized-voice-de.wav
+  -ar 48000 -ac 1 normalized-voice-<lang>.wav
 ```
 
-Danach wird die normalisierte Datei erneut unabhängig gemessen. Der Workflow schlägt fehl, wenn:
+Der Workflow schlägt fehl, wenn:
 
 - integrierte Lautheit nicht zwischen `-17` und `-15 LUFS` liegt,
 - True Peak über `-1 dBFS` liegt,
 - die Normalisierung die Dauer um mehr als 120 ms verändert.
 
-## Reale Caption-Artefakte
+## Caption-Artefakte
 
-Die gemessene Dauer der normalisierten WAV-Datei wird auf die committed Segmenttexte verteilt; der letzte Cue endet exakt auf der gemessenen Audiodauer. WebVTT und SRT verwenden dieselben IDs und Zeiten.
+WebVTT und SRT werden aus derselben Segmenttimeline erzeugt. Stable Segment-IDs bleiben in Timeline/WebVTT-Metadaten; SRT enthält nur Sequenznummer, Timing und den tatsächlich sichtbaren Untertiteltext. Interne IDs wie `caption-opening` dürfen nicht als Zuschauertext erscheinen.
+
+Der Runtime-Contract teilt zu lange Scene-Copy deterministisch in zeitlich lückenlose Caption-Segmente, sodass ein von `buildVoxyVoiceCaptionFixturePlan()` erzeugter Plan die formatabhängigen Safe-Area-Limits selbst erfüllt. Callers dürfen keinen nachträglichen Truncate-Hack benötigen.
 
 CI-Artifact: `voxy-voice-caption-<exact-head-sha>`
 
-Exakte Pfade:
+Pro Sprache werden u. a. erzeugt:
 
-- `artifacts/voxy-voice-caption/source-voice-de.wav`
-- `artifacts/voxy-voice-caption/normalized-voice-de.wav`
-- `artifacts/voxy-voice-caption/voice-caption-de.vtt`
-- `artifacts/voxy-voice-caption/voice-caption-de.srt`
-- `artifacts/voxy-voice-caption/caption-timeline.json`
-- `artifacts/voxy-voice-caption/evidence-manifest.json`
+- `source-voice-<lang>.wav`
+- `normalized-voice-<lang>.wav`
+- `voice-caption-<lang>.vtt`
+- `voice-caption-<lang>.srt`
+- `caption-timeline-<lang>.json`
+- `evidence-manifest-<lang>.json`
 
-Das Manifest bindet Source-Inspection, Normalized-WAV, VTT, SRT und Timeline über Exact-Head-SHA und SHA-256 an dieselbe Revision.
-
-## Reproduktion
-
-```bash
-mkdir -p artifacts/voxy-voice-caption
-espeak-ng -v de -s 148 -p 48 -a 165 \
-  -f apps/web/public/brands/voxy/fixtures/voice-caption-source-de.txt \
-  -w artifacts/voxy-voice-caption/source-voice-de.wav
-VOXY_EVIDENCE_COMMIT_SHA=$(git rev-parse HEAD) \
-  pnpm -w exec tsx apps/web/scripts/generate-voxy-voice-caption-evidence.ts \
-  --source=artifacts/voxy-voice-caption/source-voice-de.wav \
-  --segments=apps/web/public/brands/voxy/fixtures/voice-caption-segments-de.json \
-  --output=artifacts/voxy-voice-caption
-```
+Das Manifest bindet Transcript-Hash, Source-Audio, Normalized-WAV, VTT, SRT und Timeline über Exact-Head-SHA und SHA-256 an dieselbe Revision.
 
 ## Human Review
 
-Die Evidence endet mit `humanReview.status = pending`. Ricky kann die Source- und Normalized-WAV anhören und VTT/SRT gegen die Audioausgabe prüfen. Der Agent setzt keine menschliche Freigabe.
+Die technische Evidence endet weiterhin mit `humanReview.status = pending`. Der Agent setzt keine menschliche Freigabe. Diese Fixture prüft Audio-/Caption-Integrität; sie definiert keinen neuen Voxy-Character-, Visual- oder Voice-Canon.
 
 ## Grenzen
 
 - kein Lip-Sync
 - keine Viseme-Generierung
 - keine Stimmimitation einer realen Person
+- lokale eSpeak-Teststimme ist kein Voxy-Stimm-Canon
 - kein externer Voice-Provider
 - kein Upload, Scheduling oder Publishing
 - keine Selbstfreigabe
 
 ## Abschlussnachweis
 
-Exact-Head-SHA, Workflow-Run, Artifact-ID, Messwerte, Hashes und Checkresultate werden nach dem finalen CI-Lauf als PR-Kommentar dokumentiert, ohne den geprüften Head erneut zu verändern.
+Exact-Head-SHA, Workflow-Run, Artifact-ID, Messwerte, Hashes und Checkresultate werden nach dem finalen CI-Lauf als PR-Evidence dokumentiert. Vor Merge muss die kanonische `OpenTasks.md` den Task aus `codex_ready` in den belegten Review-/Gate-Status ziehen; die Synchronisierung erfolgt ausschließlich über den bestehenden Single-Writer-Vertrag.
