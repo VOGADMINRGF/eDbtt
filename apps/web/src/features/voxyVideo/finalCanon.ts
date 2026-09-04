@@ -2,7 +2,7 @@ export const VOXY_FINAL_CANON = {
   schemaVersion: "voxy-final-canon-v3.10.5",
   canonId: "VOXY-V3.10.5-HUMAN-FINAL",
   sourcePullRequest: 624,
-  exactRenderHeadSha: "00ff10e80dc8985da1df64de8e9a6df23b9d13e5",
+  referenceRenderHeadSha: "00ff10e80dc8985da1df64de8e9a6df23b9d13e5",
   humanAcceptanceManifestHeadSha: "c94edbcf5135ee717ac64d9da5db05c09e076c22",
   mainSyncClosingHeadSha: "81162e1971b3028f0dd5de01f1d16e53e4254270",
   governanceDocument:
@@ -42,8 +42,16 @@ export const VOXY_FINAL_CANON = {
 export type VoxyFinalCanonBinding = Readonly<{
   canonId: string;
   sourcePullRequest: number;
-  exactRenderHeadSha: string;
+  referenceRenderHeadSha: string;
 }>;
+
+export function finalVoxyCanonBinding(): VoxyFinalCanonBinding {
+  return {
+    canonId: VOXY_FINAL_CANON.canonId,
+    sourcePullRequest: VOXY_FINAL_CANON.sourcePullRequest,
+    referenceRenderHeadSha: VOXY_FINAL_CANON.referenceRenderHeadSha,
+  };
+}
 
 export function validateVoxyFinalCanonBinding(
   binding: VoxyFinalCanonBinding | null | undefined,
@@ -57,12 +65,12 @@ export function validateVoxyFinalCanonBinding(
   if (binding.sourcePullRequest !== VOXY_FINAL_CANON.sourcePullRequest) {
     errors.push("voxy_final_canon_pr_mismatch");
   }
-  if (binding.exactRenderHeadSha !== VOXY_FINAL_CANON.exactRenderHeadSha) {
-    errors.push("voxy_final_canon_render_head_mismatch");
+  if (binding.referenceRenderHeadSha !== VOXY_FINAL_CANON.referenceRenderHeadSha) {
+    errors.push("voxy_final_canon_reference_head_mismatch");
   }
   if (
-    VOXY_FINAL_CANON.policy.supersededCharacterReferencePullRequests.includes(
-      binding.sourcePullRequest as 589,
+    VOXY_FINAL_CANON.policy.supersededCharacterReferencePullRequests.some(
+      (pr) => pr === binding.sourcePullRequest,
     )
   ) {
     errors.push("voxy_legacy_character_reference_forbidden");
