@@ -28,7 +28,7 @@ describe("/create Voxy and support recovery contract", () => {
     ).toBe("Hallo Nachbar,");
   });
 
-  it("renders the truthful ticket recovery message without another save action", () => {
+  it("renders the truthful technical-case recovery message without another save action", () => {
     const result = buildCreateTechnicalFollowup({
       text: "Vor der Schule fehlen sichere Querungen.",
       analysisState: "ai_failed",
@@ -67,10 +67,10 @@ describe("/create Voxy and support recovery contract", () => {
     );
 
     expect(html).toContain("Voxy");
-    expect(html).toContain("Deinen Beitrag habe ich gespeichert.");
-    expect(html).toContain("Ich habe die Meldung an unser IT-Team übergeben.");
+    expect(html).toContain("Ich konnte die automatische Einordnung gerade nicht abschließen.");
+    expect(html).toContain("Ich habe dazu einen technischen Fall erfasst.");
     expect(html).toContain("EDB-20260729-ABC12345");
-    expect(html).toContain("Ticket ansehen");
+    expect(html).toContain("Technischen Fall ansehen");
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('aria-atomic="true"');
@@ -124,10 +124,10 @@ describe("/create Voxy and support recovery contract", () => {
     expect(html).toContain("1 · Contribution received");
     expect(html).toContain(">You<");
     expect(html).toContain("Analysis blocked");
-    expect(html).toContain("Your contribution is saved.");
-    expect(html).toContain("I handed the incident over to our IT team.");
+    expect(html).toContain("I couldn’t complete the automatic classification just now.");
+    expect(html).toContain("I created a technical case for this incident.");
     expect(html).toContain(longFailureMessage.trim());
-    expect(html).toContain("View ticket");
+    expect(html).toContain("View technical case");
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('tabindex="-1"');
@@ -177,8 +177,8 @@ describe("/create Voxy and support recovery contract", () => {
     expect(html).not.toContain('aria-live="assertive"');
     expect(html).toContain('tabindex="-1"');
     expect(html).toContain("corr-english-failed");
-    expect(html).not.toContain("I handed the incident over to our IT team.");
-    expect(html).not.toContain("Your ticket");
+    expect(html).not.toContain("I created a technical case for this incident.");
+    expect(html).not.toContain("Technical case:");
     expect(html).not.toContain("Fehlerreferenz");
   });
 
