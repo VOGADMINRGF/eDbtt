@@ -153,6 +153,26 @@ function splitTime(ms: number): {
   };
 }
 
+function splitCaptionText(text: string, maxCharacters: number): string[] {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return [];
+  if (normalized.length <= maxCharacters) return [normalized];
+
+  const chunks: string[] = [];
+  let current = "";
+  for (const word of normalized.split(" ")) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxCharacters) {
+      current = candidate;
+      continue;
+    }
+    if (current) chunks.push(current);
+    current = word;
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
 export function formatVoxyWebVttTimestamp(ms: number): string {
   const time = splitTime(ms);
   return `${pad(time.hours, 2)}:${pad(time.minutes, 2)}:${pad(time.seconds, 2)}.${pad(time.milliseconds, 3)}`;
@@ -173,13 +193,27 @@ export function buildVoxyVoiceCaptionFixturePlan(input: {
   reviewedAt?: string | null;
   translationReviewed?: boolean;
 }): VoxyVoiceCaptionFixturePlan {
-  const segments = input.characterPlan.scenes.map((scene) => ({
-    id: `caption-${scene.id}`,
-    startMs: scene.startMs,
-    endMs: scene.endMs,
-    text: [scene.headline, scene.detail].filter(Boolean).join(" — "),
-    sourceSceneId: scene.id,
-  }));
+  const safeArea = getVoxyCaptionSafeArea(input.characterPlan.format);
+  const maxCharacters = safeArea.maxCharactersPerLine * safeArea.maxLines;
+  const segments = input.characterPlan.scenes.flatMap((scene) => {
+    const text = [scene.headline, scene.detail].filter(Boolean).join(" — ");
+    const chunks = splitCaptionText(text, maxCharacters);
+    const durationMs = scene.endMs - scene.startMs;
+
+    return chunks.map((chunk, index) => ({
+      id: `caption-${scene.id}${chunks.length > 1 ? `-${index + 1}` : ""}`,
+      startMs:
+        index === 0
+          ? scene.startMs
+          : scene.startMs + Math.round((durationMs * index) / chunks.length),
+      endMs:
+        index === chunks.length - 1
+          ? scene.endMs
+          : scene.startMs + Math.round((durationMs * (index + 1)) / chunks.length),
+      text: chunk,
+      sourceSceneId: scene.id,
+    }));
+  });
 
   return {
     id: `voxy-voice-caption-${input.briefingId}-${input.characterPlan.format}`,
@@ -193,7 +227,7 @@ export function buildVoxyVoiceCaptionFixturePlan(input: {
     translationReviewed: input.translationReviewed ?? false,
     audio: input.audio,
     segments,
-    safeArea: getVoxyCaptionSafeArea(input.characterPlan.format),
+    safeArea,
     pronunciationDictionary: VOXY_PRONUNCIATION_DICTIONARY,
     review: {
       required: true,
@@ -217,7 +251,7 @@ export function renderVoxyVoiceCaptionArtifacts(
 
   const srtEntries = plan.segments.map(
     (segment, index) =>
-      `${index + 1}\n${formatVoxySrtTimestamp(segment.startMs)} --> ${formatVoxySrtTimestamp(segment.endMs)}\n${segment.id}\n${segment.text}`,
+      `${index + 1}\n${formatVoxySrtTimestamp(segment.startMs)} --> ${formatVoxySrtTimestamp(segment.endMs)}\n${segment.text}`,
   );
 
   return {
