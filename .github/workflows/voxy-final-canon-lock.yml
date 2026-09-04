@@ -27,6 +27,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
 
+      - name: Reject superseded active visual workflow bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -n -E \
+            'pr/voxy-animatable-master-asset-01|VOXY_DETECTOR_HEAD_SHA|voxy-first-explainer-video-v2' \
+            .github/workflows; then
+            echo "Superseded pre-V3.10.5 Voxy workflow binding detected." >&2
+            exit 1
+          fi
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
