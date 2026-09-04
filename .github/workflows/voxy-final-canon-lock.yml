@@ -9,6 +9,16 @@ on:
       - "apps/web/public/brands/voxy/**"
       - ".github/workflows/voxy-**"
       - "docs/E150/VOXY-**"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/web/src/features/voxyVideo/**"
+      - "apps/web/scripts/render-voxy-**"
+      - "apps/web/tests/voxy-**"
+      - "apps/web/public/brands/voxy/**"
+      - ".github/workflows/voxy-**"
+      - "docs/E150/VOXY-**"
   workflow_dispatch:
 
 permissions:
