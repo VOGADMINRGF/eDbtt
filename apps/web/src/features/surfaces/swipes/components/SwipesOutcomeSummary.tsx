@@ -31,9 +31,9 @@ function pickQuestionsToRevisit(history: DecisionHistoryItem[]) {
 function buildReflectionHeadline(total: number, topCategories: Array<{ category: string; count: number }>) {
   const dominant = topCategories[0];
   if (dominant && dominant.count >= 3 && dominant.count / total >= 0.5) {
-    return `Du hast dir gerade ein Bild zu ${dominant.category} gemacht.`;
+    return `${dominant.category} ist bisher dein stärkster Schwerpunkt.`;
   }
-  return `Du hast zu ${total} Fragen Stellung genommen.`;
+  return `Du hast ${total} Fragen eingeordnet.`;
 }
 
 export function SwipesOutcomeSummary({ stats, history, votesHref = "/abstimmungen" }: SwipesOutcomeSummaryProps) {
@@ -43,39 +43,56 @@ export function SwipesOutcomeSummary({ stats, history, votesHref = "/abstimmunge
   const topCategories = pickTopCategories(history);
   const revisit = pickQuestionsToRevisit(history);
   const headline = buildReflectionHeadline(total, topCategories);
+  const dominant = topCategories[0];
 
   return (
-    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm md:p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Dein Zwischenstand</p>
-      <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">{headline}</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">Du kannst direkt weitermachen oder dir einzelne Fragen noch einmal ansehen.</p>
+    <>
+      <a
+        href="#swipes-outcome-summary"
+        aria-label={`Deinen Zwischenstand nach ${total} Antworten ansehen`}
+        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+9.2rem)] z-20 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-cyan-400/35 bg-[rgb(var(--card))]/95 px-3.5 py-2 text-xs shadow-[0_12px_32px_rgba(2,6,23,0.22)] backdrop-blur md:hidden"
+      >
+        <span className="font-semibold text-[rgb(var(--fg))]">Dein Zwischenstand</span>
+        <span className="min-w-0 truncate text-right text-[rgb(var(--muted))]">
+          {total} Antworten{dominant ? ` · ${dominant.category}` : ""}
+        </span>
+      </a>
 
-      {topCategories.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
-          {topCategories.map((item) => <span key={item.category} className="vog-chip">{item.category} · {item.count}</span>)}
+      <section
+        id="swipes-outcome-summary"
+        className="scroll-mt-4 rounded-3xl border border-cyan-300/40 bg-[rgb(var(--card))] p-4 shadow-sm md:p-5"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-600">Dein Zwischenstand</p>
+        <h2 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">{headline}</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[rgb(var(--muted))]">
+          Dein eigenes Bild bleibt im Mittelpunkt. Das Meinungsbild anderer siehst du erst nach deiner Entscheidung.
+        </p>
+
+        {topCategories.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            {topCategories.map((item) => <span key={item.category} className="vog-chip">{item.category} · {item.count}</span>)}
+          </div>
+        ) : null}
+
+        {revisit.length > 0 ? (
+          <details className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Entscheidungen noch einmal ansehen</summary>
+            <ul className="mt-3 space-y-2 text-sm">
+              {revisit.map((item) => (
+                <li key={`${item.id}-${item.decision}`} className="flex items-start justify-between gap-3">
+                  <span className="line-clamp-2 text-[rgb(var(--fg))]">{item.title}</span>
+                  <Link href={item.detailHref} className="vog-chip shrink-0 text-[10px]">Details</Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+
+        <div className="mt-4">
+          <Link href={votesHref} className="vog-chip vog-chip--active">Meinungsbild ansehen</Link>
         </div>
-      ) : null}
-
-      {revisit.length > 0 ? (
-        <details className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Fragen noch einmal ansehen</summary>
-          <ul className="mt-3 space-y-2 text-sm">
-            {revisit.map((item) => (
-              <li key={`${item.id}-${item.decision}`} className="flex items-start justify-between gap-3">
-                <span className="line-clamp-2 text-[rgb(var(--fg))]">{item.title}</span>
-                <Link href={item.detailHref} className="vog-chip shrink-0 text-[10px]">Mehr erfahren</Link>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <a href="#swipe-card" className="vog-chip vog-chip--active">Weiter</a>
-        <Link href={votesHref} className="vog-chip">Meinungsbild ansehen</Link>
-      </div>
-      <p className="mt-3 text-xs leading-5 text-[rgb(var(--muted))]">Das Meinungsbild anderer zeigen wir bewusst erst nach deiner eigenen Entscheidung.</p>
-    </section>
+      </section>
+    </>
   );
 }
 
