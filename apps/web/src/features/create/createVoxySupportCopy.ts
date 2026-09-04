@@ -71,7 +71,7 @@ export function getCreateVoxyCopy(
     intro:
       "Was möchtest du einbringen? Schreib einfach frei los. Ich ordne deinen Beitrag, erkenne die wichtigsten Themen und zeige dir passende nächste Schritte.",
     noAutoPublish: "Kein Auto-Publish",
-    retry: "Erneut einordnen",
+    retry: "Erneut versuchen",
     viewTicket: "Technischen Fall ansehen",
     continueLater: "Später fortsetzen",
     savedFailureTitle: "Dein Beitrag ist angekommen.",
