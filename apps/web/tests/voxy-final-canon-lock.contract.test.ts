@@ -59,11 +59,14 @@ describe("VOXY final canon lock — V3.10.5 / PR #624", () => {
     expect(errors).toContain("voxy_legacy_character_reference_forbidden");
   });
 
-  it("04 keeps the superseded PR #589 explainer workflow retired", () => {
-    const legacyWorkflow = path.resolve(
-      import.meta.dirname,
-      "../../.github/workflows/voxy-first-explainer-video.yml",
-    );
-    expect(existsSync(legacyWorkflow)).toBe(false);
+  it("04 keeps superseded pre-V3.10.5 visual render workflows retired", () => {
+    const workflowRoot = path.resolve(import.meta.dirname, "../../.github/workflows");
+    for (const fileName of [
+      "voxy-first-explainer-video.yml",
+      "voxy-animatable-rig-evidence.yml",
+      "voxy-character-motion-fixture.yml",
+    ]) {
+      expect(existsSync(path.resolve(workflowRoot, fileName))).toBe(false);
+    }
   });
 });
