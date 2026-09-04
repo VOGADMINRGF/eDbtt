@@ -210,7 +210,7 @@ describe("/create Voxy and support recovery contract", () => {
       />,
     );
 
-    expect(html).toContain("The analysis could not be completed.");
+    expect(html).toContain("I couldn’t complete the automatic classification just now.");
     expect(html).not.toContain("overloaded_error");
     expect(html).not.toContain("req_secret_provider_trace");
   });
