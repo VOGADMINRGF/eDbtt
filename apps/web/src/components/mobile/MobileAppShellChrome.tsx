@@ -106,31 +106,40 @@ export function MobileAppShellChrome() {
   if (!policy.bottomNavEnabled) return null;
 
   return (
-    <nav
-      aria-label="Mobile Hauptnavigation"
-      data-mobile-app-bottom-nav="true"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.55rem)] backdrop-blur md:hidden"
-    >
-      <ul className="mx-auto grid max-w-md grid-cols-5 gap-1">
-        {MOBILE_NAV_ITEMS.map((item) => {
-          const active = item.isActive(pathname);
-          return (
-            <li key={item.id}>
-              <Link
-                href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[11px] font-semibold ${
-                  active
-                    ? "bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] text-[rgb(var(--fg))]"
-                    : "text-[rgb(var(--muted))]"
-                }`}
-              >
-                {item.icon(active)}
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+    <>
+      <style>{`
+        @media (max-width: 767px) {
+          body.vog-mobile-app-shell-nav [data-site-header="true"] {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <nav
+        aria-label="Mobile Hauptnavigation"
+        data-mobile-app-bottom-nav="true"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.55rem)] backdrop-blur md:hidden"
+      >
+        <ul className="mx-auto grid max-w-md grid-cols-5 gap-1">
+          {MOBILE_NAV_ITEMS.map((item) => {
+            const active = item.isActive(pathname);
+            return (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  className={`flex flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[11px] font-semibold ${
+                    active
+                      ? "bg-[color-mix(in_oklab,rgb(var(--card))_82%,rgb(var(--bg))_18%)] text-[rgb(var(--fg))]"
+                      : "text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  {item.icon(active)}
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
   );
 }
