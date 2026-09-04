@@ -20,7 +20,11 @@ import {
 } from "@/features/create/participationSpaceRuntime";
 import type { PersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import { evaluatePublicQuestionGeneralization } from "@/features/create/safety/publicQuestionGeneralization";
-import { persistQuestionGuardReviewFailClosed } from "@/features/create/safety/questionGuardReviewPersistence";
+import {
+  holdQuestionGuardForSerializedReview,
+  persistQuestionGuardReviewFailClosed,
+} from "@/features/create/safety/questionGuardReviewPersistence";
+import { createInMemoryParticipationSpaceRuntimeRepository } from "@/features/create/participationSpaceRuntimeServer";
 
 function buildHandoffRecord(): PersistedCreateHandoffRecord {
   return {
@@ -331,33 +335,51 @@ describe("participation space publish workflow", () => {
         "human-review:participation-question-guard-1",
       ],
     };
+    const reviewReservation = {
+      ...reviewed,
+      questionGuard: holdQuestionGuardForSerializedReview(record.questionGuard),
+    };
+    const persistRecord = async (
+      nextRecord: ParticipationSpacePublishRecord,
+    ) => {
+      persistedRecord = {
+        ...nextRecord,
+        version: persistedRecord.version + 1,
+      };
+      return persistedRecord;
+    };
 
     await expect(
       persistQuestionGuardReviewFailClosed({
-        reviewedRecord: reviewed,
+        reviewReservation,
         auditEntry,
         persistAudit: async () => {
           throw new Error("simulated_audit_persistence_failure");
         },
-        persistRecord: async (nextRecord) => {
-          persistedRecord = nextRecord;
-        },
+        persistRecord,
+        buildReleasedRecord: (reservation) => ({
+          ...reviewed,
+          version: reservation.version,
+        }),
       }),
     ).rejects.toThrow("simulated_audit_persistence_failure");
     expect(persistedRecord.questionGuard.releaseState).toBe("review_required");
-    expect(persistedRecord.approvedForActivationAt).toBe(
-      "2026-06-30T09:05:00.000Z",
-    );
+    expect(persistedRecord.approvedForActivationAt).toBeNull();
 
     await persistQuestionGuardReviewFailClosed({
-      reviewedRecord: reviewed,
+      reviewReservation: {
+        ...reviewReservation,
+        version: persistedRecord.version,
+      },
       auditEntry,
       persistAudit: async (entry) => {
         persistedAudit = entry;
       },
-      persistRecord: async (nextRecord) => {
-        persistedRecord = nextRecord;
-      },
+      persistRecord,
+      buildReleasedRecord: (reservation) => ({
+        ...reviewed,
+        version: reservation.version,
+      }),
     });
     expect(persistedRecord.questionGuard.releaseState).toBe("draft_allowed");
     expect(persistedAudit).toEqual(auditEntry);
@@ -400,6 +422,178 @@ describe("participation space publish workflow", () => {
     );
 
     expect(published.ok).toBe(true);
+  });
+
+  it("serializes guard review against stale approval, activation, publication and competing reviews", async () => {
+    const review = (record: ParticipationSpacePublishRecord, evidenceRef: string) =>
+      reviewParticipationSpaceQuestionGuard(record, {
+        actorExtractionSource: "human_review",
+        evidenceRefs: [evidenceRef],
+        reviewedAt: "2026-06-30T10:00:00.000Z",
+      });
+
+    const approvalRepo = createInMemoryParticipationSpaceRuntimeRepository();
+    const approvalBase = buildPublishRecord();
+    await approvalRepo.savePublishRecord(approvalBase);
+    const staleApproval = approveParticipationSpaceActivation(approvalBase, {
+      actorUserId: "admin-stale",
+      reason: "Stale Aktivierungsfreigabe.",
+      origin: "admin_review",
+      approvedAt: "2026-06-30T10:01:00.000Z",
+    });
+    const reviewedApprovalBase = await approvalRepo.compareAndSwapPublishRecord({
+      record: review(approvalBase, "human-review:approval-race"),
+      expectedVersion: approvalBase.version,
+    });
+    await expect(
+      approvalRepo.compareAndSwapPublishRecord({
+        record: staleApproval,
+        expectedVersion: approvalBase.version,
+      }),
+    ).rejects.toThrow("participation_space_publish_state_conflict");
+    expect(reviewedApprovalBase.approvedForActivationAt).toBeNull();
+
+    const activationRepo = createInMemoryParticipationSpaceRuntimeRepository();
+    const activationBase = buildPublishRecord({
+      status: "approved_for_activation",
+      approvedForActivationAt: "2026-06-30T09:20:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+    });
+    await activationRepo.savePublishRecord(activationBase);
+    const staleActivation = activateParticipationSpaceAfterReview(
+      activationBase,
+      {
+        actorUserId: "admin-stale",
+        reason: "Stale Aktivierung.",
+        origin: "participation_space_publish_workflow",
+        approvedAt: "2026-06-30T10:02:00.000Z",
+      },
+    );
+    expect(staleActivation.ok).toBe(true);
+    await activationRepo.compareAndSwapPublishRecord({
+      record: review(activationBase, "human-review:activation-race"),
+      expectedVersion: activationBase.version,
+    });
+    if (!staleActivation.ok) return;
+    await expect(
+      activationRepo.compareAndSwapPublishRecord({
+        record: staleActivation.record,
+        expectedVersion: activationBase.version,
+      }),
+    ).rejects.toThrow("participation_space_publish_state_conflict");
+    expect(
+      (await activationRepo.getPublishRecord(activationBase.sourceHandoffId))
+        ?.status,
+    ).toBe("draft");
+
+    const publishRepo = createInMemoryParticipationSpaceRuntimeRepository();
+    const publishBase = buildPublishRecord({
+      status: "approved_for_publication",
+      visibility: "ready_for_publication_review",
+      approvedForActivationAt: "2026-06-30T09:20:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+      approvedForPublicationAt: "2026-06-30T09:40:00.000Z",
+      approvedForPublicationBy: "admin-before-review",
+    });
+    await publishRepo.savePublishRecord(publishBase);
+    const stalePublish = publishParticipationSpaceAfterReview(publishBase, {
+      actorUserId: "admin-stale",
+      reason: "Stale Veröffentlichung.",
+      origin: "participation_space_publish_workflow",
+      approvedAt: "2026-06-30T10:03:00.000Z",
+    });
+    expect(stalePublish.ok).toBe(true);
+    await publishRepo.compareAndSwapPublishRecord({
+      record: review(publishBase, "human-review:publish-race"),
+      expectedVersion: publishBase.version,
+    });
+    if (!stalePublish.ok) return;
+    await expect(
+      publishRepo.compareAndSwapPublishRecord({
+        record: stalePublish.record,
+        expectedVersion: publishBase.version,
+      }),
+    ).rejects.toThrow("participation_space_publish_state_conflict");
+    expect(
+      (await publishRepo.getPublishRecord(publishBase.sourceHandoffId))?.visibility,
+    ).toBe("editorial_workspace");
+
+    const competingRepo = createInMemoryParticipationSpaceRuntimeRepository();
+    const competingBase = buildPublishRecord();
+    await competingRepo.savePublishRecord(competingBase);
+    await competingRepo.compareAndSwapPublishRecord({
+      record: review(competingBase, "human-review:first"),
+      expectedVersion: competingBase.version,
+    });
+    await expect(
+      competingRepo.compareAndSwapPublishRecord({
+        record: review(competingBase, "human-review:second"),
+        expectedVersion: competingBase.version,
+      }),
+    ).rejects.toThrow("participation_space_publish_state_conflict");
+
+    const normalRepo = createInMemoryParticipationSpaceRuntimeRepository();
+    const reviewRequired = buildPublishRecord({
+      questionGuard: buildParticipationSpaceRuntimeDraftFromHandoff(
+        buildHandoffRecord(),
+      ).questionGuard,
+    });
+    await normalRepo.savePublishRecord(reviewRequired);
+    const currentAfterReview = await normalRepo.compareAndSwapPublishRecord({
+      record: review(reviewRequired, "human-review:normal-path"),
+      expectedVersion: reviewRequired.version,
+    });
+    const currentApproval = await normalRepo.compareAndSwapPublishRecord({
+      record: approveParticipationSpaceActivation(currentAfterReview, {
+        actorUserId: "admin-current",
+        reason: "Neue Freigabe.",
+        origin: "admin_review",
+        approvedAt: "2026-06-30T10:10:00.000Z",
+      }),
+      expectedVersion: currentAfterReview.version,
+    });
+    const currentActivation = activateParticipationSpaceAfterReview(
+      currentApproval,
+      {
+        actorUserId: "admin-current",
+        reason: "Aktivieren.",
+        origin: "participation_space_publish_workflow",
+        approvedAt: "2026-06-30T10:11:00.000Z",
+      },
+    );
+    expect(currentActivation.ok).toBe(true);
+    if (!currentActivation.ok) return;
+    const activated = await normalRepo.compareAndSwapPublishRecord({
+      record: currentActivation.record,
+      expectedVersion: currentApproval.version,
+    });
+    const publicationApproval = await normalRepo.compareAndSwapPublishRecord({
+      record: approveParticipationSpacePublication(activated, {
+        actorUserId: "admin-current",
+        reason: "Neue Publikationsfreigabe.",
+        origin: "admin_review",
+        approvedAt: "2026-06-30T10:12:00.000Z",
+      }),
+      expectedVersion: activated.version,
+    });
+    const publication = publishParticipationSpaceAfterReview(
+      publicationApproval,
+      {
+        actorUserId: "admin-current",
+        reason: "Veröffentlichen.",
+        origin: "participation_space_publish_workflow",
+        approvedAt: "2026-06-30T10:13:00.000Z",
+      },
+    );
+    expect(publication.ok).toBe(true);
+    if (publication.ok) {
+      const published = await normalRepo.compareAndSwapPublishRecord({
+        record: publication.record,
+        expectedVersion: publicationApproval.version,
+      });
+      expect(published.status).toBe("published");
+      expect(published.version).toBe(5);
+    }
   });
 
   it("keeps created participation spaces non-public until explicit publication", () => {

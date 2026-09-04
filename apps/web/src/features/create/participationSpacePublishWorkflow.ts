@@ -13,6 +13,7 @@ import {
   evaluatePublicQuestionGeneralization,
   type PublicQuestionGeneralizationResult,
 } from "@/features/create/safety/publicQuestionGeneralization";
+import { normalizeWorkflowRecordVersion } from "@/features/create/safety/questionGuardReviewPersistence";
 
 export const PARTICIPATION_SPACE_PUBLISH_STATUSES = [
   "draft",
@@ -131,6 +132,7 @@ export type ParticipationSpacePublishAuditEntry = {
 };
 
 export type ParticipationSpacePublishDraft = {
+  version: number;
   id: string;
   sourceHandoffId: string;
   sourceReviewItemId: string;
@@ -193,6 +195,7 @@ type PublishPhase =
   | "publication";
 
 type BuildDraftInput = {
+  version?: number;
   runtimeRecord: ParticipationSpaceRuntimeRecord;
   createdSpace: {
     id: string | null;
@@ -318,6 +321,7 @@ export function buildParticipationSpacePublishDraft(
       },
     });
   const draft: ParticipationSpacePublishDraft = {
+    version: normalizeWorkflowRecordVersion(input.version),
     id: `participation-space-publish:${input.runtimeRecord.sourceHandoffId}`,
     sourceHandoffId: input.runtimeRecord.sourceHandoffId,
     sourceReviewItemId: input.runtimeRecord.sourceReviewItemId,

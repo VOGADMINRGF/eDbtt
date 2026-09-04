@@ -7,6 +7,7 @@ import {
   approveAnlassraumActivation as approveAnlassraumActivationRecord,
   approveAnlassraumPublication as approveAnlassraumPublicationRecord,
   buildAnlassraumActivationDraft,
+  getAnlassraumActivationBlockers,
   publishAnlassraumAfterReview,
   rejectAnlassraumActivation as rejectAnlassraumActivationRecord,
   rejectAnlassraumPublication as rejectAnlassraumPublicationRecord,
@@ -21,7 +22,11 @@ import {
   syncAnlassraumRuntimeVisibility,
 } from "@/features/create/anlassraumRuntimeServer";
 import type { AnlassraumRuntimeRecord } from "@/features/create/anlassraumRuntime";
-import { persistQuestionGuardReviewFailClosed } from "@/features/create/safety/questionGuardReviewPersistence";
+import {
+  holdQuestionGuardForSerializedReview,
+  normalizeWorkflowRecordVersion,
+  persistQuestionGuardReviewFailClosed,
+} from "@/features/create/safety/questionGuardReviewPersistence";
 
 export type AnlassraumActivationWorkflowPersistenceState = {
   mode: "persistent_primary" | "in_memory_fallback";
@@ -35,9 +40,13 @@ export type AnlassraumActivationWorkflowPersistenceState = {
   publicRouteRuntime: "runtime_wired";
 };
 
-type AnlassraumActivationWorkflowRepository = {
+export type AnlassraumActivationWorkflowRepository = {
   get(sourceHandoffId: string): Promise<AnlassraumActivationRecord | null>;
   save(record: AnlassraumActivationRecord): Promise<AnlassraumActivationRecord>;
+  compareAndSwap(input: {
+    record: AnlassraumActivationRecord;
+    expectedVersion: number;
+  }): Promise<AnlassraumActivationRecord>;
   list(limit?: number): Promise<AnlassraumActivationRecord[]>;
   insertAudit(
     entry: AnlassraumActivationAuditEntry,
@@ -116,7 +125,7 @@ function auditIdFor(input: {
   ).slice(0, 22)}`;
 }
 
-function createInMemoryAnlassraumActivationWorkflowRepository(): AnlassraumActivationWorkflowRepository {
+export function createInMemoryAnlassraumActivationWorkflowRepository(): AnlassraumActivationWorkflowRepository {
   const records = new Map<string, AnlassraumActivationRecord>();
   const audits = new Map<string, AnlassraumActivationAuditEntry>();
   return {
@@ -127,6 +136,22 @@ function createInMemoryAnlassraumActivationWorkflowRepository(): AnlassraumActiv
     async save(record) {
       records.set(record.sourceHandoffId, clone(record));
       return clone(record);
+    },
+    async compareAndSwap(input) {
+      const current = records.get(input.record.sourceHandoffId);
+      const currentVersion = normalizeWorkflowRecordVersion(current?.version);
+      if (
+        (current && currentVersion !== input.expectedVersion) ||
+        (!current && input.expectedVersion !== 0)
+      ) {
+        throw new Error("anlassraum_activation_state_conflict");
+      }
+      const nextRecord = {
+        ...input.record,
+        version: input.expectedVersion + 1,
+      };
+      records.set(nextRecord.sourceHandoffId, clone(nextRecord));
+      return clone(nextRecord);
     },
     async list(limit) {
       const list = Array.from(records.values()).sort((left, right) =>
@@ -185,6 +210,62 @@ function createMongoAnlassraumActivationWorkflowRepository(): AnlassraumActivati
         { upsert: true },
       );
       return clone(record);
+    },
+    async compareAndSwap(input) {
+      const expectedVersion = normalizeWorkflowRecordVersion(
+        input.expectedVersion,
+      );
+      const nextRecord = {
+        ...input.record,
+        version: expectedVersion + 1,
+      };
+      const col = await coreCol<{
+        _id: string;
+        record: AnlassraumActivationRecord;
+      }>(ACTIVATION_COLLECTION);
+      try {
+        const result = await col.updateOne(
+          {
+            _id: activationRecordId(input.record.sourceHandoffId),
+            ...(expectedVersion === 0
+              ? {
+                  $or: [
+                    { version: 0 },
+                    { version: { $exists: false } },
+                  ],
+                }
+              : { version: expectedVersion }),
+          } as any,
+          {
+            $set: {
+              record: clone(nextRecord),
+              sourceHandoffId: nextRecord.sourceHandoffId,
+              anlassraumId: nextRecord.anlassraumId,
+              status: nextRecord.status,
+              visibility: nextRecord.visibility,
+              publicAccessMode: nextRecord.publicAccessMode,
+              updatedAt: nextRecord.updatedAt,
+              version: nextRecord.version,
+            } as any,
+          },
+          { upsert: expectedVersion === 0 },
+        );
+        if (result.modifiedCount + result.upsertedCount !== 1) {
+          throw new Error("anlassraum_activation_state_conflict");
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "anlassraum_activation_state_conflict"
+        ) {
+          throw error;
+        }
+        if ((error as { code?: number })?.code === 11000) {
+          throw new Error("anlassraum_activation_state_conflict");
+        }
+        throw error;
+      }
+      return clone(nextRecord);
     },
     async list(limit) {
       const col = await coreCol<{ _id: string; record: AnlassraumActivationRecord }>(
@@ -277,6 +358,7 @@ async function buildAnlassraumActivationRecord(
   ]);
 
   const draft = buildAnlassraumActivationDraft({
+    version: normalizeWorkflowRecordVersion(existing?.version),
     runtimeRecord,
     createdRoom: room
       ? {
@@ -327,7 +409,10 @@ async function buildAnlassraumActivationRecord(
 }
 
 async function saveRecord(record: AnlassraumActivationRecord) {
-  return getRepo().save(record);
+  return getRepo().compareAndSwap({
+    record,
+    expectedVersion: normalizeWorkflowRecordVersion(record.version),
+  });
 }
 
 async function syncRoomVisibility(record: AnlassraumActivationRecord) {
@@ -544,13 +629,25 @@ export async function reviewAnlassraumQuestionGuard(input: {
     "id" | "sourceHandoffId"
   >;
 
-  await persistQuestionGuardReviewFailClosed({
-    reviewedRecord,
+  const reviewReservationDraft: AnlassraumActivationRecord = {
+    ...reviewedRecord,
+    questionGuard: holdQuestionGuardForSerializedReview(record.questionGuard),
+  };
+  const reviewReservation: AnlassraumActivationRecord = {
+    ...reviewReservationDraft,
+    blockers: getAnlassraumActivationBlockers(reviewReservationDraft),
+  };
+
+  return persistQuestionGuardReviewFailClosed({
+    reviewReservation,
     auditEntry,
     persistAudit: (entry) => recordAudit(input.sourceHandoffId, entry),
     persistRecord: saveRecord,
+    buildReleasedRecord: (reservation) => ({
+      ...reviewedRecord,
+      version: reservation.version,
+    }),
   });
-  return reviewedRecord;
 }
 
 export async function rejectAnlassraumActivation(input: {

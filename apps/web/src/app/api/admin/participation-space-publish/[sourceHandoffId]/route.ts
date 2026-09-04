@@ -112,7 +112,9 @@ export async function POST(
         ? error.message
         : "participation_space_publish_action_failed";
     const status =
-      message === "participation_space_publish_record_not_found"
+      message === "participation_space_publish_state_conflict"
+        ? 409
+        : message === "participation_space_publish_record_not_found"
         ? 404
         : message === "participation_space_missing"
           ? 409

@@ -1,20 +1,45 @@
+import type { PublicQuestionGeneralizationResult } from "@/features/create/safety/publicQuestionGeneralization";
+
 type PersistQuestionGuardReviewFailClosedInput<TRecord, TAuditEntry> = {
-  reviewedRecord: TRecord;
+  reviewReservation: TRecord;
   auditEntry: TAuditEntry;
   persistAudit: (entry: TAuditEntry) => Promise<unknown>;
-  persistRecord: (record: TRecord) => Promise<unknown>;
+  persistRecord: (record: TRecord) => Promise<TRecord>;
+  buildReleasedRecord: (reservation: TRecord) => TRecord;
 };
 
+export function normalizeWorkflowRecordVersion(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+export function holdQuestionGuardForSerializedReview(
+  guard: PublicQuestionGeneralizationResult,
+): PublicQuestionGeneralizationResult {
+  return {
+    ...guard,
+    releaseState: "review_required",
+    requiresHumanReview: true,
+    reasons: Array.from(
+      new Set([
+        ...guard.reasons,
+        "Die Question-Guard-Reevaluation ist reserviert und noch nicht auditgestützt freigegeben.",
+      ]),
+    ),
+    explanation:
+      "Die Question-Guard-Reevaluation bleibt bis zum dauerhaft gespeicherten Review-Audit blockiert.",
+  };
+}
+
 /**
- * Persists the durable review evidence before making the reviewed guard state
- * effective. If the audit write fails, the previously blocked record remains
- * untouched. A later record-write failure may leave an audit without a release,
- * but never a released guard without its audit evidence.
+ * Reserves the source version with a still-blocked record, then persists the
+ * durable review evidence, and only then releases the reviewed guard with a
+ * second CAS write. Audit or release failures can never expose draft_allowed.
  */
 export async function persistQuestionGuardReviewFailClosed<TRecord, TAuditEntry>(
   input: PersistQuestionGuardReviewFailClosedInput<TRecord, TAuditEntry>,
 ): Promise<TRecord> {
+  const reservation = await input.persistRecord(input.reviewReservation);
   await input.persistAudit(input.auditEntry);
-  await input.persistRecord(input.reviewedRecord);
-  return input.reviewedRecord;
+  return input.persistRecord(input.buildReleasedRecord(reservation));
 }

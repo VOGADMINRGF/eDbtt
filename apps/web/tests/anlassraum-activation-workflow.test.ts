@@ -20,7 +20,11 @@ import {
 } from "@/features/create/anlassraumRuntime";
 import type { PersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import { evaluatePublicQuestionGeneralization } from "@/features/create/safety/publicQuestionGeneralization";
-import { persistQuestionGuardReviewFailClosed } from "@/features/create/safety/questionGuardReviewPersistence";
+import {
+  holdQuestionGuardForSerializedReview,
+  persistQuestionGuardReviewFailClosed,
+} from "@/features/create/safety/questionGuardReviewPersistence";
+import { createInMemoryAnlassraumActivationWorkflowRepository } from "@/features/create/anlassraumActivationWorkflowServer";
 
 function buildHandoffRecord(): PersistedCreateHandoffRecord {
   return {
@@ -324,33 +328,49 @@ describe("anlassraum activation workflow", () => {
         "actor-graph:anlassraum-question-guard-1",
       ],
     };
+    const reviewReservation = {
+      ...reviewed,
+      questionGuard: holdQuestionGuardForSerializedReview(record.questionGuard),
+    };
+    const persistRecord = async (nextRecord: AnlassraumActivationRecord) => {
+      persistedRecord = {
+        ...nextRecord,
+        version: persistedRecord.version + 1,
+      };
+      return persistedRecord;
+    };
 
     await expect(
       persistQuestionGuardReviewFailClosed({
-        reviewedRecord: reviewed,
+        reviewReservation,
         auditEntry,
         persistAudit: async () => {
           throw new Error("simulated_audit_persistence_failure");
         },
-        persistRecord: async (nextRecord) => {
-          persistedRecord = nextRecord;
-        },
+        persistRecord,
+        buildReleasedRecord: (reservation) => ({
+          ...reviewed,
+          version: reservation.version,
+        }),
       }),
     ).rejects.toThrow("simulated_audit_persistence_failure");
     expect(persistedRecord.questionGuard.releaseState).toBe("review_required");
-    expect(persistedRecord.approvedForActivationAt).toBe(
-      "2026-07-01T09:05:00.000Z",
-    );
+    expect(persistedRecord.approvedForActivationAt).toBeNull();
 
     await persistQuestionGuardReviewFailClosed({
-      reviewedRecord: reviewed,
+      reviewReservation: {
+        ...reviewReservation,
+        version: persistedRecord.version,
+      },
       auditEntry,
       persistAudit: async (entry) => {
         persistedAudit = entry;
       },
-      persistRecord: async (nextRecord) => {
-        persistedRecord = nextRecord;
-      },
+      persistRecord,
+      buildReleasedRecord: (reservation) => ({
+        ...reviewed,
+        version: reservation.version,
+      }),
     });
     expect(persistedRecord.questionGuard.releaseState).toBe("draft_allowed");
     expect(persistedAudit).toEqual(auditEntry);
@@ -390,6 +410,164 @@ describe("anlassraum activation workflow", () => {
       approvedAt: "2026-07-01T09:50:00.000Z",
     });
     expect(published.ok).toBe(true);
+  });
+
+  it("serializes guard review against stale approval, activation, publication and competing reviews", async () => {
+    const review = (record: AnlassraumActivationRecord, evidenceRef: string) =>
+      reviewAnlassraumQuestionGuard(record, {
+        actorExtractionSource: "actor_graph",
+        evidenceRefs: [evidenceRef],
+        reviewedAt: "2026-07-01T10:00:00.000Z",
+      });
+
+    const approvalRepo = createInMemoryAnlassraumActivationWorkflowRepository();
+    const approvalBase = buildActivationRecord();
+    await approvalRepo.save(approvalBase);
+    const staleApproval = approveAnlassraumActivation(approvalBase, {
+      actorUserId: "admin-stale",
+      reason: "Stale Aktivierungsfreigabe.",
+      origin: "admin_review",
+      approvedAt: "2026-07-01T10:01:00.000Z",
+    });
+    const reviewedApprovalBase = await approvalRepo.compareAndSwap({
+      record: review(approvalBase, "actor-graph:approval-race"),
+      expectedVersion: approvalBase.version,
+    });
+    await expect(
+      approvalRepo.compareAndSwap({
+        record: staleApproval,
+        expectedVersion: approvalBase.version,
+      }),
+    ).rejects.toThrow("anlassraum_activation_state_conflict");
+    expect(reviewedApprovalBase.approvedForActivationAt).toBeNull();
+
+    const activationRepo = createInMemoryAnlassraumActivationWorkflowRepository();
+    const activationBase = buildActivationRecord({
+      status: "approved_for_activation",
+      approvedForActivationAt: "2026-07-01T09:20:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+    });
+    await activationRepo.save(activationBase);
+    const staleActivation = activateAnlassraumAfterReview(activationBase, {
+      actorUserId: "admin-stale",
+      reason: "Stale Aktivierung.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T10:02:00.000Z",
+    });
+    expect(staleActivation.ok).toBe(true);
+    await activationRepo.compareAndSwap({
+      record: review(activationBase, "actor-graph:activation-race"),
+      expectedVersion: activationBase.version,
+    });
+    await expect(
+      activationRepo.compareAndSwap({
+        record: staleActivation.record,
+        expectedVersion: activationBase.version,
+      }),
+    ).rejects.toThrow("anlassraum_activation_state_conflict");
+    expect((await activationRepo.get(activationBase.sourceHandoffId))?.status).toBe(
+      "draft",
+    );
+
+    const publishRepo = createInMemoryAnlassraumActivationWorkflowRepository();
+    const publishBase = buildActivationRecord({
+      status: "approved_for_publication",
+      visibility: "ready_for_publication_review",
+      publicAccessMode: "internal_only",
+      roomStatus: "active",
+      approvedForActivationAt: "2026-07-01T09:20:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+      approvedForPublicationAt: "2026-07-01T09:40:00.000Z",
+      approvedForPublicationBy: "admin-before-review",
+    });
+    await publishRepo.save(publishBase);
+    const stalePublish = publishAnlassraumAfterReview(publishBase, {
+      actorUserId: "admin-stale",
+      reason: "Stale Veröffentlichung.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T10:03:00.000Z",
+    });
+    expect(stalePublish.ok).toBe(true);
+    await publishRepo.compareAndSwap({
+      record: review(publishBase, "actor-graph:publish-race"),
+      expectedVersion: publishBase.version,
+    });
+    await expect(
+      publishRepo.compareAndSwap({
+        record: stalePublish.record,
+        expectedVersion: publishBase.version,
+      }),
+    ).rejects.toThrow("anlassraum_activation_state_conflict");
+    expect((await publishRepo.get(publishBase.sourceHandoffId))?.roomIsPublic).toBe(
+      false,
+    );
+
+    const competingRepo = createInMemoryAnlassraumActivationWorkflowRepository();
+    const competingBase = buildActivationRecord();
+    await competingRepo.save(competingBase);
+    await competingRepo.compareAndSwap({
+      record: review(competingBase, "actor-graph:first"),
+      expectedVersion: competingBase.version,
+    });
+    await expect(
+      competingRepo.compareAndSwap({
+        record: review(competingBase, "actor-graph:second"),
+        expectedVersion: competingBase.version,
+      }),
+    ).rejects.toThrow("anlassraum_activation_state_conflict");
+
+    const normalRepo = createInMemoryAnlassraumActivationWorkflowRepository();
+    const reviewRequired = buildActivationRecord({
+      questionGuard: buildAnlassraumRuntimeDraftFromHandoff(buildHandoffRecord())
+        .questionGuard,
+    });
+    await normalRepo.save(reviewRequired);
+    const currentAfterReview = await normalRepo.compareAndSwap({
+      record: review(reviewRequired, "actor-graph:normal-path"),
+      expectedVersion: reviewRequired.version,
+    });
+    const currentApproval = await normalRepo.compareAndSwap({
+      record: approveAnlassraumActivation(currentAfterReview, {
+        actorUserId: "admin-current",
+        reason: "Neue Freigabe.",
+        origin: "admin_review",
+        approvedAt: "2026-07-01T10:10:00.000Z",
+      }),
+      expectedVersion: currentAfterReview.version,
+    });
+    const currentActivation = activateAnlassraumAfterReview(currentApproval, {
+      actorUserId: "admin-current",
+      reason: "Aktivieren.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T10:11:00.000Z",
+    });
+    expect(currentActivation.ok).toBe(true);
+    const activated = await normalRepo.compareAndSwap({
+      record: currentActivation.record,
+      expectedVersion: currentApproval.version,
+    });
+    const publicationApproval = await normalRepo.compareAndSwap({
+      record: approveAnlassraumPublication(activated, {
+        actorUserId: "admin-current",
+        reason: "Neue Publikationsfreigabe.",
+        origin: "admin_review",
+        approvedAt: "2026-07-01T10:12:00.000Z",
+      }),
+      expectedVersion: activated.version,
+    });
+    const publication = publishAnlassraumAfterReview(publicationApproval, {
+      actorUserId: "admin-current",
+      reason: "Veröffentlichen.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T10:13:00.000Z",
+    });
+    expect(publication.ok).toBe(true);
+    const published = await normalRepo.compareAndSwap({
+      record: publication.record,
+      expectedVersion: publicationApproval.version,
+    });
+    expect(published.status).toBe("published");
+    expect(published.version).toBe(5);
   });
 
   it("keeps created anlassraeume non-public until explicit publication", () => {

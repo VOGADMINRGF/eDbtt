@@ -10,6 +10,7 @@ import {
   evaluatePublicQuestionGeneralization,
   type PublicQuestionGeneralizationResult,
 } from "@/features/create/safety/publicQuestionGeneralization";
+import { normalizeWorkflowRecordVersion } from "@/features/create/safety/questionGuardReviewPersistence";
 
 export const ANLASSRAUM_ACTIVATION_STATUSES = [
   "draft",
@@ -134,6 +135,7 @@ export type AnlassraumActivationAuditEntry = {
 };
 
 export type AnlassraumActivationDraft = {
+  version: number;
   id: string;
   sourceHandoffId: string;
   sourceReviewItemId: string;
@@ -184,6 +186,7 @@ export type AnlassraumActivationRecord = AnlassraumActivationDraft & {
 };
 
 type BuildDraftInput = {
+  version?: number;
   runtimeRecord: AnlassraumRuntimeRecord;
   createdRoom: {
     id: string | null;
@@ -452,6 +455,7 @@ export function buildAnlassraumActivationDraft(
     });
 
   const draft: AnlassraumActivationDraft = {
+    version: normalizeWorkflowRecordVersion(input.version),
     id: `anlassraum-activation:${input.runtimeRecord.sourceHandoffId}`,
     sourceHandoffId: input.runtimeRecord.sourceHandoffId,
     sourceReviewItemId: input.runtimeRecord.sourceReviewItemId,
