@@ -15,6 +15,7 @@ export function SwipesHeaderProgress({
   mode = "active",
 }: SwipesHeaderProgressProps) {
   const isActive = mode === "active";
+  const hasReflectionCheckpoint = isActive && swipeCount >= 5;
 
   return (
     <header className="sticky top-0 z-20 overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 backdrop-blur md:relative md:top-auto md:z-auto md:py-3 md:shadow-[0_16px_45px_rgba(2,6,23,0.18)]">
@@ -22,7 +23,9 @@ export function SwipesHeaderProgress({
       <div className="pointer-events-none absolute -bottom-20 left-8 h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
       <div className="flex items-start justify-between gap-3 text-xs">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Mitmachen</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+            {hasReflectionCheckpoint ? "Dein Zwischenstand" : "Mitmachen"}
+          </p>
           {isActive ? (
             <>
               <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))] md:mt-1 md:text-base">
