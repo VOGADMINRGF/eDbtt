@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -62,15 +62,11 @@ describe("VOXY final canon lock — V3.10.5 / PR #624", () => {
     expect(errors).toContain("voxy_legacy_character_reference_forbidden");
   });
 
-  it("04 forbids manual dispatch of the superseded first-explainer evidence workflow", () => {
-    const workflow = readFileSync(
-      path.resolve(import.meta.dirname, "../../.github/workflows/voxy-first-explainer-video.yml"),
-      "utf8",
+  it("04 keeps the superseded PR #589 explainer workflow retired", () => {
+    const legacyWorkflow = path.resolve(
+      import.meta.dirname,
+      "../../.github/workflows/voxy-first-explainer-video.yml",
     );
-
-    expect(workflow).toContain("HISTORICAL EVIDENCE ONLY");
-    expect(workflow).not.toMatch(/^\s*workflow_dispatch\s*:/m);
-    expect(workflow).not.toContain("VOXY_DETECTOR_HEAD_SHA:");
-    expect(workflow).not.toContain("Fetch and bind unchanged PR 588 detector head");
+    expect(existsSync(legacyWorkflow)).toBe(false);
   });
 });
