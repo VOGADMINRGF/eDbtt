@@ -14,14 +14,16 @@ Maschinenlesbare SSOT:
 
 `apps/web/src/features/voxyVideo/finalCanon.ts`
 
-Gebundene Provenienz:
+Gebundene Referenz-Provenienz:
 
 - Canon ID: `VOXY-V3.10.5-HUMAN-FINAL`
 - Source PR: `#624`
-- Exact Render Head: `00ff10e80dc8985da1df64de8e9a6df23b9d13e5`
+- Reference Render Head: `00ff10e80dc8985da1df64de8e9a6df23b9d13e5`
 - Human-Acceptance-Manifest-Head: `c94edbcf5135ee717ac64d9da5db05c09e076c22`
 - eDebatte Final MP4 SHA-256: `a5f8875a49249210474f7c1bc5ea31d97fe15816abfb0509cb28f6496eb0120c`
 - VoiceOpenGov Final MP4 SHA-256: `ccffe3b04b8369fe7e05398934533d0d2bbf5f88b4bb801ffac0e222c188cbf8`
+
+Der `Reference Render Head` friert **nicht** die zukünftige Produktionssoftware auf diesen Commit ein. Neue Runtime-/Composition-Commits dürfen sich weiterentwickeln; sie müssen jedoch ihre Character-/Visual-/Voice-Referenz explizit an den oben genannten V3.10.5-Canon binden.
 
 Human Final Acceptance:
 
@@ -42,9 +44,14 @@ Human Final Acceptance:
 
 ## Technische Enforcement-Punkte
 
-- `apps/web/tests/voxy-final-canon-lock.contract.test.ts` pinnt Canon-ID, PR, Exact Render Head und beide finalen MP4-Hashes.
+- `apps/web/tests/voxy-final-canon-lock.contract.test.ts` pinnt Canon-ID, PR, Reference Render Head und beide finalen MP4-Hashes.
 - `.github/workflows/voxy-final-canon-lock.yml` führt diesen Contract bei Voxy-relevanten Änderungen aus.
-- Der supersedierte aktive Workflow `.github/workflows/voxy-first-explainer-video.yml` wird entfernt. Seine Git-Historie bleibt erhalten, er kann aber nicht mehr versehentlich als aktuelle Evidence gestartet werden.
+- Drei supersedierte pre-V3.10.5 Render-Workflows werden aus dem aktiven Actions-Verzeichnis entfernt:
+  - `.github/workflows/voxy-first-explainer-video.yml`
+  - `.github/workflows/voxy-animatable-rig-evidence.yml`
+  - `.github/workflows/voxy-character-motion-fixture.yml`
+- Ihre Git-Historie und historischen Artefaktverträge bleiben erhalten, sie können aber nicht mehr manuell oder durch einen PR-Trigger als aktuelle Voxy-Evidence gestartet werden.
+- Der Contract-Test schlägt fehl, falls einer dieser aktiven Workflow-Pfade später wieder eingeführt wird.
 - Neue Composition-/Admin-/Daily-/Stress-Test-Pfade müssen `assertVoxyFinalCanonBinding(...)` verwenden, bevor ein Render als aktueller Voxy-Render akzeptiert oder in Human Review gestellt werden darf.
 
 ## Betreiberregel
