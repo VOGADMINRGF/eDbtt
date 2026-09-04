@@ -74,8 +74,8 @@ export default async function AccountPage({ searchParams }: Props) {
           [data-account-mobile-hub] section[aria-label="Identitätsprüfung offen"] a[href="/account/security"] {
             display: none !important;
           }
-          [data-account-mobile-hub] nav.fixed.inset-x-0.bottom-0.z-30,
-          [data-account-mobile-hub] button.fixed.right-3.z-40 {
+          [data-account-mobile-hub] nav:has(a[href="/swipes"]):has(a[href="/create"]),
+          [data-account-mobile-hub] button[aria-label="Inbox öffnen"] {
             display: none !important;
           }
         }
