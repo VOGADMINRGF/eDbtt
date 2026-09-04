@@ -42,7 +42,7 @@ describe("mobile Human-Acceptance 2026-09-04", () => {
     expect(source).toContain("showToolbar={false}");
   });
 
-  it("keeps the account intro concise and removes internal agentic explanation from the first screen", () => {
+  it("keeps the account intro concise and removes duplicate mobile navigation chrome", () => {
     const source = readFileSync(resolve(process.cwd(), "src/app/account/page.tsx"), "utf8");
 
     expect(source).toContain("Deine Interessen, Beiträge und Nachrichten an einem Ort.");
@@ -50,5 +50,9 @@ describe("mobile Human-Acceptance 2026-09-04", () => {
     expect(source).not.toContain("buildPersonalAccountSegmentHint");
     expect(source).not.toContain("buildVoxyExperienceShellHint");
     expect(source).not.toContain("PRODUCTION_ENTRY_COPY.accountLead");
+    expect(source).toContain("data-account-mobile-hub");
+    expect(source).toContain("nav.fixed.inset-x-0.bottom-0.z-30");
+    expect(source).toContain("button.fixed.right-3.z-40");
+    expect(source).toContain('a[href="/account/security"]');
   });
 });
