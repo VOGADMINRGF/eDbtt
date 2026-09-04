@@ -226,16 +226,16 @@ export function deriveCreateDebattenstandModel(
             ? "Quellen bleiben optional und starten nichts automatisch."
             : "Der Arbeitsstand kann jetzt gezielt weitergeführt werden.";
   const progressLabel = !input.hasStarted
-    ? "0 von 5 Schritten sichtbar"
+    ? "Bereit"
     : input.isStarting
-      ? "2 von 5 Schritten aktiv"
+      ? "Wird eingeordnet"
       : analysisFailed
-        ? "Beitrag aufgenommen · Einordnung offen"
+        ? "Einordnung offen"
         : !input.understandingConfirmed
-          ? "3 von 5 Schritten aktiv"
+          ? "Deine Entscheidung"
           : input.workspaceActionMode === "source"
-            ? "4 von 5 Schritten aktiv"
-            : "5 von 5 Schritten vorbereitet";
+            ? "Quellen optional"
+            : "Bereit zum Weiterarbeiten";
   const nextStepLabel = !input.hasStarted
     ? "Beitrag prüfen"
     : input.isStarting
@@ -254,7 +254,7 @@ export function deriveCreateDebattenstandModel(
                   ? "Themen gemeinsam weiterführen"
                   : "Aussage schärfen";
   const nextStepDetail = !input.hasStarted
-    ? "Noch kein Debattenstand ohne Startsignal."
+    ? "Schreibe oder sprich dein Anliegen. Beides wird im selben Dialog eingeordnet."
     : analysisFailed
       ? "Der Beitrag bleibt als Arbeitsstand erhalten. Nichts wird automatisch veröffentlicht."
       : !input.understandingConfirmed

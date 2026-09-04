@@ -48,7 +48,7 @@ export function getCreateVoxyCopy(
       label: "Voxy",
       greeting: firstName ? `Hello ${firstName},` : "Hello neighbor,",
       intro:
-        "What would you like to contribute? Write freely. I’ll organize your contribution, identify the main topics, and show you suitable next steps.",
+        "Tell me what concerns you — by writing or speaking. I’ll briefly organize it, then you can confirm or clarify what I understood.",
       noAutoPublish: "No auto-publishing",
       retry: "Try again",
       viewTicket: "View technical case",
@@ -69,7 +69,7 @@ export function getCreateVoxyCopy(
     label: "Voxy",
     greeting: firstName ? `Hallo ${firstName},` : "Hallo Nachbar,",
     intro:
-      "Was möchtest du einbringen? Schreib einfach frei los. Ich ordne deinen Beitrag, erkenne die wichtigsten Themen und zeige dir passende nächste Schritte.",
+      "Sag mir, was dich beschäftigt – geschrieben oder gesprochen. Ich ordne es kurz ein. Danach bestätigst oder präzisierst du, was ich verstanden habe.",
     noAutoPublish: "Kein Auto-Publish",
     retry: "Erneut versuchen",
     viewTicket: "Technischen Fall ansehen",

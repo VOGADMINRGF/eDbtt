@@ -12,6 +12,15 @@
   display: none !important;
 }
 
+/* The public create shell uses Voxy as a conversational marker at every
+ * breakpoint. The generic create surface avatar rule is intentionally larger
+ * and would otherwise turn the guide into a separate visual block on desktop. */
+[data-create-workspace-shell] [data-voxy-avatar].public-voxy-image {
+  width: 3.5rem !important;
+  max-width: 3.5rem !important;
+  opacity: 0.82;
+}
+
 @media (max-width: 767px) {
   /* The mobile workspace should use the viewport instead of looking like a
    * desktop card squeezed into a phone. */
@@ -32,48 +41,12 @@
     padding: 1rem !important;
   }
 
-  /* The five-step rail repeats information that is already expressed in the
-   * conversation. On a phone it steals the first screen from the input. */
-  [data-create-shell-pipeline] {
-    display: none !important;
-  }
-
-  /* Remove the decorative chat spine requested in mobile acceptance. */
-  .create-chat-spine::before {
-    content: none !important;
-    display: none !important;
-  }
-
   /* Voxy remains a guide, not the primary content object. This applies both
    * to the greeting and to recovery states. */
   [data-create-workspace-shell] [data-voxy-avatar] {
     width: 3.25rem !important;
     max-width: 3.25rem !important;
     opacity: 0.76;
-  }
-
-  [data-create-voxy-intro] {
-    display: grid !important;
-    grid-template-columns: 3.25rem minmax(0, 1fr) !important;
-    align-items: start !important;
-    gap: 0.75rem !important;
-  }
-
-  [data-create-voxy-intro] > div:first-child {
-    margin-top: 0.15rem !important;
-  }
-
-  /* Tiny uppercase process labels add internal state language such as
-   * "ANALYSE BLOCKIERT" without helping the next action on a phone. The
-   * actual status remains available in normal-language body copy. */
-  [data-create-workspace-shell] [data-create-shell-thread] p.uppercase {
-    display: none !important;
-  }
-
-  /* "Thema ordnen / Frage schärfen / Quellen prüfen" duplicates the text
-   * directly above it and competes with the real input. */
-  [data-create-thread-prompt-chip] {
-    display: none !important;
   }
 
   /* Input first: comfortable reading while typing, native vertical expansion
@@ -83,8 +56,8 @@
   }
 
   [data-create-composer-bar="true"] textarea {
-    min-height: clamp(16rem, 42svh, 28rem) !important;
-    max-height: 65svh !important;
+    min-height: clamp(11rem, 30svh, 19rem) !important;
+    max-height: 58svh !important;
     resize: vertical !important;
     overflow-y: auto !important;
     font-size: 16px !important;
