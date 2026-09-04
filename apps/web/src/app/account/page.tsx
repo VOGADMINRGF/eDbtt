@@ -3,10 +3,6 @@ import { redirect } from "next/navigation";
 import { AccountClient } from "./AccountClient";
 import { getAccountOverview } from "@features/account/service";
 import { readSession } from "@/utils/session";
-import { PRODUCTION_ENTRY_COPY } from "@/features/access/productionEntryContract";
-import { buildAgenticCivicE2EAccountHint } from "@/features/agenticRuntime/agenticCivicE2EPilotContract";
-import { buildPersonalAccountSegmentHint } from "@/features/agenticRuntime/segmentedAgentExperienceContract";
-import { buildVoxyExperienceShellHint } from "@/features/voxy/voxyExperienceShellContract";
 import {
   getCreateSupportTicketForUser,
   listCreateSupportNotificationsForUser,
@@ -69,21 +65,15 @@ export default async function AccountPage({ searchParams }: Props) {
   const supportLocale = overview.uiLocale === "en" ? "en" : "de";
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))] py-5 md:py-8">
+    <main className="min-h-screen bg-[rgb(var(--bg))] py-4 md:py-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] md:gap-6 md:px-6 md:pb-12">
         <header className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-500">Account</p>
-          <h1 className="text-[1.35rem] font-semibold leading-tight text-[rgb(var(--fg))] md:text-[1.9rem]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-500">Profil</p>
+          <h1 className="text-[1.5rem] font-semibold leading-tight text-[rgb(var(--fg))] md:text-[1.9rem]">
             Mein Profil
           </h1>
-          <p className="text-xs text-[rgb(var(--muted))]">
-            Interessen, Kontakte und Inbox an einem Ort. {PRODUCTION_ENTRY_COPY.accountLead}
-          </p>
-          <p className="max-w-3xl text-xs text-[rgb(var(--muted))]">
-            {buildPersonalAccountSegmentHint()}
-          </p>
-          <p className="max-w-3xl text-xs text-[rgb(var(--muted))]">
-            {buildVoxyExperienceShellHint("account")} {buildAgenticCivicE2EAccountHint()}
+          <p className="max-w-xl text-sm leading-5 text-[rgb(var(--muted))]">
+            Deine Interessen, Beiträge und Nachrichten an einem Ort.
           </p>
         </header>
 
