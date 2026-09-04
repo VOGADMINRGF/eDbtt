@@ -109,7 +109,7 @@ export function MobileAppShellChrome() {
     <>
       <style>{`
         @media (max-width: 767px) {
-          body.vog-mobile-app-shell-nav [data-site-header="true"] {
+          [data-site-header="true"] {
             display: none !important;
           }
         }
