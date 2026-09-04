@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -68,5 +68,21 @@ describe("VOXY final canon lock — V3.10.5 / PR #624", () => {
     ]) {
       expect(existsSync(path.resolve(workflowRoot, fileName))).toBe(false);
     }
+  });
+
+  it("05 routes the official homepage render command through a fail-closed canon guard", () => {
+    const packageJson = JSON.parse(
+      readFileSync(path.resolve(import.meta.dirname, "../package.json"), "utf8"),
+    ) as { scripts?: Record<string, string> };
+    expect(packageJson.scripts?.["render:voxy-homepage-reference-films"]).toBe(
+      "pnpm exec tsx scripts/render-voxy-final-canon.ts",
+    );
+
+    const guardedEntrypoint = readFileSync(
+      path.resolve(import.meta.dirname, "../scripts/render-voxy-final-canon.ts"),
+      "utf8",
+    );
+    expect(guardedEntrypoint).toContain("assertVoxyFinalCanonBinding(finalVoxyCanonBinding())");
+    expect(guardedEntrypoint).toContain('await import("./render-voxy-homepage-reference-films")');
   });
 });
