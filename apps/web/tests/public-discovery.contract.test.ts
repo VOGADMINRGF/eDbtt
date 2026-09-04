@@ -48,6 +48,9 @@ describe("public discovery contract", () => {
       "/vergleich",
       "/vergleich/consul",
       "/vergleich/decidim",
+      "/vergleich/aula",
+      "/vergleich/adhocracy-plus",
+      "/vergleich/meinberlin",
       "/vergleich/govocal",
       "/vergleich/make-org",
       "/vergleich/polis",
@@ -64,6 +67,9 @@ describe("public discovery contract", () => {
     expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/warum-edebatte", priority: 0.95 }));
     expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/vergleich", priority: 0.9 }));
     expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/vergleich/polis", priority: 0.8 }));
+    expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/vergleich/aula", priority: 0.8 }));
+    expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/vergleich/adhocracy-plus", priority: 0.8 }));
+    expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/vergleich/meinberlin", priority: 0.8 }));
     expect(sitemap).toContainEqual(expect.objectContaining({ url: "https://www.edebatte.org/en/why-edebatte", priority: 0.95 }));
   });
 
@@ -89,6 +95,9 @@ describe("public discovery contract", () => {
     const landscapeEnSource = readFileSync(resolve(process.cwd(), "src/app/en/civic-tech-landscape/page.tsx"), "utf8");
     const consulSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/consul/page.tsx"), "utf8");
     const decidimSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/decidim/page.tsx"), "utf8");
+    const aulaSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/aula/page.tsx"), "utf8");
+    const adhocracySource = readFileSync(resolve(process.cwd(), "src/app/vergleich/adhocracy-plus/page.tsx"), "utf8");
+    const meinBerlinSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/meinberlin/page.tsx"), "utf8");
     const prioritiesSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/your-priorities/page.tsx"), "utf8");
     const landscapeSource = readFileSync(resolve(process.cwd(), "src/app/vergleich/page.tsx"), "utf8");
 
@@ -98,8 +107,14 @@ describe("public discovery contract", () => {
     expect(landscapeEnSource).toContain("The moat cannot be a feature checklist");
     expect(consulSource).toContain("CONSUL besitzt bereits echte Bottom-up-Mechanismen");
     expect(decidimSource).toContain("Bürgerinitiativen und Agenda-Setting");
+    expect(aulaSource).toContain("aula besitzt echte Bottom-up-Ideenbeteiligung");
+    expect(adhocracySource).toContain("adhocracy+ erlaubt echte Ideenbeteiligung");
+    expect(meinBerlinSource).toContain("meinBerlin macht Beteiligung an Verwaltungsprojekten sichtbar");
     expect(prioritiesSource).toContain("kommt dem eDebatte-Zielbild sehr nahe");
     expect(landscapeSource).toContain("Nicht ein Markt. Mehrere demokratische Technologieklassen.");
     expect(consulSource).not.toContain("nur bei eDebatte");
+    expect(aulaSource).not.toContain("nur bei eDebatte");
+    expect(adhocracySource).not.toContain("nur bei eDebatte");
+    expect(meinBerlinSource).not.toContain("nur bei eDebatte");
   });
 });
