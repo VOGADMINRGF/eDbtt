@@ -74,6 +74,10 @@ export default async function AccountPage({ searchParams }: Props) {
           [data-account-mobile-hub] section[aria-label="Identitätsprüfung offen"] a[href="/account/security"] {
             display: none !important;
           }
+          [data-account-mobile-hub] nav.fixed.inset-x-0.bottom-0.z-30,
+          [data-account-mobile-hub] button.fixed.right-3.z-40 {
+            display: none !important;
+          }
         }
       `}</style>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] md:gap-6 md:px-6 md:pb-12">
