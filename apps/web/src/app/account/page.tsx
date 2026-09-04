@@ -66,6 +66,16 @@ export default async function AccountPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] py-4 md:py-8">
+      <style>{`
+        @media (max-width: 767px) {
+          [data-account-mobile-hub] > div {
+            gap: 1rem !important;
+          }
+          [data-account-mobile-hub] section[aria-label="Identitätsprüfung offen"] a[href="/account/security"] {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] md:gap-6 md:px-6 md:pb-12">
         <header className="space-y-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-500">Profil</p>
@@ -90,12 +100,14 @@ export default async function AccountPage({ searchParams }: Props) {
           />
         ) : null}
 
-        <AccountClient
-          initialData={overview}
-          membershipNotice={membershipNotice}
-          preorderNotice={preorderNotice}
-          welcomeNotice={welcomeNotice}
-        />
+        <div data-account-mobile-hub>
+          <AccountClient
+            initialData={overview}
+            membershipNotice={membershipNotice}
+            preorderNotice={preorderNotice}
+            welcomeNotice={welcomeNotice}
+          />
+        </div>
       </div>
     </main>
   );
