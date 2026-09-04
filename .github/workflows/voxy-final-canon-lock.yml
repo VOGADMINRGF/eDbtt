@@ -32,6 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           if grep -R -n -E \
+            --exclude='voxy-final-canon-lock.yml' \
             'pr/voxy-animatable-master-asset-01|VOXY_DETECTOR_HEAD_SHA|voxy-first-explainer-video-v2' \
             .github/workflows; then
             echo "Superseded pre-V3.10.5 Voxy workflow binding detected." >&2
