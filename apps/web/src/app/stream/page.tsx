@@ -65,7 +65,7 @@ export default function StreamPage() {
         </section>
 
         <p className="px-1 text-xs leading-5 text-[rgb(var(--muted))]">
-          Fragen und Beiträge werden nicht automatisch veröffentlicht. QR- und Eventzugänge führen später in denselben geprüften Beteiligungspfad.
+          Nichts wird automatisch veröffentlicht.
         </p>
       </section>
     </main>
