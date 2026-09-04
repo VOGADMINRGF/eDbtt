@@ -23,31 +23,50 @@ const approvedAudio = {
 };
 
 describe("Voxy voice and caption fixture", () => {
-  it("builds provider-neutral VTT and SRT after editorial copy fit", () => {
-    const characterPlan = buildVoxyCharacterMotionFixturePlan("16:9");
+  it.each(["16:9", "9:16", "1:1"] as const)(
+    "builds a self-validating caption plan for %s",
+    (format) => {
+      const characterPlan = buildVoxyCharacterMotionFixturePlan(format);
+      const plan = buildVoxyVoiceCaptionFixturePlan({
+        characterPlan,
+        briefingId: `briefing-${format}`,
+        scriptVersion: "script-v3",
+        audio: approvedAudio,
+        reviewStatus: "approved",
+        reviewerId: "editor-001",
+        reviewedAt: "2026-08-05T20:00:00.000Z",
+      });
+
+      expect(validateVoxyVoiceCaptionFixturePlan(plan)).toEqual({
+        ok: true,
+        renderEligible: true,
+        errors: [],
+      });
+      expect(
+        plan.segments.every(
+          (segment) =>
+            segment.text.length <=
+            plan.safeArea.maxCharactersPerLine * plan.safeArea.maxLines,
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it("renders provider-neutral VTT and clean viewer-facing SRT", () => {
     const plan = buildVoxyVoiceCaptionFixturePlan({
-      characterPlan,
-      briefingId: "briefing-001",
+      characterPlan: buildVoxyCharacterMotionFixturePlan("16:9"),
+      briefingId: "briefing-artifacts",
       scriptVersion: "script-v3",
       audio: approvedAudio,
       reviewStatus: "approved",
       reviewerId: "editor-001",
       reviewedAt: "2026-08-05T20:00:00.000Z",
     });
-    for (const segment of plan.segments) {
-      segment.text = segment.text.slice(0, 80);
-    }
-
-    expect(validateVoxyVoiceCaptionFixturePlan(plan)).toEqual({
-      ok: true,
-      renderEligible: true,
-      errors: [],
-    });
 
     const artifacts = renderVoxyVoiceCaptionArtifacts(plan);
     expect(artifacts.webVtt).toContain("WEBVTT");
-    expect(artifacts.webVtt).toContain("caption-source-update");
-    expect(artifacts.srt).toContain("caption-source-update");
+    expect(artifacts.webVtt).toContain("caption-");
+    expect(artifacts.srt).not.toMatch(/^caption-/m);
     expect(artifacts.timeline).toEqual(plan.segments);
     expect(artifacts.timeline.at(-1)?.endMs).toBe(8_000);
   });
@@ -94,13 +113,14 @@ describe("Voxy voice and caption fixture", () => {
       scriptVersion: "script-v1",
       audio: { ...approvedAudio, durationMs: 7_000 },
     });
+    const overlappedId = plan.segments[1].id;
     plan.segments[1] = { ...plan.segments[1], startMs: 1_700 };
 
     const result = validateVoxyVoiceCaptionFixturePlan(plan);
     expect(result.ok).toBe(false);
     expect(result.renderEligible).toBe(false);
     expect(result.errors).toContain(
-      "caption_timeline_gap_or_overlap:caption-source-update",
+      `caption_timeline_gap_or_overlap:${overlappedId}`,
     );
     expect(result.errors).toContain("audio_and_caption_duration_mismatch");
   });
