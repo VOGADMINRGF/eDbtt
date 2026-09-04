@@ -22,26 +22,28 @@ export default function StreamPage() {
           </p>
         </header>
 
-        <div className="grid gap-2 sm:flex sm:flex-wrap">
-          <a
-            href="#live-streams"
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 px-5 py-2 text-sm font-bold text-slate-950"
-          >
-            Live ansehen
-          </a>
-          <Link
-            href="/create"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
-          >
-            Beitrag einbringen
-          </Link>
-          {canManageStreams ? (
-            <Link
-              href="/dashboard/streams"
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-transparent px-5 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
+            <a
+              href="#live-streams"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 px-5 py-2 text-sm font-bold text-slate-950"
             >
-              Event vorbereiten
+              Live ansehen
+            </a>
+            <Link
+              href="/create"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+            >
+              Beitrag einbringen
             </Link>
+          </div>
+          {canManageStreams ? (
+            <p className="px-1 text-xs text-[rgb(var(--muted))]">
+              Du möchtest selbst senden?{" "}
+              <Link href="/dashboard/streams" className="font-semibold text-sky-500 underline underline-offset-4">
+                Event vorbereiten →
+              </Link>
+            </p>
           ) : null}
         </div>
 
