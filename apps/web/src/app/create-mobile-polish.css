@@ -4,6 +4,14 @@
  * so it can land without creating a second Create runtime or flow.
  */
 
+/* A citizen without an organization does not need the internal membership
+ * scope vocabulary in the public composer. Keep real operator/org notices.
+ * The limited/default card is the only scope notice rendered muted. */
+[data-create-composer-bar="true"]
+  div.rounded-2xl.text-xs[class~="text-[rgb(var(--muted))]"] {
+  display: none !important;
+}
+
 @media (max-width: 767px) {
   /* The mobile workspace should use the viewport instead of looking like a
    * desktop card squeezed into a phone. */
@@ -36,7 +44,14 @@
     display: none !important;
   }
 
-  /* Voxy remains a guide, not the primary content object. */
+  /* Voxy remains a guide, not the primary content object. This applies both
+   * to the greeting and to recovery states. */
+  [data-create-workspace-shell] [data-voxy-avatar] {
+    width: 3.25rem !important;
+    max-width: 3.25rem !important;
+    opacity: 0.76;
+  }
+
   [data-create-voxy-intro] {
     display: grid !important;
     grid-template-columns: 3.25rem minmax(0, 1fr) !important;
@@ -48,10 +63,11 @@
     margin-top: 0.15rem !important;
   }
 
-  [data-create-voxy-intro] [data-voxy-avatar] {
-    width: 3.25rem !important;
-    max-width: 3.25rem !important;
-    opacity: 0.78;
+  /* Tiny uppercase process labels add internal state language such as
+   * "ANALYSE BLOCKIERT" without helping the next action on a phone. The
+   * actual status remains available in normal-language body copy. */
+  [data-create-workspace-shell] [data-create-shell-thread] p.uppercase {
+    display: none !important;
   }
 
   /* "Thema ordnen / Frage schärfen / Quellen prüfen" duplicates the text
