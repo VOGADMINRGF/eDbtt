@@ -21,6 +21,7 @@ import {
   syncAnlassraumRuntimeVisibility,
 } from "@/features/create/anlassraumRuntimeServer";
 import type { AnlassraumRuntimeRecord } from "@/features/create/anlassraumRuntime";
+import { persistQuestionGuardReviewFailClosed } from "@/features/create/safety/questionGuardReviewPersistence";
 
 export type AnlassraumActivationWorkflowPersistenceState = {
   mode: "persistent_primary" | "in_memory_fallback";
@@ -524,10 +525,9 @@ export async function reviewAnlassraumQuestionGuard(input: {
     reviewedAt,
   });
 
-  await saveRecord(reviewedRecord);
-  await recordAudit(input.sourceHandoffId, {
+  const auditEntry = {
     at: reviewedAt,
-    action: "question_guard_reviewed",
+    action: "question_guard_reviewed" as const,
     actorUserId: input.actorUserId,
     note:
       trimOrNull(input.note) ??
@@ -536,6 +536,19 @@ export async function reviewAnlassraumQuestionGuard(input: {
     status: reviewedRecord.status,
     anlassraumId: reviewedRecord.anlassraumId,
     questionGuardReleaseState: reviewedRecord.questionGuard.releaseState,
+    questionGuardActorExtractionSource: input.actorExtractionSource,
+    questionGuardEvidenceRefs:
+      reviewedRecord.questionGuard.actorExtraction.evidenceRefs,
+  } satisfies Omit<
+    AnlassraumActivationAuditEntry,
+    "id" | "sourceHandoffId"
+  >;
+
+  await persistQuestionGuardReviewFailClosed({
+    reviewedRecord,
+    auditEntry,
+    persistAudit: (entry) => recordAudit(input.sourceHandoffId, entry),
+    persistRecord: saveRecord,
   });
   return reviewedRecord;
 }

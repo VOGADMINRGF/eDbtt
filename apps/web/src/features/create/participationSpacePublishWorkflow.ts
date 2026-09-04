@@ -122,6 +122,12 @@ export type ParticipationSpacePublishAuditEntry = {
   blockers: ParticipationSpacePublishBlocker[];
   status: ParticipationSpacePublishStatus;
   questionGuardReleaseState?: PublicQuestionGeneralizationResult["releaseState"] | null;
+  questionGuardActorExtractionSource?:
+    | "entity_registry"
+    | "actor_graph"
+    | "human_review"
+    | null;
+  questionGuardEvidenceRefs?: string[];
 };
 
 export type ParticipationSpacePublishDraft = {
@@ -416,7 +422,13 @@ export function reviewParticipationSpaceQuestionGuard(
   });
   const reviewed = {
     ...record,
+    status: "draft" as const,
+    visibility: "editorial_workspace" as const,
     questionGuard,
+    approvedForActivationAt: null,
+    approvedForActivationBy: null,
+    approvedForPublicationAt: null,
+    approvedForPublicationBy: null,
     updatedAt: trimOrNull(input.reviewedAt) ?? nowIso(),
   };
   return {
@@ -548,6 +560,13 @@ export function canApproveParticipationSpaceActivation(
 export function canActivateParticipationSpace(
   record: ParticipationSpacePublishRecord,
 ) {
+  if (
+    record.status !== "approved_for_activation" ||
+    !record.approvedForActivationAt ||
+    !record.approvedForActivationBy
+  ) {
+    return false;
+  }
   return getParticipationSpacePublishBlockers(record, "activation").length === 0;
 }
 
@@ -561,6 +580,13 @@ export function canApproveParticipationSpacePublication(
 export function canPublishParticipationSpace(
   record: ParticipationSpacePublishRecord,
 ) {
+  if (
+    record.status !== "approved_for_publication" ||
+    !record.approvedForPublicationAt ||
+    !record.approvedForPublicationBy
+  ) {
+    return false;
+  }
   return getParticipationSpacePublishBlockers(record, "publication").length === 0;
 }
 
@@ -622,6 +648,18 @@ export function activateParticipationSpaceAfterReview(
   record: ParticipationSpacePublishRecord,
   input?: Partial<ParticipationSpacePublishAuditContext>,
 ) {
+  if (!canActivateParticipationSpace(record)) {
+    return {
+      ok: false as const,
+      error: "blocked" as const,
+      blockers: unique([
+        ...getParticipationSpacePublishBlockers(record, "activation"),
+        "activation_not_approved",
+      ]) as ParticipationSpacePublishBlocker[],
+      message:
+        "Interne Aktivierung bleibt blockiert, bis eine neue explizite Freigabe nach dem Guard-Review vorliegt.",
+    };
+  }
   const activatedAt = trimOrNull(input?.approvedAt) ?? nowIso();
   const candidate: ParticipationSpacePublishRecord = {
     ...record,
@@ -704,6 +742,18 @@ export function publishParticipationSpaceAfterReview(
   record: ParticipationSpacePublishRecord,
   input?: Partial<ParticipationSpacePublishAuditContext>,
 ) {
+  if (!canPublishParticipationSpace(record)) {
+    return {
+      ok: false as const,
+      error: "blocked" as const,
+      blockers: unique([
+        ...getParticipationSpacePublishBlockers(record, "publication"),
+        "publication_not_approved",
+      ]) as ParticipationSpacePublishBlocker[],
+      message:
+        "Veröffentlichung bleibt blockiert, bis eine neue explizite Freigabe nach dem Guard-Review vorliegt.",
+    };
+  }
   const publishedAt = trimOrNull(input?.approvedAt) ?? nowIso();
   const candidate: ParticipationSpacePublishRecord = {
     ...record,

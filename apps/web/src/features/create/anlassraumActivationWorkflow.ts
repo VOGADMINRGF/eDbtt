@@ -125,6 +125,12 @@ export type AnlassraumActivationAuditEntry = {
   blockers: AnlassraumActivationBlocker[];
   status: AnlassraumActivationStatus;
   questionGuardReleaseState?: PublicQuestionGeneralizationResult["releaseState"] | null;
+  questionGuardActorExtractionSource?:
+    | "entity_registry"
+    | "actor_graph"
+    | "human_review"
+    | null;
+  questionGuardEvidenceRefs?: string[];
 };
 
 export type AnlassraumActivationDraft = {
@@ -528,7 +534,14 @@ export function reviewAnlassraumQuestionGuard(
   });
   return withBlockers({
     ...record,
+    status: "draft",
+    visibility: "editorial_workspace",
+    publicAccessMode: "none",
     questionGuard,
+    approvedForActivationAt: null,
+    approvedForActivationBy: null,
+    approvedForPublicationAt: null,
+    approvedForPublicationBy: null,
     updatedAt: trimOrNull(input.reviewedAt) ?? nowIso(),
   });
 }
@@ -549,7 +562,13 @@ export function canApproveAnlassraumActivation(
 export function canActivateAnlassraum(
   record: AnlassraumActivationRecord,
 ): boolean {
-  if (record.status !== "approved_for_activation") return false;
+  if (
+    record.status !== "approved_for_activation" ||
+    !record.approvedForActivationAt ||
+    !record.approvedForActivationBy
+  ) {
+    return false;
+  }
   const blockers = getAnlassraumActivationBlockers(record).filter(
     (blocker) =>
       blocker !== "publication_not_approved" &&
@@ -575,7 +594,13 @@ export function canApproveAnlassraumPublication(
 export function canPublishAnlassraum(
   record: AnlassraumActivationRecord,
 ): boolean {
-  if (record.status !== "approved_for_publication") return false;
+  if (
+    record.status !== "approved_for_publication" ||
+    !record.approvedForPublicationAt ||
+    !record.approvedForPublicationBy
+  ) {
+    return false;
+  }
   return getAnlassraumActivationBlockers(record).length === 0;
 }
 
@@ -637,6 +662,26 @@ export function activateAnlassraumAfterReview(
   record: AnlassraumActivationRecord,
   auditContext: AnlassraumActivationAuditContext,
 ): TransitionResult {
+  if (!canActivateAnlassraum(record)) {
+    const blockers = Array.from(
+      new Set<AnlassraumActivationBlocker>([
+        ...getAnlassraumActivationBlockers(record),
+        "activation_not_approved",
+      ]),
+    );
+    return {
+      ok: false,
+      error: "blocked",
+      message:
+        "Anlassraum-Aktivierung bleibt blockiert, bis eine neue explizite Freigabe nach dem Guard-Review vorliegt.",
+      blockers,
+      record: {
+        ...record,
+        status: "blocked",
+        blockers,
+      },
+    };
+  }
   const approvedAt = trimOrNull(auditContext.approvedAt) ?? nowIso();
   const merged: AnlassraumActivationRecord = withBlockers({
     ...record,
@@ -712,6 +757,26 @@ export function publishAnlassraumAfterReview(
   record: AnlassraumActivationRecord,
   auditContext: AnlassraumActivationAuditContext,
 ): TransitionResult {
+  if (!canPublishAnlassraum(record)) {
+    const blockers = Array.from(
+      new Set<AnlassraumActivationBlocker>([
+        ...getAnlassraumActivationBlockers(record),
+        "publication_not_approved",
+      ]),
+    );
+    return {
+      ok: false,
+      error: "blocked",
+      message:
+        "Anlassraum-Veröffentlichung bleibt blockiert, bis eine neue explizite Freigabe nach dem Guard-Review vorliegt.",
+      blockers,
+      record: {
+        ...record,
+        status: "blocked",
+        blockers,
+      },
+    };
+  }
   const approvedAt = trimOrNull(auditContext.approvedAt) ?? nowIso();
   const merged: AnlassraumActivationRecord = withBlockers({
     ...record,

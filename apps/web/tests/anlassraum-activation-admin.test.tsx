@@ -179,6 +179,10 @@ describe("anlassraum activation admin ui", () => {
           publicAccessMode: "internal_only",
           roomStatus: "active",
           blockers: [],
+          approvedForActivationAt: "2026-07-01T09:20:00.000Z",
+          approvedForActivationBy: "admin-1",
+          approvedForPublicationAt: "2026-07-01T09:40:00.000Z",
+          approvedForPublicationBy: "admin-1",
         })}
       />,
     );

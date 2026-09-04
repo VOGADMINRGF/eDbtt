@@ -20,6 +20,7 @@ import {
 } from "@/features/create/anlassraumRuntime";
 import type { PersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import { evaluatePublicQuestionGeneralization } from "@/features/create/safety/publicQuestionGeneralization";
+import { persistQuestionGuardReviewFailClosed } from "@/features/create/safety/questionGuardReviewPersistence";
 
 function buildHandoffRecord(): PersistedCreateHandoffRecord {
   return {
@@ -234,12 +235,19 @@ describe("anlassraum activation workflow", () => {
     }
   });
 
-  it("requires an evidence-backed guard review before explicit activation", () => {
+  it("invalidates earlier approvals and persists review audit before releasing the guard", async () => {
     const unresolvedQuestionGuard = buildAnlassraumRuntimeDraftFromHandoff(
       buildHandoffRecord(),
     ).questionGuard;
     const record = buildActivationRecord({
       questionGuard: unresolvedQuestionGuard,
+      status: "approved_for_publication",
+      visibility: "ready_for_publication_review",
+      publicAccessMode: "internal_only",
+      approvedForActivationAt: "2026-07-01T09:05:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+      approvedForPublicationAt: "2026-07-01T09:10:00.000Z",
+      approvedForPublicationBy: "admin-before-review",
     });
 
     expect(() =>
@@ -271,9 +279,83 @@ describe("anlassraum activation workflow", () => {
     expect(reviewed.blockers).not.toContain("public_question_guard_blocked");
     expect(reviewed.status).toBe("draft");
     expect(reviewed.visibility).toBe("editorial_workspace");
+    expect(reviewed.publicAccessMode).toBe("none");
     expect(reviewed.roomIsPublic).toBe(false);
+    expect(reviewed.approvedForActivationAt).toBeNull();
+    expect(reviewed.approvedForActivationBy).toBeNull();
+    expect(reviewed.approvedForPublicationAt).toBeNull();
+    expect(reviewed.approvedForPublicationBy).toBeNull();
+    expect(reviewed.blockers).toContain("activation_not_approved");
+    expect(reviewed.blockers).toContain("publication_not_approved");
 
-    const approved = approveAnlassraumActivation(reviewed, {
+    const activationWithoutNewApproval = activateAnlassraumAfterReview(
+      reviewed,
+      {
+        actorUserId: "admin-1",
+        reason: "Alte Freigabe darf nicht weitergelten.",
+        origin: "anlassraum_activation_workflow",
+        approvedAt: "2026-07-01T09:16:00.000Z",
+      },
+    );
+    const publicationWithoutNewApproval = publishAnlassraumAfterReview(
+      reviewed,
+      {
+        actorUserId: "admin-1",
+        reason: "Alte Freigabe darf nicht weitergelten.",
+        origin: "anlassraum_activation_workflow",
+        approvedAt: "2026-07-01T09:16:00.000Z",
+      },
+    );
+    expect(activationWithoutNewApproval.ok).toBe(false);
+    expect(publicationWithoutNewApproval.ok).toBe(false);
+
+    let persistedRecord = record;
+    let persistedAudit:
+      | {
+          action: string;
+          questionGuardActorExtractionSource: string;
+          questionGuardEvidenceRefs: string[];
+        }
+      | null = null;
+    const auditEntry = {
+      action: "question_guard_reviewed",
+      questionGuardActorExtractionSource: "actor_graph",
+      questionGuardEvidenceRefs: [
+        "actor-graph:anlassraum-question-guard-1",
+      ],
+    };
+
+    await expect(
+      persistQuestionGuardReviewFailClosed({
+        reviewedRecord: reviewed,
+        auditEntry,
+        persistAudit: async () => {
+          throw new Error("simulated_audit_persistence_failure");
+        },
+        persistRecord: async (nextRecord) => {
+          persistedRecord = nextRecord;
+        },
+      }),
+    ).rejects.toThrow("simulated_audit_persistence_failure");
+    expect(persistedRecord.questionGuard.releaseState).toBe("review_required");
+    expect(persistedRecord.approvedForActivationAt).toBe(
+      "2026-07-01T09:05:00.000Z",
+    );
+
+    await persistQuestionGuardReviewFailClosed({
+      reviewedRecord: reviewed,
+      auditEntry,
+      persistAudit: async (entry) => {
+        persistedAudit = entry;
+      },
+      persistRecord: async (nextRecord) => {
+        persistedRecord = nextRecord;
+      },
+    });
+    expect(persistedRecord.questionGuard.releaseState).toBe("draft_allowed");
+    expect(persistedAudit).toEqual(auditEntry);
+
+    const approved = approveAnlassraumActivation(persistedRecord, {
       actorUserId: "admin-1",
       reason: "Aktivierung nach Guard-Review freigegeben.",
       origin: "admin_review",
@@ -287,11 +369,27 @@ describe("anlassraum activation workflow", () => {
     });
 
     expect(activated.ok).toBe(true);
-    if (activated.ok) {
-      expect(activated.record.status).toBe("activated");
-      expect(activated.record.visibility).toBe("active_internal");
-      expect(activated.record.roomIsPublic).toBe(false);
-    }
+    if (!activated.ok) return;
+    expect(activated.record.status).toBe("activated");
+    expect(activated.record.visibility).toBe("active_internal");
+    expect(activated.record.roomIsPublic).toBe(false);
+
+    const approvedPublication = approveAnlassraumPublication(
+      activated.record,
+      {
+        actorUserId: "admin-1",
+        reason: "Veröffentlichung nach Guard-Review separat freigegeben.",
+        origin: "admin_review",
+        approvedAt: "2026-07-01T09:40:00.000Z",
+      },
+    );
+    const published = publishAnlassraumAfterReview(approvedPublication, {
+      actorUserId: "admin-1",
+      reason: "Explizit veröffentlichen.",
+      origin: "anlassraum_activation_workflow",
+      approvedAt: "2026-07-01T09:50:00.000Z",
+    });
+    expect(published.ok).toBe(true);
   });
 
   it("keeps created anlassraeume non-public until explicit publication", () => {

@@ -20,6 +20,7 @@ import {
 } from "@/features/create/participationSpaceRuntime";
 import type { PersistedCreateHandoffRecord } from "@/features/create/persistedHandoffReviewQueue";
 import { evaluatePublicQuestionGeneralization } from "@/features/create/safety/publicQuestionGeneralization";
+import { persistQuestionGuardReviewFailClosed } from "@/features/create/safety/questionGuardReviewPersistence";
 
 function buildHandoffRecord(): PersistedCreateHandoffRecord {
   return {
@@ -244,12 +245,18 @@ describe("participation space publish workflow", () => {
     }
   });
 
-  it("persists an evidence-backed guard review before explicit activation and publication", () => {
+  it("invalidates earlier approvals and persists review audit before releasing the guard", async () => {
     const unresolvedQuestionGuard = buildParticipationSpaceRuntimeDraftFromHandoff(
       buildHandoffRecord(),
     ).questionGuard;
     const record = buildPublishRecord({
       questionGuard: unresolvedQuestionGuard,
+      status: "approved_for_publication",
+      visibility: "ready_for_publication_review",
+      approvedForActivationAt: "2026-06-30T09:05:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+      approvedForPublicationAt: "2026-06-30T09:10:00.000Z",
+      approvedForPublicationBy: "admin-before-review",
     });
 
     expect(() =>
@@ -281,13 +288,89 @@ describe("participation space publish workflow", () => {
     expect(reviewed.blockers).not.toContain("public_question_guard_blocked");
     expect(reviewed.status).toBe("draft");
     expect(reviewed.visibility).toBe("editorial_workspace");
+    expect(reviewed.approvedForActivationAt).toBeNull();
+    expect(reviewed.approvedForActivationBy).toBeNull();
+    expect(reviewed.approvedForPublicationAt).toBeNull();
+    expect(reviewed.approvedForPublicationBy).toBeNull();
+    expect(reviewed.blockers).toContain("activation_not_approved");
+    expect(reviewed.blockers).toContain("publication_not_approved");
 
-    const approvedActivation = approveParticipationSpaceActivation(reviewed, {
+    const activationWithoutNewApproval = activateParticipationSpaceAfterReview(
+      reviewed,
+      {
+        actorUserId: "admin-1",
+        reason: "Alte Freigabe darf nicht weitergelten.",
+        origin: "participation_space_publish_workflow",
+        approvedAt: "2026-06-30T09:16:00.000Z",
+      },
+    );
+    const publicationWithoutNewApproval = publishParticipationSpaceAfterReview(
+      reviewed,
+      {
+        actorUserId: "admin-1",
+        reason: "Alte Freigabe darf nicht weitergelten.",
+        origin: "participation_space_publish_workflow",
+        approvedAt: "2026-06-30T09:16:00.000Z",
+      },
+    );
+    expect(activationWithoutNewApproval.ok).toBe(false);
+    expect(publicationWithoutNewApproval.ok).toBe(false);
+
+    let persistedRecord = record;
+    let persistedAudit:
+      | {
+          action: string;
+          questionGuardActorExtractionSource: string;
+          questionGuardEvidenceRefs: string[];
+        }
+      | null = null;
+    const auditEntry = {
+      action: "question_guard_reviewed",
+      questionGuardActorExtractionSource: "human_review",
+      questionGuardEvidenceRefs: [
+        "human-review:participation-question-guard-1",
+      ],
+    };
+
+    await expect(
+      persistQuestionGuardReviewFailClosed({
+        reviewedRecord: reviewed,
+        auditEntry,
+        persistAudit: async () => {
+          throw new Error("simulated_audit_persistence_failure");
+        },
+        persistRecord: async (nextRecord) => {
+          persistedRecord = nextRecord;
+        },
+      }),
+    ).rejects.toThrow("simulated_audit_persistence_failure");
+    expect(persistedRecord.questionGuard.releaseState).toBe("review_required");
+    expect(persistedRecord.approvedForActivationAt).toBe(
+      "2026-06-30T09:05:00.000Z",
+    );
+
+    await persistQuestionGuardReviewFailClosed({
+      reviewedRecord: reviewed,
+      auditEntry,
+      persistAudit: async (entry) => {
+        persistedAudit = entry;
+      },
+      persistRecord: async (nextRecord) => {
+        persistedRecord = nextRecord;
+      },
+    });
+    expect(persistedRecord.questionGuard.releaseState).toBe("draft_allowed");
+    expect(persistedAudit).toEqual(auditEntry);
+
+    const approvedActivation = approveParticipationSpaceActivation(
+      persistedRecord,
+      {
       actorUserId: "admin-1",
       reason: "Aktivierung nach Guard-Review freigegeben.",
       origin: "admin_review",
       approvedAt: "2026-06-30T09:20:00.000Z",
-    });
+      },
+    );
     const activated = activateParticipationSpaceAfterReview(approvedActivation, {
       actorUserId: "admin-1",
       reason: "Intern aktivieren.",

@@ -32,6 +32,7 @@ import {
   listPersistedCreateHandoffRecords,
   type PersistedCreateHandoffRecord,
 } from "@/features/create/persistedHandoffReviewQueue";
+import { persistQuestionGuardReviewFailClosed } from "@/features/create/safety/questionGuardReviewPersistence";
 
 export type ParticipationSpaceRuntimePersistenceState = {
   mode: "persistent_primary" | "in_memory_fallback";
@@ -1184,10 +1185,9 @@ export async function reviewParticipationSpaceQuestionGuard(input: {
     reviewedAt,
   });
 
-  await savePublishRecord(reviewedRecord);
-  await recordPublishAudit(input.sourceHandoffId, {
+  const auditEntry = {
     at: reviewedAt,
-    action: "question_guard_reviewed",
+    action: "question_guard_reviewed" as const,
     actorUserId: input.actorUserId,
     note:
       trimOrNull(input.note) ??
@@ -1196,6 +1196,20 @@ export async function reviewParticipationSpaceQuestionGuard(input: {
     status: reviewedRecord.status,
     participationSpaceId: reviewedRecord.participationSpaceId,
     questionGuardReleaseState: reviewedRecord.questionGuard.releaseState,
+    questionGuardActorExtractionSource: input.actorExtractionSource,
+    questionGuardEvidenceRefs:
+      reviewedRecord.questionGuard.actorExtraction.evidenceRefs,
+  } satisfies Omit<
+    ParticipationSpacePublishAuditEntry,
+    "id" | "sourceHandoffId"
+  >;
+
+  await persistQuestionGuardReviewFailClosed({
+    reviewedRecord,
+    auditEntry,
+    persistAudit: (entry) =>
+      recordPublishAudit(input.sourceHandoffId, entry),
+    persistRecord: savePublishRecord,
   });
   return reviewedRecord;
 }
