@@ -51,17 +51,17 @@ export function getCreateVoxyCopy(
         "What would you like to contribute? Write freely. I’ll organize your contribution, identify the main topics, and show you suitable next steps.",
       noAutoPublish: "No auto-publishing",
       retry: "Try again",
-      viewTicket: "View ticket",
+      viewTicket: "View technical case",
       continueLater: "Continue later",
-      savedFailureTitle: "Oops, something went wrong.",
+      savedFailureTitle: "Your contribution is here.",
       savedFailureLead:
-        "Your contribution is saved. The analysis could not be completed.",
+        "I couldn’t complete the automatic classification just now. Your contribution remains saved.",
       handedOff:
-        "I handed the incident over to our IT team.",
+        "I created a technical case for this incident.",
       resolutionNotice:
-        "You’ll receive a notification as soon as the incident has been resolved.",
+        "You’ll receive a notification as soon as the technical case has been resolved.",
       noTicket:
-        "No topics were derived. Please try again. If the problem persists, use the technical reference shown below.",
+        "You can try the classification again or continue later. Your contribution remains available.",
       technicalReference: "Technical reference",
     } as const;
   }
@@ -71,18 +71,18 @@ export function getCreateVoxyCopy(
     intro:
       "Was möchtest du einbringen? Schreib einfach frei los. Ich ordne deinen Beitrag, erkenne die wichtigsten Themen und zeige dir passende nächste Schritte.",
     noAutoPublish: "Kein Auto-Publish",
-    retry: "Erneut versuchen",
-    viewTicket: "Ticket ansehen",
+    retry: "Erneut einordnen",
+    viewTicket: "Technischen Fall ansehen",
     continueLater: "Später fortsetzen",
-    savedFailureTitle: "Ups, hier ist etwas schiefgelaufen.",
+    savedFailureTitle: "Dein Beitrag ist angekommen.",
     savedFailureLead:
-      "Deinen Beitrag habe ich gespeichert. Die Analyse konnte gerade nicht abgeschlossen werden.",
+      "Ich konnte die automatische Einordnung gerade nicht abschließen. Dein Beitrag bleibt gespeichert.",
     handedOff:
-      "Ich habe die Meldung an unser IT-Team übergeben.",
+      "Ich habe dazu einen technischen Fall erfasst.",
     resolutionNotice:
-      "Sobald der Fall gelöst ist, bekommst du eine Nachricht.",
+      "Sobald der technische Fall gelöst ist, bekommst du eine Nachricht.",
     noTicket:
-      "Es wurden keine Themen abgeleitet. Bitte versuche es erneut. Falls der Fehler bestehen bleibt, nutze die angezeigte Fehlerreferenz.",
+      "Du kannst die Einordnung erneut versuchen oder später fortsetzen. Dein Beitrag bleibt erhalten.",
     technicalReference: "Fehlerreferenz",
   } as const;
 }
@@ -98,7 +98,7 @@ export function buildCreateSupportFailureCopy(input: {
       paragraphs: [
         copy.savedFailureLead,
         copy.handedOff,
-        `${input.locale === "en" ? "Your ticket" : "Dein Ticket"}: ${
+        `${input.locale === "en" ? "Technical case" : "Technischer Fall"}: ${
           input.handoff.ticket.ticketNumber
         }`,
         input.handoff.ticket.notificationLinked ? copy.resolutionNotice : null,
