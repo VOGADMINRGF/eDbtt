@@ -30,10 +30,11 @@ function readOrCreateClientSessionId() {
   }
 }
 
-export function ensureCreateHoneypotElement(): HTMLInputElement | null {
+export function ensureCreateHoneypotElement() {
   if (typeof document === "undefined") return null;
   const existing = document.getElementById(CREATE_HONEYPOT_ID);
-  if (existing instanceof HTMLInputElement) return existing;
+  const InputCtor = globalThis.HTMLInputElement;
+  if (typeof InputCtor !== "undefined" && existing instanceof InputCtor) return existing;
 
   const trap = document.createElement("input");
   trap.id = CREATE_HONEYPOT_ID;
@@ -90,7 +91,7 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initialize, { once: true });
   } else {
-    queueMicrotask(initialize);
+    globalThis.queueMicrotask(initialize);
   }
 }
 
