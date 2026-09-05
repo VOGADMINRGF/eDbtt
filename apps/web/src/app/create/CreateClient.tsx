@@ -113,6 +113,11 @@ import {
   type CreateVoxyLocale,
 } from "@/features/create/createVoxySupportCopy";
 import type { CreateSupportHandoffPublic } from "@/features/support/createSupportTicketContract";
+import {
+  isCreateIntelligentFollowupAbortError,
+  startCreateIntelligentFollowupDeadline,
+  type CreateIntelligentFollowupDeadline,
+} from "@/features/create/createFastIntakeTiming";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -135,7 +140,6 @@ export type CreateClientProps = {
 export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
 
 const MIN_INTENT_INPUT_LENGTH = 24;
-const CREATE_FIRST_RESPONSE_HARD_LIMIT_MS = 5_000;
 
 function createClientCorrelationId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -862,6 +866,7 @@ export default function CreateClient({
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
   const [isRetryPlannerPending, setIsRetryPlannerPending] = React.useState(false);
   const analysisRunInFlightRef = React.useRef(false);
+  const plannerDeadlineRef = React.useRef<CreateIntelligentFollowupDeadline | null>(null);
   const [chatContinuationText, setChatContinuationText] = React.useState("");
   const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
   const [workspaceTransparencyOpen, setWorkspaceTransparencyOpen] = React.useState(false);
@@ -1130,6 +1135,14 @@ export default function CreateClient({
     intelligentFollowupResultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [hasStarted, intelligentFollowup]);
 
+  React.useEffect(
+    () => () => {
+      plannerDeadlineRef.current?.cancel();
+      plannerDeadlineRef.current = null;
+    },
+    [],
+  );
+
   const startCreateFlow = React.useCallback(async (rawText: string) => {
     if (isStarting || analysisRunInFlightRef.current) return;
     const normalizedText = rawText.trim();
@@ -1151,11 +1164,8 @@ export default function CreateClient({
     let draftSavedForRun = false;
     const submitStartedAt = performance.now();
     let saveMs: number | null = null;
-    const firstResponseController = new AbortController();
-    const firstResponseTimeout = window.setTimeout(
-      () => firstResponseController.abort(),
-      CREATE_FIRST_RESPONSE_HARD_LIMIT_MS,
-    );
+    let plannerCorrelationId: string | null = null;
+    let plannerDeadline: CreateIntelligentFollowupDeadline | null = null;
     try {
       setIntakeRestoreInfo(null);
       setIntakeError(null);
@@ -1263,10 +1273,13 @@ export default function CreateClient({
       let nextIntelligentFollowup: CreateIntelligentFollowupResult | null = null;
       let nextPlannerTrace: CreatePlannerRuntimeTrace | null = null;
       const correlationId = createClientCorrelationId();
+      plannerCorrelationId = correlationId;
+      plannerDeadline = startCreateIntelligentFollowupDeadline();
+      plannerDeadlineRef.current = plannerDeadline;
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
         headers: createMutationRequestHeaders(),
-        signal: firstResponseController.signal,
+        signal: plannerDeadline.signal,
         body: JSON.stringify({
           text: normalizedText,
           locale: surfaceLocale,
@@ -1316,7 +1329,11 @@ export default function CreateClient({
         setAnalysisAutoRunToken((current) => current + 1);
       }
       setIsStarting(false);
-    } catch {
+    } catch (error: unknown) {
+      const plannerTimedOut =
+        draftSavedForRun &&
+        plannerDeadline?.didTimeout() === true &&
+        isCreateIntelligentFollowupAbortError(error);
       if (!draftSavedForRun) {
         setIntakeError(
           surfaceLocale === "en"
@@ -1324,15 +1341,20 @@ export default function CreateClient({
             : "Dein Beitrag konnte nicht sicher gespeichert werden. Bitte versuche es erneut.",
         );
       } else {
-        const technicalReference = createClientCorrelationId();
-        const failedHandoff: CreateSupportHandoffPublic = {
-          status: "failed",
-          technicalReference,
-          safeUserMessage:
-            surfaceLocale === "en"
-              ? "The support handoff could not be confirmed."
-              : "Die technische Übergabe konnte nicht bestätigt werden.",
-        };
+        const failedHandoff: CreateSupportHandoffPublic | null =
+          plannerCorrelationId
+            ? {
+                status: "failed",
+                technicalReference: plannerCorrelationId,
+                safeUserMessage: plannerTimedOut
+                  ? surfaceLocale === "en"
+                    ? "The classification took longer than expected. Your contribution remains saved."
+                    : "Die Einordnung hat länger als erwartet gedauert. Dein Beitrag bleibt gespeichert."
+                  : surfaceLocale === "en"
+                    ? "The support handoff could not be confirmed."
+                    : "Die technische Übergabe konnte nicht bestätigt werden.",
+              }
+            : null;
         setSupportHandoff(failedHandoff);
         setIntelligentFollowup(
           buildCreateTechnicalFollowup({
@@ -1347,7 +1369,14 @@ export default function CreateClient({
           }),
         );
       }
-      if (draftSavedForRun && productMode === "analyze") {
+      if (plannerTimedOut) {
+        setActionNotice(
+          surfaceLocale === "en"
+            ? "The classification took longer than expected. Your contribution is saved; you can try the classification again."
+            : "Die Einordnung hat länger als erwartet gedauert. Dein Beitrag ist gespeichert; du kannst die Einordnung erneut versuchen.",
+        );
+        setIntakeError(null);
+      } else if (draftSavedForRun && productMode === "analyze") {
         setActionNotice(
           surfaceLocale === "en"
             ? "I could not complete the automatic classification. You can refine the statement or review details again later."
@@ -1359,10 +1388,13 @@ export default function CreateClient({
             : "Die Systemprüfung ist gerade nicht verfügbar. Dein Text bleibt erhalten.",
         );
       } else if (draftSavedForRun) {
-        setIntakeError(surfaceTexts.startFailedError);
+        setIntakeError(null);
       }
     } finally {
-      window.clearTimeout(firstResponseTimeout);
+      plannerDeadline?.clear();
+      if (plannerDeadlineRef.current === plannerDeadline) {
+        plannerDeadlineRef.current = null;
+      }
       analysisRunInFlightRef.current = false;
       setIsStarting(false);
     }
@@ -2430,11 +2462,14 @@ export default function CreateClient({
     analysisRunInFlightRef.current = true;
     setIsRetryPlannerPending(true);
     setSupportHandoff(null);
+    const correlationId = createClientCorrelationId();
+    const plannerDeadline = startCreateIntelligentFollowupDeadline();
+    plannerDeadlineRef.current = plannerDeadline;
     try {
-      const correlationId = createClientCorrelationId();
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
         headers: createMutationRequestHeaders(),
+        signal: plannerDeadline.signal,
         body: JSON.stringify({
           text: sourceText,
           locale: surfaceLocale,
@@ -2474,17 +2509,33 @@ export default function CreateClient({
             ? "The classification remains pending. You can continue manually and choose the next step yourself."
             : "Die Einordnung bleibt noch offen. Du kannst jetzt manuell fortfahren und den nächsten Schritt selbst wählen.",
       );
-    } catch {
+    } catch (error: unknown) {
+      const plannerTimedOut =
+        plannerDeadline.didTimeout() &&
+        isCreateIntelligentFollowupAbortError(error);
       setSupportHandoff({
         status: "failed",
-        technicalReference: createClientCorrelationId(),
-        safeUserMessage:
-          surfaceLocale === "en"
+        technicalReference: correlationId,
+        safeUserMessage: plannerTimedOut
+          ? surfaceLocale === "en"
+            ? "The classification took longer than expected. Your contribution remains saved."
+            : "Die Einordnung hat länger als erwartet gedauert. Dein Beitrag bleibt gespeichert."
+          : surfaceLocale === "en"
             ? "The support handoff could not be confirmed."
             : "Die technische Übergabe konnte nicht bestätigt werden.",
       });
-      setActionNotice(null);
+      setActionNotice(
+        plannerTimedOut
+          ? surfaceLocale === "en"
+            ? "The classification took longer than expected. Your contribution is saved; you can try again."
+            : "Die Einordnung hat länger als erwartet gedauert. Dein Beitrag ist gespeichert; du kannst es erneut versuchen."
+          : null,
+      );
     } finally {
+      plannerDeadline.clear();
+      if (plannerDeadlineRef.current === plannerDeadline) {
+        plannerDeadlineRef.current = null;
+      }
       analysisRunInFlightRef.current = false;
       setIsRetryPlannerPending(false);
     }

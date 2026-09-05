@@ -2,10 +2,10 @@
 
 ## Status und Abgrenzung
 
-Lokaler, ungemergter Fix auf `fix/create-mobile-runtime-polish-01`. Es wurde weder
-veröffentlicht noch gemergt. Die Save-/Resume-Reihenfolge aus PR #713 bleibt
-erhalten: Der Entwurf wird vor dem Planner-Aufruf gespeichert. Die von PR #682
-belegten Citizen-Context-Hunks wurden nicht ersetzt.
+Bestehender, ungemergter Fix auf `fix/create-mobile-runtime-polish-01` und PR
+#713. Die Save-/Resume-Reihenfolge bleibt erhalten: Der Entwurf wird vor dem
+Planner-Aufruf gespeichert. Die von PR #682 belegten Citizen-Context-Hunks
+wurden nicht ersetzt.
 
 `docs/E150/OpenTasks.md` wurde bewusst nicht parallel geändert. Laut aktuellem
 Repository-Stand ist Issue #447 der alleinige SSOT-Writer; auch PR #713 hält diese
@@ -64,11 +64,22 @@ Die Regression hatte vier zusammenwirkende Ursachen:
 ## Citizen-first und Latenz
 
 - Kurze Texte ohne URL nutzen einen Fast-Intake-Pfad mit einem Provider-Versuch,
-  400 Output-Tokens und 4.200 ms Provider-Timeout.
-- Die Client-seitige harte Grenze startet beim Submit und bricht nach 5.000 ms den
-  Planner-Fetch ab. Der vorangehende Save bleibt absichtlich nicht abortierbar,
-  damit die UX-Grenze die Save-/Resume-Sicherheit nicht beschädigt; verbraucht der
-  Save das Budget, erscheint danach der sichere gespeicherte Fehlerzustand.
+  400 Output-Tokens und 6.500 ms Provider-Timeout. Normale längere Planner-Flows
+  behalten das konfigurierte 10.000-ms-Budget. Drei Sekunden bleiben das
+  Performance-Ziel und sind keine technische Fehlergrenze.
+- Der Save bleibt ohne `AbortSignal`. Erst nachdem die Route einen dauerhaft
+  gespeicherten Draft bestätigt hat und nachdem der Link-Early-Return
+  ausgeschlossen wurde, entstehen Planner-`AbortController` und 8.000-ms-Timer.
+  Damit verbrauchen Security, Auth, Draft Binding und Save kein Client-Budget für
+  die intelligente Einordnung.
+- Der Timer wird auf Erfolg, Providerfehler, Early Return und beim Unmount
+  bereinigt. Auch der explizite Retry verwendet denselben begrenzten
+  Intelligent-Followup-Vertrag.
+- Ein echter Client-`AbortError` nach Ablauf der 8.000 ms wird getrennt behandelt:
+  Der gespeicherte Draft bleibt erhalten, die Oberfläche behauptet keinen
+  Save-Verlust, zeigt nur die tatsächlich gesendete Korrelations-ID als
+  technische Referenz und bietet den vorhandenen Retry an. Es entsteht kein
+  Fake-Ergebnis.
 - AI-Usage-Telemetrie blockiert die sichtbare Planner-Antwort nicht mehr.
 - Graph-Matches, Research und Source-Enrichment bleiben vor der Bestätigung leer;
   der bestehende Topic-Match-Runtime-Aufruf startet erst nach `isConfirmed`.
@@ -96,50 +107,53 @@ Kanonisches Ergebnis:
 - Modell: `gpt-4.1-mini-2025-04-14`
 - Provider-Attempts: `1`
 
-Revalidierter Live-Smoke am 2026-09-05 mit echtem Provider und anschließendem sichtbaren
-Headless-Chromium-Render:
+Revalidierter Live-Smoke am 2026-09-05 nach dem Timeout-Hardening mit echtem
+Provider und anschließendem sichtbaren Headless-Chromium-Render:
 
 | Viewport | Planner | Post-Planner bis sichtbar | Fast Intake bis sichtbar | Contract |
 | --- | ---: | ---: | ---: | --- |
-| Desktop 1440 × 900 | 4.061 ms | 114 ms | 4.175 ms | grün |
-| Mobile 390 × 844 | 1.891 ms | 42 ms | 1.933 ms | grün |
+| Desktop 1440 × 900 | 3.693 ms | 97 ms | 3.790 ms | grün |
+| Mobile 390 × 844 | 2.781 ms | 43 ms | 2.824 ms | grün |
 
 Beide Läufe hatten genau einen Provider-Attempt, dieselbe kanonische Themenzahl,
 dieselben drei Aspekte, Haltung `pro` und keinen technischen Sentinel im
 gerenderten Output. Der Mobile-Lauf erreichte das Ziel von unter drei Sekunden;
-der Desktop-Lauf blieb unter der harten Fünf-Sekunden-Grenze, verfehlte das
-Zielbudget aber um 1.175 ms. Der größte verbleibende Anteil ist die einzelne
-Provider-Antwort; für dieses Performance-Ziel wurde keine riskante zweite
-Runtime oder aggressive Architekturänderung eingeführt.
+der Desktop-Lauf verfehlte das Zielbudget um 790 ms, blieb aber mit realer
+Providerantwort klar innerhalb der technischen Reserven. Der größte Anteil ist
+weiterhin die einzelne Provider-Antwort.
 
 Der Live-Smoke startet am Fast-Intake-Aufruf und enthält Provider, Context,
 React-Render und die Sichtbarkeitsprüfung im Browser. Ein vollständiger
-authentifizierter `/create`-Submit einschließlich realer Save-/Access-Netz- und
-Datenbanklatenz konnte lokal nicht seriös gemessen werden, weil keine
-`EDEBATTE_E2E_EMAIL`/`EDEBATTE_E2E_PASSWORD` für ein freigegebenes Wegwerf-Konto
-gesetzt sind. Die Produktionspfade geben diese Werte nun getrennt aus; die
-Route-Contract-Tests prüfen `accessMs`, `contextMs`, `saveMs`, `plannerMs` und
-`totalMs`. Der vollständige Submit-zu-sichtbar-Wert bleibt deshalb vor Merge ein
-manueller Gate-Punkt.
+authentifizierter lokaler `/create`-Submit einschließlich realer Save-/Access-
+Netz- und Datenbanklatenz konnte weiterhin nicht seriös gemessen werden, weil
+keine `EDEBATTE_E2E_EMAIL`/`EDEBATTE_E2E_PASSWORD` für ein freigegebenes
+Wegwerf-Konto gesetzt sind. Es wurde kein Auth-Bypass und kein ungeprüfter
+Testnutzer erzeugt. Die Route-Contract-Tests prüfen `accessMs`, `contextMs`,
+`saveMs`, `plannerMs` und `totalMs`; der Client ergänzt `submitToResultMs`. Der
+vollständige Submit-zu-sichtbar-Wert bleibt deshalb ein manueller PR-Gate-Punkt.
+
+## Optionale Account-Loader
+
+`create_contribution_ledger` und `manual_anlassraum_server_drafts` werden nur
+über `getAccountOverview()` beim serverseitigen `GET /create` geladen. Sie laufen
+parallel mit einem 2.000-ms-Fallback. Weder `POST /api/create/save` noch
+`POST /api/create/intelligent-followup` lädt sie. Sie blockieren daher nicht den
+eigentlichen Submit, können aber den SSR-/Page-Load vor dem interaktiven Client
+verlängern. Eine Entkopplung des Create-Page-Overview vom breiten Account-
+Readmodel ist ein separater Performance-Follow-up und gehört nicht in diesen
+P0-Fix.
 
 ## Verifikation
 
 - Live: `CREATE_LIVE_REGRESSION_SMOKE=1 node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/create-planner-live-responsive.smoke.test.tsx --reporter=verbose`
 - Live-Smoke: 2 Tests mit echtem Provider und Headless Chromium grün.
-- Kombinierte Planner-, Provider-, Routing-, Responsive-, Save-,
-  Follow-up-, Single-Flight-, Locale- und Debattenstand-Suite: 128 Tests in 24 Dateien
-  grün; die 2 kostenpflichtigen Live-Smokes waren im normalen Lauf wie vorgesehen
-  übersprungen.
-- Vollständiger CI-Block `Focused Create runtime contracts`: 215 Tests in
-  26 Dateien grün. Der Locale-Vertrag wurde dabei auf die aktuelle deutsche und
-  englische Create-Einstiegscopy synchronisiert.
+- Erweiterter CI-Block `Focused Create runtime contracts` einschließlich der
+  neuen Timing- und Planner-Regressionen: 230 Tests in 28 Dateien grün.
 - CI-konfigurierter isolierter Save-/Safety-Harness: 25 Tests in 2 Dateien grün.
-- Synthetisch zusammengeführter #713-/#682-Stand: 23 Citizen-, Regions-,
-  Anonymous-Intake-, Counterposition- und Existing-Topic-Tests in 5 Dateien grün.
 - Web-Critical: 192 Tests in 28 Dateien grün.
 - Production Guardrails: 36 Tests in 12 Dateien grün.
-- `pnpm -C apps/web run typecheck`, `pnpm -C apps/web run lint`,
-  `pnpm -C apps/web run build` und `git diff --check`: grün.
+- `pnpm -C apps/web run typecheck`, fokussiertes ESLint und `git diff --check`:
+  unter Node 20.20.2 grün.
 
 Zwei zusätzlich mit der allgemeinen Vitest-Konfiguration geprüfte, von #713
 unveränderte Baseline-Dateien bleiben in genau dieser nicht-kanonischen
