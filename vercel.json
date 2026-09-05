@@ -2,8 +2,12 @@
   "installCommand": "pnpm install --no-frozen-lockfile",
   "crons": [
     {
-      "path": "/api/cron/operator-digest",
-      "schedule": "0 16,17 * * *"
+      "path": "/api/cron/operator-digest?slot=summer",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/operator-digest?slot=winter",
+      "schedule": "0 17 * * *"
     }
   ]
 }

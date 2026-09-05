@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 const mocks = vi.hoisted(() => {
   type AnyDoc = Record<string, any>;
@@ -147,6 +149,22 @@ describe("operator notification routing contract", () => {
   it("rejects the neighboring UTC cron slot after Berlin 18:00 already passed", () => {
     expect(isBerlinDigestHour(new Date("2026-09-05T17:00:00.000Z"))).toBe(false);
     expect(isBerlinDigestHour(new Date("2026-01-05T16:00:00.000Z"))).toBe(false);
+  });
+
+  it("keeps the two DST slots as separate once-daily Vercel cron jobs", () => {
+    const config = JSON.parse(
+      readFileSync(path.resolve(process.cwd(), "../../vercel.json"), "utf8"),
+    );
+    expect(config.crons).toEqual([
+      {
+        path: "/api/cron/operator-digest?slot=summer",
+        schedule: "0 16 * * *",
+      },
+      {
+        path: "/api/cron/operator-digest?slot=winter",
+        schedule: "0 17 * * *",
+      },
+    ]);
   });
 
   it("schedules each durable create draft through after(), routes it to Social, and deduplicates retries", async () => {
