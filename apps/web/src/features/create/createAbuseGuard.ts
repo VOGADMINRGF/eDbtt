@@ -58,7 +58,7 @@ function repeatedTokenRatio(text: string) {
 }
 
 function linkStats(text: string) {
-  const links = text.match(URL_PATTERN) ?? [];
+  const links: string[] = text.match(URL_PATTERN) ?? [];
   const linkChars = links.reduce((sum, link) => sum + link.length, 0);
   const unique = new Set(links.map((link) => link.toLowerCase()));
   return {
