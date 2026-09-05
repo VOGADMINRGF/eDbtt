@@ -1044,7 +1044,11 @@ function TopicFieldList(props: { labels: string[]; onPick: (label: string) => vo
 function resolveFollowupChatHeadline(params: {
   plannerClarificationRequired: boolean;
   branchCount: number;
+  issueMode?: "single_issue" | "multi_issue";
 }): string {
+  if (params.issueMode === "multi_issue") {
+    return "Das ist kein einzelnes Anliegen, sondern ein Vorschlagspaket.";
+  }
   if (params.plannerClarificationRequired) {
     return "Ich habe diese Themen erkannt.";
   }
@@ -2844,6 +2848,9 @@ function PlaceClarificationPanel(props: {
 function StructureProposalPanel(props: {
   onConfirm: () => void;
   onOpenManualTopicChooser: () => void;
+  onEdit: () => void;
+  onContinuePackage: () => void;
+  multiIssue: boolean;
 }) {
   return (
     <div data-mobile-inline-create-actions className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
@@ -2852,16 +2859,27 @@ function StructureProposalPanel(props: {
           <p className="text-[12px] font-semibold text-[rgb(var(--muted))]">Deine Entscheidung</p>
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">Was du jetzt tun kannst</p>
           <p className="text-[15px] leading-relaxed text-[rgb(var(--muted))]">
-            Bestätige zuerst die Themenstruktur. Alles Weitere bleibt bewusst nachgeordnet.
+            {props.multiIssue
+              ? "Du kannst das Paket gemeinsam weiterführen oder zunächst einen Themenbereich auswählen."
+              : "Bestätige zuerst die Themenstruktur. Alles Weitere bleibt bewusst nachgeordnet."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5 xl:max-w-4xl">
-          <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
-            Themenstruktur bestätigen
+          <button
+            type="button"
+            className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+            onClick={props.multiIssue ? props.onContinuePackage : props.onConfirm}
+          >
+            {props.multiIssue ? "Als Gesamtkonzept weiterarbeiten" : "Themenstruktur bestätigen"}
           </button>
           <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenManualTopicChooser}>
-            Themen ändern
+            {props.multiIssue ? "Ein Thema auswählen" : "Themen ändern"}
           </button>
+          {props.multiIssue ? (
+            <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
+              Struktur ändern
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -3282,6 +3300,7 @@ export default function CreateVisualFollowup({
     [broadTopicFields, hasValidatedAnalysis, result.understanding.dossierContext, sortedSuggestions, topicLabels],
   );
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
+  const multiIssueMode = result.meta?.planner?.issueMode === "multi_issue";
   const plannerClarificationRequired = hasValidatedAnalysis ? needsPlannerClarification(result) : false;
   const plannerClarificationReason = hasValidatedAnalysis ? resolvePlannerClarificationReason(result) : "";
   const plannerClarificationDetails = hasValidatedAnalysis ? resolvePlannerClarificationDetails(result) : null;
@@ -3368,6 +3387,7 @@ export default function CreateVisualFollowup({
   const plannerClarificationLeadText = displayedBranches.length === 3
     ? "Ich sehe drei Themenstränge. Du kannst sie zusammen lassen oder einzeln weiterführen."
     : "Aus deinem Beitrag ergeben sich mehrere Stränge. Du entscheidest, wie wir weiterarbeiten.";
+  const multiIssueLeadText = `Ich erkenne ${totalStructureTopicCount} Themenbereiche. Du entscheidest, wie wir weiterarbeiten.`;
   const assistantLead = resolveAssistantLead({
     topicLabels: semanticTopicLabels,
     summary: hasValidatedAnalysis ? result.understanding.summary : "",
@@ -3793,8 +3813,13 @@ export default function CreateVisualFollowup({
                   headline={resolveFollowupChatHeadline({
                     plannerClarificationRequired,
                     branchCount: structureBranches.length,
+                    issueMode: result.meta?.planner?.issueMode,
                   })}
-                  summary={plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
+                  summary={multiIssueMode
+                    ? multiIssueLeadText
+                    : plannerClarificationRequired
+                      ? plannerClarificationLeadText
+                      : dedupedCopy.prominentSummary}
                   assistantLead={assistantLead}
                   coreClaim={dedupedCopy.prominentCoreClaim}
                   showCoreBlock={showCoreBlock && !plannerClarificationRequired}
@@ -3920,13 +3945,16 @@ export default function CreateVisualFollowup({
             {hasValidatedAnalysis &&
             showDocumentTopicOverview &&
             !isConfirmed &&
-            !placeClarification &&
+            (!placeClarification || multiIssueMode) &&
             !plannerClarificationRequired &&
             (!activeBranch || activeTopicIndex < 0) ? (
               <div className="mt-4">
                 <StructureProposalPanel
                   onConfirm={onConfirm}
                   onOpenManualTopicChooser={onOpenManualTopicChooser}
+                  onEdit={onEdit}
+                  onContinuePackage={onDeepenAllTopics}
+                  multiIssue={multiIssueMode}
                 />
               </div>
             ) : null}
