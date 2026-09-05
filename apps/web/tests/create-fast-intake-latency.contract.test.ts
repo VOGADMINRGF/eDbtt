@@ -1,12 +1,19 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   isCreateFastIntakeText,
   resolveCreatePlannerMaxOutputTokens,
   resolveCreatePlannerTimeoutMs,
 } from "@/features/create/createPlanner";
+import {
+  CREATE_FAST_INTAKE_TIMEOUT_MS,
+  CREATE_FIRST_RESPONSE_PERFORMANCE_TARGET_MS,
+  CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
+  isCreateIntelligentFollowupAbortError,
+  startCreateIntelligentFollowupDeadline,
+} from "@/features/create/createFastIntakeTiming";
 
 const REGRESSION_TEXT =
   "ich bin für mindestlohn bei behindertenwerkstätten, für mehr integration innerhalb der wirtschaft aber auch für stärkere kontrollen der vorstände der jeweiligen akteure";
@@ -16,26 +23,103 @@ function source(path: string): string {
 }
 
 describe("create fast-intake latency contract", () => {
-  it("uses the small one-call planner profile for the regression input", () => {
-    expect(isCreateFastIntakeText(REGRESSION_TEXT)).toBe(true);
-    expect(resolveCreatePlannerTimeoutMs(REGRESSION_TEXT)).toBe(4_200);
-    expect(resolveCreatePlannerMaxOutputTokens(REGRESSION_TEXT)).toBe(400);
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it("keeps save-first safety and one five-second analysis deadline", () => {
+  it("uses the small one-call planner profile for the regression input", () => {
+    expect(isCreateFastIntakeText(REGRESSION_TEXT)).toBe(true);
+    expect(resolveCreatePlannerTimeoutMs(REGRESSION_TEXT)).toBe(6_500);
+    expect(resolveCreatePlannerMaxOutputTokens(REGRESSION_TEXT)).toBe(400);
+    expect(CREATE_FIRST_RESPONSE_PERFORMANCE_TARGET_MS).toBe(3_000);
+    expect(CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS).toBeGreaterThan(
+      CREATE_FAST_INTAKE_TIMEOUT_MS,
+    );
+  });
+
+  it("starts the planner deadline only after durable save and skips it for link intake", () => {
     const client = source("src/app/create/CreateClient.tsx");
+    const startFlow = client.slice(
+      client.indexOf("const startCreateFlow"),
+      client.indexOf("const handleStart"),
+    );
     const saveIndex = client.indexOf('fetch("/api/create/save"');
+    const durableSaveIndex = client.indexOf("draftSavedForRun = true", saveIndex);
+    const linkIntakeIndex = client.indexOf(
+      "if (linkDetection.hasLink && linkDetection.primaryUrl)",
+      durableSaveIndex,
+    );
+    const deadlineIndex = client.indexOf(
+      "plannerDeadline = startCreateIntelligentFollowupDeadline()",
+      durableSaveIndex,
+    );
     const plannerIndex = client.indexOf('fetch("/api/create/intelligent-followup"');
 
-    expect(client).toContain("const CREATE_FIRST_RESPONSE_HARD_LIMIT_MS = 5_000;");
     expect(saveIndex).toBeGreaterThan(-1);
-    expect(plannerIndex).toBeGreaterThan(saveIndex);
-    expect((client.match(/signal: firstResponseController\.signal/g) ?? [])).toHaveLength(1);
-    expect(
-      client.slice(saveIndex, plannerIndex),
-    ).not.toContain("signal: firstResponseController.signal");
+    expect(durableSaveIndex).toBeGreaterThan(saveIndex);
+    expect(linkIntakeIndex).toBeGreaterThan(durableSaveIndex);
+    expect(deadlineIndex).toBeGreaterThan(linkIntakeIndex);
+    expect(plannerIndex).toBeGreaterThan(deadlineIndex);
+    expect(client.slice(saveIndex, durableSaveIndex)).not.toContain("signal:");
+    expect(client.slice(plannerIndex, plannerIndex + 260)).toContain(
+      "signal: plannerDeadline.signal",
+    );
+    expect(startFlow).toContain("plannerDeadline?.clear()");
+    expect(startFlow).toContain("plannerDeadlineRef.current = null");
+    expect(client).toContain("plannerDeadlineRef.current?.cancel()");
     expect(client).toContain("saveMs");
     expect(client).toContain("submitToResultMs");
+  });
+
+  it("keeps a five-second provider response inside both technical limits", () => {
+    vi.useFakeTimers();
+    const deadline = startCreateIntelligentFollowupDeadline();
+
+    vi.advanceTimersByTime(5_000);
+
+    expect(CREATE_FAST_INTAKE_TIMEOUT_MS).toBeGreaterThan(5_000);
+    expect(deadline.signal.aborted).toBe(false);
+    expect(deadline.didTimeout()).toBe(false);
+    deadline.clear();
+    vi.advanceTimersByTime(CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS);
+    expect(deadline.signal.aborted).toBe(false);
+  });
+
+  it("aborts at the client limit and classifies only AbortError as timeout", () => {
+    vi.useFakeTimers();
+    const deadline = startCreateIntelligentFollowupDeadline();
+
+    vi.advanceTimersByTime(CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS);
+
+    expect(deadline.signal.aborted).toBe(true);
+    expect(deadline.didTimeout()).toBe(true);
+    expect(
+      isCreateIntelligentFollowupAbortError(
+        Object.assign(new Error("aborted"), { name: "AbortError" }),
+      ),
+    ).toBe(true);
+    expect(isCreateIntelligentFollowupAbortError(new Error("network"))).toBe(false);
+    deadline.clear();
+  });
+
+  it("keeps save failures separate from saved-draft timeout recovery", () => {
+    const client = source("src/app/create/CreateClient.tsx");
+    const startFlow = client.slice(
+      client.indexOf("const startCreateFlow"),
+      client.indexOf("const handleStart"),
+    );
+    const catchIndex = startFlow.indexOf("} catch (error: unknown) {");
+    const finallyIndex = startFlow.indexOf("} finally {", catchIndex);
+    const recovery = startFlow.slice(catchIndex, finallyIndex);
+
+    expect(recovery).toContain("if (!draftSavedForRun)");
+    expect(recovery).toContain("Dein Beitrag konnte nicht sicher gespeichert werden.");
+    expect(recovery).toContain("plannerDeadline?.didTimeout() === true");
+    expect(recovery).toContain("Dein Beitrag ist gespeichert; du kannst die Einordnung erneut versuchen.");
+    expect(recovery).toContain("setIntakeError(null)");
+    expect(recovery.indexOf("Dein Beitrag konnte nicht sicher gespeichert werden.")).toBeLessThan(
+      recovery.indexOf("} else {"),
+    );
   });
 
   it("keeps enrichment behind confirmation and reports stage timings", () => {

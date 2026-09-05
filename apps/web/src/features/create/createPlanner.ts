@@ -10,6 +10,7 @@ import type {
   CreatePlannerProviderAttemptIdentity,
   CreatePlannerValidatedProviderSource,
 } from "@/features/create/createPlannerProviderContract";
+import { CREATE_FAST_INTAKE_TIMEOUT_MS } from "@/features/create/createFastIntakeTiming";
 export { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
 
 export type CreatePlannerScope =
@@ -445,7 +446,6 @@ function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
 }
 
 const CREATE_FAST_INTAKE_MAX_CHARS = 800;
-const CREATE_FAST_INTAKE_TIMEOUT_MS = 4_200;
 const CREATE_FAST_INTAKE_MAX_OUTPUT_TOKENS = 400;
 
 export function isCreateFastIntakeText(text: string): boolean {
