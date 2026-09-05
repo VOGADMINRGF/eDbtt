@@ -10,8 +10,18 @@ import type {
   CreatePlannerProviderAttemptIdentity,
   CreatePlannerValidatedProviderSource,
 } from "@/features/create/createPlannerProviderContract";
-import { CREATE_FAST_INTAKE_TIMEOUT_MS } from "@/features/create/createFastIntakeTiming";
+import {
+  CREATE_STANDARD_INTAKE_TIMEOUT_MS,
+  resolveCreateIntakeTiming,
+} from "@/features/create/createFastIntakeTiming";
+import {
+  extractCreateStructuredTopicLabels,
+  isCreateFastIntakeText,
+  resolveCreateIntakeIssueMode,
+  type CreateIntakeIssueMode,
+} from "@/features/create/createIntakeClassification";
 export { isCreatePlannerProviderSource } from "@/features/create/createPlannerProviderContract";
+export { isCreateFastIntakeText } from "@/features/create/createIntakeClassification";
 
 export type CreatePlannerScope =
   | "local"
@@ -105,6 +115,9 @@ export type CreatePlannerResult = {
   graphSearchTerms: string[];
   materialSignals: string[];
   recommendedLane: CreatePlannerRecommendedLane;
+  issueMode?: CreateIntakeIssueMode;
+  timingLane?: "fast" | "standard";
+  inputLength?: number;
   providerPlan: CreatePlannerProviderPlan;
   permissions: CreatePlannerPermissions;
   plannerDegraded: boolean;
@@ -364,26 +377,28 @@ const QUOTA_EQUALITY_CLUSTER_RULES = [
 
 const WORKSHOP_PARTICIPATION_TOPIC =
   "Arbeitsbedingungen und Teilhabe in Behindertenwerkstätten";
-const WORKSHOP_PARTICIPATION_ASPECTS = [
-  "Faire Entlohnung / Mindestlohn",
-  "Integration in den allgemeinen Arbeitsmarkt",
-  "Kontrolle / Governance der Träger bzw. Vorstände",
-] as const;
-
 function resolveCitizenFirstSharedCore(text: string): {
   topic: string;
   aspects: string[];
 } | null {
-  const isWorkshopParticipationConcern =
-    /\bmindestlohn\b/i.test(text) &&
-    /behindertenwerkst(?:ä|ae)tt/i.test(text) &&
-    /\bintegration\b/i.test(text) &&
-    /\bkontroll/i.test(text) &&
+  const hasWorkshop = /behindertenwerkst(?:ä|ae)tt/i.test(text);
+  const hasWage = /\bmindestlohn\b|\bentlohnung\b|\bvergütung\b|\bverguetung\b/i.test(text);
+  const hasIntegration = /\bintegration\b|allgemeinen arbeitsmarkt/i.test(text);
+  const hasGovernance =
+    /\bkontroll|\btransparenz/i.test(text) &&
     /vorst(?:ä|ae)nd|tr(?:ä|ae)ger/i.test(text);
-  if (!isWorkshopParticipationConcern) return null;
+  if (!hasWorkshop || [hasWage, hasIntegration, hasGovernance].filter(Boolean).length < 2) return null;
+  const aspects = dedupeStrings([
+    hasWage ? "Faire Entlohnung / Mindestlohn" : null,
+    hasIntegration ? "Integration in den allgemeinen Arbeitsmarkt" : null,
+    hasGovernance ? "Kontrolle / Governance der Träger bzw. Vorstände" : null,
+  ]);
   return {
-    topic: WORKSHOP_PARTICIPATION_TOPIC,
-    aspects: [...WORKSHOP_PARTICIPATION_ASPECTS],
+    topic:
+      hasWage && hasGovernance && !hasIntegration
+        ? "Mindestlohn und Kontrolle in Behindertenwerkstätten"
+        : WORKSHOP_PARTICIPATION_TOPIC,
+    aspects,
   };
 }
 
@@ -445,23 +460,14 @@ function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
-const CREATE_FAST_INTAKE_MAX_CHARS = 800;
 const CREATE_FAST_INTAKE_MAX_OUTPUT_TOKENS = 400;
-
-export function isCreateFastIntakeText(text: string): boolean {
-  const normalized = text.trim();
-  return (
-    normalized.length > 0 &&
-    normalized.length <= CREATE_FAST_INTAKE_MAX_CHARS &&
-    !/https?:\/\/|www\./i.test(normalized)
-  );
-}
 
 export function resolveCreatePlannerTimeoutMs(text?: string): number {
   const configured = getAiRuntimePolicy().plannerTimeoutMs;
-  return text && isCreateFastIntakeText(text)
-    ? Math.min(configured, CREATE_FAST_INTAKE_TIMEOUT_MS)
-    : configured;
+  const selectedLimit = text
+    ? resolveCreateIntakeTiming(text).serverTimeoutMs
+    : CREATE_STANDARD_INTAKE_TIMEOUT_MS;
+  return Math.min(configured, selectedLimit);
 }
 
 export function resolveCreatePlannerMaxOutputTokens(text: string): number {
@@ -906,17 +912,28 @@ function finalizePlannerResult(params: {
   };
 }): CreatePlannerResult {
   const draft = params.draft;
-  const recommendedLane = draft.recommendedLane;
+  const structuredTopicLabels = extractCreateStructuredTopicLabels(params.text);
+  const canonicalTopicCandidates = structuredTopicLabels.length >= 3
+    ? structuredTopicLabels
+    : dedupeStrings(draft.topicCandidates);
+  const evidenceBackedScopes = inferScopesFromText(params.text);
+  const canonicalTopicCount = canonicalTopicCandidates.length;
+  const issueMode = resolveCreateIntakeIssueMode({
+    text: params.text,
+    canonicalTopicCount,
+  });
+  const timing = resolveCreateIntakeTiming(params.text);
+  const recommendedLane = timing.lane === "standard" ? "standard" : draft.recommendedLane;
   const validatedQuality = validateCreatePlannerQuality(
     {
       plannerCore: draft.plannerCore,
       plannerTopic: draft.plannerTopic,
-      plannerScope: dedupeStrings(draft.plannerScope).filter(isPlannerScope),
+      plannerScope: evidenceBackedScopes,
       plannerClusters: dedupeStrings(draft.plannerClusters),
       graphSearchTerms: dedupeStrings(draft.graphSearchTerms),
-      topicCandidates: dedupeStrings(draft.topicCandidates),
+      topicCandidates: canonicalTopicCandidates,
       clusterCandidates: dedupeStrings(draft.clusterCandidates),
-      scopeCandidates: dedupeStrings(draft.scopeCandidates).filter(isPlannerScope),
+      scopeCandidates: evidenceBackedScopes,
     },
     params.text,
   );
@@ -934,19 +951,22 @@ function finalizePlannerResult(params: {
     plannerRole: "planner_only",
     plannerTopic: draft.plannerTopic,
     plannerCore: draft.plannerCore,
-    plannerScope: dedupeStrings(draft.plannerScope).filter(isPlannerScope),
+    plannerScope: evidenceBackedScopes,
     plannerStance: draft.plannerStance,
     plannerClusters: dedupeStrings(draft.plannerClusters),
     plannerOpenQuestions: dedupeStrings(draft.plannerOpenQuestions),
     shortSummary: draft.shortSummary.trim(),
-    topicCandidates: dedupeStrings(draft.topicCandidates),
+    topicCandidates: canonicalTopicCandidates,
     clusterCandidates: dedupeStrings(draft.clusterCandidates),
-    scopeCandidates: dedupeStrings(draft.scopeCandidates).filter(isPlannerScope),
+    scopeCandidates: evidenceBackedScopes,
     stance: draft.stance,
     openQuestions: dedupeStrings(draft.openQuestions),
     graphSearchTerms: dedupeStrings(draft.graphSearchTerms),
     materialSignals: dedupeStrings(draft.materialSignals),
     recommendedLane,
+    issueMode,
+    timingLane: timing.lane,
+    inputLength: params.text.trim().length,
     providerPlan: baseProviderPlan(params.plannerProvider, recommendedLane),
     permissions: basePermissions(),
     plannerDegraded: params.plannerDegraded || quality.qualityStatus !== "specific",
@@ -1401,12 +1421,18 @@ function normalizeProviderPlannerPayload(
   }
   const payload = payloadResult.data;
   const citizenFirstSharedCore = resolveCitizenFirstSharedCore(text);
-  const plannerTopic = citizenFirstSharedCore?.topic ?? payload.plannerTopic;
+  const structuredTopicLabels = extractCreateStructuredTopicLabels(text);
+  const hasStructuredTopicPackage = structuredTopicLabels.length >= 3;
+  const plannerTopic = citizenFirstSharedCore?.topic ?? (
+    hasStructuredTopicPackage
+      ? `Vorschlagspaket mit ${structuredTopicLabels.length} Themenbereichen`
+      : payload.plannerTopic
+  );
   const plannerCore = payload.plannerCore;
 
-  const plannerScope = asStringArray(payload.plannerScope).filter(isPlannerScope);
-  const resolvedPlannerScope =
-    plannerScope.length > 0 ? plannerScope : inferScopesFromText(text);
+  // Jurisdiction is input evidence, not a provider inference. Reliable bound
+  // context can be added at the caller later; without it, text is the authority.
+  const resolvedPlannerScope = inferScopesFromText(text);
   const plannerStanceRaw = payload.plannerStance;
   const explicitProStance = /\bich\s+bin\s+f(?:ü|ue)r\b|\bich\s+unterst(?:ü|ue)tze\b/i.test(text);
   const explicitContraStance = /\bich\s+bin\s+(?:dagegen|gegen)\b|\bich\s+lehne\b/i.test(text);
@@ -1418,13 +1444,15 @@ function normalizeProviderPlannerPayload(
   const recommendedLane = isRecommendedLane(recommendedLaneRaw) ? recommendedLaneRaw : "create_fast_followup";
   const plannerClusters = citizenFirstSharedCore?.aspects ?? asStringArray(payload.plannerClusters);
   const providerTopicCandidates = dedupeStrings(asStringArray(payload.topicCandidates));
-  const topicCandidates = citizenFirstSharedCore
-    ? [citizenFirstSharedCore.topic]
-    : providerTopicCandidates.length > 0
-      ? providerTopicCandidates
-      : [plannerTopic];
+  const topicCandidates = hasStructuredTopicPackage
+    ? structuredTopicLabels
+    : citizenFirstSharedCore
+      ? [citizenFirstSharedCore.topic]
+      : providerTopicCandidates.length > 0
+        ? providerTopicCandidates
+        : [plannerTopic];
   const clusterCandidates = dedupeStrings([...plannerClusters, ...asStringArray(payload.clusterCandidates)]);
-  const scopeCandidates = dedupeStrings([...resolvedPlannerScope, ...asStringArray(payload.scopeCandidates)]).filter(isPlannerScope);
+  const scopeCandidates = resolvedPlannerScope;
   const locationQuestion = needsMunicipalLocationQuestion(text, scopeCandidates)
     ? municipalLocationQuestion(locale)
     : null;
@@ -1569,9 +1597,12 @@ async function tryOpenAiPlannerWithModel(
     "- Wenn ein gemeinsamer Kern mehrere Aspekte verbindet, liefere genau einen topicCandidate gleich plannerTopic und führe die Aspekte in plannerClusters.",
     "- plannerClusters enthält wenige verständliche Aspekte oder Unterpunkte des Hauptanliegens und erhöht niemals die Themenzahl.",
     "- Nur wenn der Text tatsächlich mehrere voneinander unabhängige Anliegen enthält, darf topicCandidates mehrere Einträge enthalten; niemals auf drei Themen begrenzen.",
+    "- Nummerierte Themenblöcke, Abschnittsüberschriften und wiederholte 'Unterthemen:' sind starke Signale für mehrere eigenständige Hauptthemen.",
+    "- Bei einem strukturierten Vorschlagspaket bleibt jeder ausdrücklich benannte Themenblock ein eigener topicCandidate.",
     "- Ein nur von dir gebildeter Sammelbegriff oder ein synthetisches Oberthema darf die Zahl der topicCandidates nicht erhöhen.",
     "- Wenn plannerTopic selbst ausdrücklich als eigenständiges Thema im Text vorkommt, bleibt es dagegen als topicCandidate erhalten.",
     "- Bei kommunalem Scope ohne ausdrücklich benannte Stadt, Gemeinde oder Ortsteil muss plannerOpenQuestions eine Ortsrückfrage enthalten.",
+    "- Scope/Jurisdiktion nur aus expliziten Hinweisen im Text ableiten; ohne belastbaren Hinweis ausschließlich unclear verwenden.",
     "- Formuliere die offene Rückfrage als Auswahlfrage, wenn mehrere Themen konkurrieren.",
     "",
     `Locale: ${input.locale}`,
@@ -1854,6 +1885,8 @@ function buildFallbackPlannerPrompt(input: BuildCreatePlannerInput) {
     "Keine Veröffentlichung, kein Speichern, kein Mergen, kein DeepSearch und keine Quellenbehauptungen.",
     "topicCandidates enthält nur eigenständige Hauptthemen, plannerClusters nur Aspekte oder Unterpunkte.",
     "Bei einem gemeinsamen Kern mit mehreren Maßnahmen: genau ein topicCandidate gleich plannerTopic.",
+    "Nummerierte Themenblöcke und Abschnittsüberschriften bleiben als eigenständige topicCandidates erhalten.",
+    "Scope/Jurisdiktion nur aus expliziten Texthinweisen ableiten; sonst ausschließlich unclear.",
     "Bei mehreren Politikfeldern müssen mindestens 3 Cluster entstehen.",
     "recommendedLane ist standard oder create_fast_followup.",
     `Locale: ${input.locale}`,

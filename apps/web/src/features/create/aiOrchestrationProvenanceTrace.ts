@@ -162,6 +162,12 @@ export type CreatePlannerRuntimeTrace = {
     totalMs: number;
     submitToResultMs?: number | null;
   };
+  intake?: {
+    selectedTimingLane: "fast" | "standard";
+    inputLength: number;
+    canonicalTopicCount: number;
+    issueMode: "single_issue" | "multi_issue";
+  };
 };
 
 export type CreateAnalyzeRuntimeTrace = {
