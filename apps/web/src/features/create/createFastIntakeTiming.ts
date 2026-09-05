@@ -1,6 +1,33 @@
+import { isCreateFastIntakeText } from "@/features/create/createIntakeClassification";
+
 export const CREATE_FIRST_RESPONSE_PERFORMANCE_TARGET_MS = 3_000;
 export const CREATE_FAST_INTAKE_TIMEOUT_MS = 6_500;
 export const CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS = 8_000;
+export const CREATE_STANDARD_INTAKE_TIMEOUT_MS = 10_000;
+export const CREATE_STANDARD_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS = 12_500;
+export const CREATE_INTELLIGENT_FOLLOWUP_TRANSPORT_RESERVE_MS = 1_000;
+
+export type CreateIntakeTimingLane = "fast" | "standard";
+
+export type CreateIntakeTiming = {
+  lane: CreateIntakeTimingLane;
+  serverTimeoutMs: number;
+  clientTimeoutMs: number;
+};
+
+export function resolveCreateIntakeTiming(text: string): CreateIntakeTiming {
+  return isCreateFastIntakeText(text)
+    ? {
+        lane: "fast",
+        serverTimeoutMs: CREATE_FAST_INTAKE_TIMEOUT_MS,
+        clientTimeoutMs: CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
+      }
+    : {
+        lane: "standard",
+        serverTimeoutMs: CREATE_STANDARD_INTAKE_TIMEOUT_MS,
+        clientTimeoutMs: CREATE_STANDARD_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
+      };
+}
 
 export type CreateIntelligentFollowupDeadline = {
   signal: AbortSignal;

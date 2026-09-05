@@ -153,6 +153,7 @@ const mocks = vi.hoisted(() => {
     })),
     summarizeRequestScopeContext: vi.fn((scope) => scope),
     enforceCreateMutationSecurity: vi.fn(async () => null),
+    scheduleCreateSubmissionNotification: vi.fn(),
   };
 });
 
@@ -177,6 +178,11 @@ vi.mock("@/lib/server/auth/sessionUser", () => ({
 vi.mock("@/features/create/createRouteSecurity", () => ({
   enforceCreateMutationSecurity: (...args: unknown[]) =>
     mocks.enforceCreateMutationSecurity(...args),
+}));
+
+vi.mock("@/features/operator/operatorNotifications", () => ({
+  scheduleCreateSubmissionNotification: (...args: unknown[]) =>
+    mocks.scheduleCreateSubmissionNotification(...args),
 }));
 
 vi.mock("@/server/draftStore", () => ({
@@ -256,6 +262,11 @@ describe("create mode split - save route", () => {
     expect(saved[0].userId).toBe("user-1");
     expect(saved[0].textOriginal).toBe("Manual contribution content with enough characters.");
     expect(saved[0].textPrepared).toBe("Manual contribution content with enough characters.");
+    expect(mocks.scheduleCreateSubmissionNotification).toHaveBeenCalledWith({
+      draftId: body.draftId,
+      text: "Manual contribution content with enough characters.",
+      locale: "de",
+    });
   });
 
   it("accepts source mode and persists anlassraum context", async () => {

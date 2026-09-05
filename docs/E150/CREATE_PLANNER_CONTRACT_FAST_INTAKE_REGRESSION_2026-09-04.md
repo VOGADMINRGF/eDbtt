@@ -19,6 +19,72 @@ liegt im nicht kollidierenden Planner-Contract; eine synthetische Drei-Wege-
 Zusammenführung ist konfliktfrei und enthält anschließend sowohl den Citizen-/
 Regionskontext von #682 als auch die #713-Contract- und Latenzhärtung.
 
+## Adaptive Timing und Multi-Issue-Follow-up 2026-09-05
+
+Der zweite reale Lauf zeigte einen ungültigen Timing-Vertrag: Standard- und
+komplexe Eingaben durften serverseitig 10.000 ms laufen, der Browser brach den
+Planner-POST aber für alle Eingaben bereits nach 8.000 ms ab. Damit konnte ein
+zulässiger Serverlauf nach durable Save fälschlich im Timeout-Recovery enden.
+
+Der Vertrag ist jetzt eingabeabhängig und zentral geteilt:
+
+| Lane | Auswahl | Serverlimit | Clientlimit | Transportreserve |
+| --- | --- | ---: | ---: | ---: |
+| `fast` | kurzer Text bis 800 Zeichen, keine URL, keine starke Mehrthemenstruktur | 6.500 ms | 8.000 ms | mindestens 1.000 ms |
+| `standard` | längerer, verlinkter oder strukturierter Mehrthementext | 10.000 ms | 12.500 ms | mindestens 1.000 ms |
+
+Für beide Lanes ist per Contract-Test gesichert:
+`clientTimeout > serverTimeout + transportReserve`. Der Client wählt das Limit
+erst nach erfolgreichem durable Save; auch der Retry verwendet dieselbe
+Textklassifikation. Drei Sekunden bleiben ausschließlich Performance-Ziel.
+
+Die kanonische Einordnung trägt zusätzlich `issueMode`, `timingLane` und
+`inputLength`. Nummerierte Listen, Abschnittsüberschriften und wiederholte
+`Unterthemen:` sind starke Mehrthemensignale. Bei mindestens drei explizit
+nummerierten Blöcken werden die Überschriften deterministisch als eigenständige
+`topicCandidates` erhalten; ein Provider darf das Paket weder auf ein
+synthetisches Oberthema reduzieren noch in die Fast-Lane verschieben. Die
+Standard-Lane behält 1.200 Output-Tokens und bis zu zwei Provider-Versuche; die
+Fast-Lane bleibt bei 400 Tokens und einem Versuch.
+
+Scope wird im Planner-Ergebnis nur noch aus expliziter Textevidenz übernommen.
+Unbelegte Providerwerte werden verworfen. Ohne Orts-/Jurisdiktionssignal bleibt
+die Ebene `unclear`; ein ausdrücklich kommunales Programm kann `municipal` bzw.
+bei zusätzlich explizitem Lokalbezug `local` tragen.
+
+Die Mehrthemen-UI zeigt zunächst vier kompakte Themen und den Overflow statt 14
+großer Karten. Sie benennt das Ergebnis als Vorschlagspaket und bietet die
+bewussten Entscheidungen `Als Gesamtkonzept weiterarbeiten`, `Ein Thema
+auswählen` und `Struktur ändern`. Research, Graph-Suche, Quellenarbeit,
+Publikation und Merge bleiben vor Bestätigung deaktiviert.
+
+Echter Provider- und Headless-Chromium-Lauf unter Node 20.20.2:
+
+| Eingabe | Lane | Zeichen | Themen | Planner | Bis sichtbar | Ergebnis |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| kurzer Werkstatttext, Desktop 1440 × 900 | `fast` | 143 | 1 | 2.670 ms | 2.774 ms | `unclear`, 2 Aspekte, `pro` |
+| kurzer Werkstatttext, Mobile 390 × 844 | `fast` | 143 | 1 | 3.588 ms | 3.636 ms | `unclear`, 2 Aspekte, `pro` |
+| kommunales 14-Punkte-Programm, Mobile 390 × 844 | `standard` | 1.047 | 14 | 3.689 ms | 3.726 ms | `multi_issue`, kompakte 4+10-Ansicht |
+
+Alle drei Läufe verwendeten OpenAI
+`gpt-4.1-mini-2025-04-14` mit genau einem Provider-Versuch und blieben innerhalb
+des ausgewählten Clientlimits. Der direkte Live-Smoke misst Planner plus
+React-/Browser-Sichtbarkeit. `saveMs`, `accessMs`, `plannerMs`, Route-`totalMs`
+und Client-`submitToResultMs` bleiben in den echten POST-Traces getrennt; der
+Trace ergänzt Lane, Eingabelänge, kanonische Themenzahl und Issue-Modus. Ein
+vollständiger authentifizierter lokaler Save-/POST-Lauf war mangels
+`EDEBATTE_E2E_EMAIL` und `EDEBATTE_E2E_PASSWORD` weiterhin nicht seriös
+möglich; daher werden für `saveMs`, `accessMs` und Server-Total keine erfundenen
+Werte angegeben.
+
+Die optionalen Loader `create_contribution_ledger`, `factcheck_jobs` und
+`user_scoped_runtime_linkages` gehören zu `getAccountOverview()` im
+serverseitigen `GET /create` und besitzen einen 2.000-ms-Fallback. Sie werden
+weder von `POST /api/create/save` noch von
+`POST /api/create/intelligent-followup` geladen. Das verbleibende
+SSR-/Page-Load-Thema ist ein separates Performance-Follow-up und wurde hier
+nicht refaktoriert.
+
 ## Befund
 
 Die Regression hatte vier zusammenwirkende Ursachen:
@@ -146,9 +212,10 @@ P0-Fix.
 ## Verifikation
 
 - Live: `CREATE_LIVE_REGRESSION_SMOKE=1 node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/create-planner-live-responsive.smoke.test.tsx --reporter=verbose`
-- Live-Smoke: 2 Tests mit echtem Provider und Headless Chromium grün.
+- Live-Smoke: 3 Tests mit echtem Provider und Headless Chromium grün
+  (kurz Desktop/Mobile, lang Mobile).
 - Erweiterter CI-Block `Focused Create runtime contracts` einschließlich der
-  neuen Timing- und Planner-Regressionen: 230 Tests in 28 Dateien grün.
+  neuen Timing- und Planner-Regressionen: 236 Tests in 30 Dateien grün.
 - CI-konfigurierter isolierter Save-/Safety-Harness: 25 Tests in 2 Dateien grün.
 - Web-Critical: 192 Tests in 28 Dateien grün.
 - Production Guardrails: 36 Tests in 12 Dateien grün.

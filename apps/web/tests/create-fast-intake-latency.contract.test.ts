@@ -11,7 +11,11 @@ import {
   CREATE_FAST_INTAKE_TIMEOUT_MS,
   CREATE_FIRST_RESPONSE_PERFORMANCE_TARGET_MS,
   CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
+  CREATE_INTELLIGENT_FOLLOWUP_TRANSPORT_RESERVE_MS,
+  CREATE_STANDARD_INTAKE_TIMEOUT_MS,
+  CREATE_STANDARD_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
   isCreateIntelligentFollowupAbortError,
+  resolveCreateIntakeTiming,
   startCreateIntelligentFollowupDeadline,
 } from "@/features/create/createFastIntakeTiming";
 
@@ -33,7 +37,10 @@ describe("create fast-intake latency contract", () => {
     expect(resolveCreatePlannerMaxOutputTokens(REGRESSION_TEXT)).toBe(400);
     expect(CREATE_FIRST_RESPONSE_PERFORMANCE_TARGET_MS).toBe(3_000);
     expect(CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS).toBeGreaterThan(
-      CREATE_FAST_INTAKE_TIMEOUT_MS,
+      CREATE_FAST_INTAKE_TIMEOUT_MS + CREATE_INTELLIGENT_FOLLOWUP_TRANSPORT_RESERVE_MS,
+    );
+    expect(CREATE_STANDARD_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS).toBeGreaterThan(
+      CREATE_STANDARD_INTAKE_TIMEOUT_MS + CREATE_INTELLIGENT_FOLLOWUP_TRANSPORT_RESERVE_MS,
     );
   });
 
@@ -50,7 +57,7 @@ describe("create fast-intake latency contract", () => {
       durableSaveIndex,
     );
     const deadlineIndex = client.indexOf(
-      "plannerDeadline = startCreateIntelligentFollowupDeadline()",
+      "plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs)",
       durableSaveIndex,
     );
     const plannerIndex = client.indexOf('fetch("/api/create/intelligent-followup"');
@@ -69,6 +76,39 @@ describe("create fast-intake latency contract", () => {
     expect(client).toContain("plannerDeadlineRef.current?.cancel()");
     expect(client).toContain("saveMs");
     expect(client).toContain("submitToResultMs");
+  });
+
+  it("selects a longer client deadline for standard input without slowing fast intake", () => {
+    expect(resolveCreateIntakeTiming(REGRESSION_TEXT)).toEqual({
+      lane: "fast",
+      serverTimeoutMs: 6_500,
+      clientTimeoutMs: 8_000,
+    });
+    expect(resolveCreateIntakeTiming("Ein normaler Bürgertext. ".repeat(45))).toEqual({
+      lane: "standard",
+      serverTimeoutMs: 10_000,
+      clientTimeoutMs: 12_500,
+    });
+  });
+
+  it("keeps the standard client alive beyond the server budget plus transport reserve", () => {
+    vi.useFakeTimers();
+    const deadline = startCreateIntelligentFollowupDeadline(
+      CREATE_STANDARD_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
+    );
+
+    vi.advanceTimersByTime(
+      CREATE_STANDARD_INTAKE_TIMEOUT_MS + CREATE_INTELLIGENT_FOLLOWUP_TRANSPORT_RESERVE_MS,
+    );
+    expect(deadline.signal.aborted).toBe(false);
+
+    vi.advanceTimersByTime(
+      CREATE_STANDARD_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS -
+        CREATE_STANDARD_INTAKE_TIMEOUT_MS -
+        CREATE_INTELLIGENT_FOLLOWUP_TRANSPORT_RESERVE_MS,
+    );
+    expect(deadline.signal.aborted).toBe(true);
+    expect(deadline.didTimeout()).toBe(true);
   });
 
   it("keeps a five-second provider response inside both technical limits", () => {

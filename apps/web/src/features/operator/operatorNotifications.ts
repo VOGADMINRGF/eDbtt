@@ -44,7 +44,6 @@ type OperatorUserProjection = {
   _id: ObjectId;
   email?: string | null;
   name?: string | null;
-  createdAt?: Date | null;
   profile?: { locale?: string | null } | null;
 };
 
@@ -178,23 +177,21 @@ function schedule(work: () => Promise<void>) {
 }
 
 export function scheduleCreateSubmissionNotification(input: {
-  actorKey: string;
+  draftId: string;
   text: string;
   locale?: string | null;
 }) {
   const text = compact(input.text, 10_000);
   if (!text) return;
-  const berlinDate = berlinParts().date;
   schedule(() =>
     ensureAndDeliver({
-      idempotencyKey: `create:${berlinDate}:${input.actorKey}:${stableHash(text)}`,
+      idempotencyKey: `create:${input.draftId}`,
       kind: "create_submission",
       recipient: OPERATOR_RECIPIENTS.createSubmission,
       subject: "[eDebatte] Neuer /create-Eintrag",
       title: "Neuer Eintrag in /create",
       summary: text,
       details: {
-        Akteur: input.actorKey,
         Sprache: input.locale ?? null,
       },
     }),
@@ -233,7 +230,7 @@ export function scheduleMemberRegistrationNotification(userId: string) {
     const users = await getCol<OperatorUserProjection>("users");
     const user = await users.findOne(
       { _id: new ObjectId(userId) },
-      { projection: { _id: 1, email: 1, name: 1, createdAt: 1, "profile.locale": 1 } },
+      { projection: { _id: 1, email: 1, name: 1, "profile.locale": 1 } },
     );
     if (!user) return;
     await ensureAndDeliver({
@@ -244,9 +241,9 @@ export function scheduleMemberRegistrationNotification(userId: string) {
       title: "Neue Registrierung bei eDebatte",
       summary: `${compact(user.name ?? "Neue Person", 160)} hat sich registriert.`,
       details: {
-        Nutzer-ID: userId,
+        "Nutzer-ID": userId,
         Name: compact(user.name, 160) || null,
-        E-Mail: compact(user.email, 320) || null,
+        "E-Mail": compact(user.email, 320) || null,
         Sprache: compact(user.profile?.locale, 20) || null,
       },
     });

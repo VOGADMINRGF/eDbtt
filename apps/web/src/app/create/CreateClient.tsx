@@ -115,6 +115,7 @@ import {
 import type { CreateSupportHandoffPublic } from "@/features/support/createSupportTicketContract";
 import {
   isCreateIntelligentFollowupAbortError,
+  resolveCreateIntakeTiming,
   startCreateIntelligentFollowupDeadline,
   type CreateIntelligentFollowupDeadline,
 } from "@/features/create/createFastIntakeTiming";
@@ -1274,7 +1275,8 @@ export default function CreateClient({
       let nextPlannerTrace: CreatePlannerRuntimeTrace | null = null;
       const correlationId = createClientCorrelationId();
       plannerCorrelationId = correlationId;
-      plannerDeadline = startCreateIntelligentFollowupDeadline();
+      const intakeTiming = resolveCreateIntakeTiming(normalizedText);
+      plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs);
       plannerDeadlineRef.current = plannerDeadline;
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
@@ -2463,7 +2465,8 @@ export default function CreateClient({
     setIsRetryPlannerPending(true);
     setSupportHandoff(null);
     const correlationId = createClientCorrelationId();
-    const plannerDeadline = startCreateIntelligentFollowupDeadline();
+    const intakeTiming = resolveCreateIntakeTiming(sourceText);
+    const plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs);
     plannerDeadlineRef.current = plannerDeadline;
     try {
       const response = await fetch("/api/create/intelligent-followup", {

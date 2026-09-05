@@ -305,6 +305,18 @@ export async function POST(req: NextRequest) {
               operationId,
               operationType,
               userScope: "present" as const,
+              intake: result.meta?.planner
+                ? {
+                    selectedTimingLane: result.meta.planner.timingLane ?? "standard",
+                    inputLength: result.meta.planner.inputLength ?? body.text.trim().length,
+                    canonicalTopicCount: result.understanding.topics.length,
+                    issueMode:
+                      result.meta.planner.issueMode ??
+                      (result.understanding.topics.length >= 3
+                        ? "multi_issue"
+                        : "single_issue"),
+                  }
+                : undefined,
               timings: {
                 accessMs,
                 plannerMs,
