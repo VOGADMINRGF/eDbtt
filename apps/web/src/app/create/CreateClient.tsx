@@ -135,6 +135,7 @@ export type CreateClientProps = {
 export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
 
 const MIN_INTENT_INPUT_LENGTH = 24;
+const CREATE_FIRST_RESPONSE_HARD_LIMIT_MS = 5_000;
 
 function createClientCorrelationId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -1148,6 +1149,13 @@ export default function CreateClient({
     }
     analysisRunInFlightRef.current = true;
     let draftSavedForRun = false;
+    const submitStartedAt = performance.now();
+    let saveMs: number | null = null;
+    const firstResponseController = new AbortController();
+    const firstResponseTimeout = window.setTimeout(
+      () => firstResponseController.abort(),
+      CREATE_FIRST_RESPONSE_HARD_LIMIT_MS,
+    );
     try {
       setIntakeRestoreInfo(null);
       setIntakeError(null);
@@ -1196,9 +1204,12 @@ export default function CreateClient({
           : null,
       );
 
+      const saveStartedAt = performance.now();
       const saveResponse = await fetch("/api/create/save", {
         method: "POST",
         headers: createMutationRequestHeaders(),
+        // Save remains non-abortable so the UX deadline cannot break resume safety.
+        // The same deadline only cancels analysis after a durable draft exists.
         body: JSON.stringify({
           draftId: savedDraftId ?? undefined,
           text: normalizedText,
@@ -1220,6 +1231,7 @@ export default function CreateClient({
           },
         }),
       });
+      saveMs = performance.now() - saveStartedAt;
       const saveBody = await saveResponse.json().catch(() => ({}));
       if (!saveResponse.ok || !saveBody?.ok || typeof saveBody?.draftId !== "string") {
         throw new Error("create_auto_save_failed");
@@ -1254,6 +1266,7 @@ export default function CreateClient({
       const response = await fetch("/api/create/intelligent-followup", {
         method: "POST",
         headers: createMutationRequestHeaders(),
+        signal: firstResponseController.signal,
         body: JSON.stringify({
           text: normalizedText,
           locale: surfaceLocale,
@@ -1271,7 +1284,18 @@ export default function CreateClient({
         throw new Error("create_intelligent_followup_failed");
       }
       nextIntelligentFollowup = body.result as CreateIntelligentFollowupResult;
-      nextPlannerTrace = body.trace ?? null;
+      nextPlannerTrace = body.trace
+        ? {
+            ...body.trace,
+            timings: body.trace.timings
+              ? {
+                  ...body.trace.timings,
+                  saveMs,
+                  submitToResultMs: performance.now() - submitStartedAt,
+                }
+              : undefined,
+          }
+        : null;
 
       setIntelligentFollowup(nextIntelligentFollowup);
       setSupportHandoff(body.supportHandoff ?? null);
@@ -1338,6 +1362,7 @@ export default function CreateClient({
         setIntakeError(surfaceTexts.startFailedError);
       }
     } finally {
+      window.clearTimeout(firstResponseTimeout);
       analysisRunInFlightRef.current = false;
       setIsStarting(false);
     }
@@ -2020,7 +2045,7 @@ export default function CreateClient({
     }
     const semanticTopicCount = Math.max(
       intelligentFollowup.understanding.topics.length,
-      intelligentFollowup.meta?.planner?.plannerClusters.length ?? 0,
+      documentTopicLabels.length,
     );
     const fullBranchLabels = buildCreateStructureBranches(
       intelligentFollowup,

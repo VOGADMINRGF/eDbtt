@@ -537,7 +537,8 @@ function extractDegradedStartPoints(result: CreateIntelligentFollowupResult): st
     ...(planner?.topicCandidates ?? []),
     ...(result.understanding.topics ?? []).map((topic) => topic.label),
   ]
-    .map((value) => String(value ?? "").trim())
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
     .filter((value) => value.length > 0 && !isGenericPlannerLabel(value));
   const seen = new Set<string>();
   const startPoints: string[] = [];
@@ -1484,6 +1485,10 @@ function InlineStructureSummary(props: {
     props.hiddenTopicCount === 1
       ? "+1 weiteres Thema"
       : `+${props.hiddenTopicCount} weitere Themen`;
+  const visibleTopicLabel =
+    props.visibleTopicCount === 1
+      ? "1 Thema sichtbar"
+      : `${props.visibleTopicCount} Themen sichtbar`;
 
   return (
     <section data-create-inline-structure-summary data-create-structure-rail className="mt-4 space-y-3">
@@ -1495,7 +1500,7 @@ function InlineStructureSummary(props: {
       </div>
       <div className="flex flex-wrap gap-2.5">
         <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[13px] text-[rgb(var(--fg))]">
-          {props.visibleTopicCount} Themen sichtbar
+          {visibleTopicLabel}
         </span>
         {props.hiddenTopicCount > 0 ? (
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[13px] text-[rgb(var(--fg))]">
@@ -2058,8 +2063,11 @@ function TopicBranchPreviewGrid(props: {
   if (props.branches.length === 0) return null;
   const isDocumentSource = props.sourceKind === "document";
   const showsAllTopics = props.branches.length >= props.totalTopicCount;
+  const hasSingleTopic = props.totalTopicCount === 1;
   const leadText = isDocumentSource
     ? `Die Analyse hat ${props.totalTopicCount} Themenbereiche erkannt. ${showsAllTopics ? `Alle ${props.totalTopicCount} Themen sind geöffnet.` : `${props.branches.length} von ${props.totalTopicCount} Themen sichtbar.`}`
+    : hasSingleTopic
+      ? `Aus „${props.rootTopic}“ erkenne ich ein gemeinsames Anliegen. Prüfe kurz, ob diese Einordnung passt.`
     : `Aus „${props.rootTopic}“ erkenne ich ${props.totalTopicCount} Themen. ${props.branches.length} davon sind gerade sichtbar. Prüfe kurz, ob diese Einordnung passt.`;
 
   return (
@@ -2068,7 +2076,11 @@ function TopicBranchPreviewGrid(props: {
         <div>
           <p className="text-[12px] font-semibold text-[rgb(var(--muted))]">Voxys Einordnung</p>
           <p className="mt-1 text-[1.02rem] font-semibold text-[rgb(var(--fg))]">
-            {isDocumentSource ? "Im Dokument erkannt" : "Erkannte Themen"}
+            {isDocumentSource
+              ? "Im Dokument erkannt"
+              : hasSingleTopic
+                ? "Erkanntes Anliegen"
+                : "Erkannte Themen"}
           </p>
           <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-[rgb(var(--muted))]">
             {leadText}
@@ -3212,7 +3224,7 @@ export default function CreateVisualFollowup({
   );
   const semanticTopicCount = Math.max(
     result.understanding.topics.length,
-    result.meta?.planner?.plannerClusters.length ?? 0,
+    documentTopicCount,
   );
   const fullStructureBranchLimit = documentAnalysis
     ? Math.max(1, documentTopicCount)
@@ -3233,6 +3245,19 @@ export default function CreateVisualFollowup({
       : fullStructureBranches.length > 0
       ? fullStructureBranches.map((branch) => branch.title)
       : topicLabels;
+  const visibleUnderstandingAspects = React.useMemo(
+    () =>
+      dedupeLabelsCaseInsensitive(
+        (result.understanding.aspects ?? []).filter(
+          (aspect) =>
+            typeof aspect === "string" &&
+            !/\[object\s+(?:Object|Array)\]|^(?:undefined|null|nan|infinity)$/i.test(
+              aspect.trim(),
+            ),
+        ),
+      ).slice(0, 4),
+    [result.understanding.aspects],
+  );
   const multiTopicActionTopics = React.useMemo(() => buildMultiTopicActionTopics(result), [result]);
   const showMultiTopicActionPanel = shouldShowMultiTopicActionPanel(multiTopicActionTopics);
   const contentModules = React.useMemo(
@@ -3529,6 +3554,12 @@ export default function CreateVisualFollowup({
       model: existingTopicMatchesPreview,
     });
 
+    if (!isConfirmed) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     void resolveExistingTopicMatchesFromRuntime({ result }).then((resolved) => {
       if (cancelled) return;
       setExistingTopicMatchesRuntimeResult(resolved);
@@ -3545,7 +3576,7 @@ export default function CreateVisualFollowup({
     return () => {
       cancelled = true;
     };
-  }, [existingTopicMatchesPreview, result]);
+  }, [existingTopicMatchesPreview, isConfirmed, result]);
 
   const prepareDialogHandoffDraft = React.useCallback(
     (target: DialogHandoffTarget) => {
@@ -3788,6 +3819,26 @@ export default function CreateVisualFollowup({
                           : "kompakt"
                     }
                   />
+                  {visibleUnderstandingAspects.length > 0 ? (
+                    <div
+                      data-create-understanding-aspects
+                      className="mt-4 rounded-[1.25rem] border border-cyan-200/40 bg-cyan-500/[0.05] px-4 py-3 dark:border-cyan-300/20"
+                    >
+                      <p className="text-[12px] font-semibold text-cyan-900 dark:text-cyan-100">
+                        Aspekte
+                      </p>
+                      <ul className="mt-2 flex flex-wrap gap-2">
+                        {visibleUnderstandingAspects.map((aspect) => (
+                          <li
+                            key={aspect}
+                            className="rounded-full border border-cyan-300/40 bg-[rgb(var(--bg))] px-3 py-1.5 text-[13px] text-[rgb(var(--fg))]"
+                          >
+                            {aspect}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                   {plannerClarificationRequired ? (
                     <div className="mt-4">
                       <TopicBranchPreviewGrid

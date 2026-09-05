@@ -154,6 +154,14 @@ export type CreatePlannerRuntimeTrace = {
   operationId: string | null;
   operationType: string | null;
   userScope: "present" | "missing_runtime_truth";
+  timings?: {
+    saveMs?: number | null;
+    accessMs: number;
+    plannerMs: number | null;
+    contextMs: number | null;
+    totalMs: number;
+    submitToResultMs?: number | null;
+  };
 };
 
 export type CreateAnalyzeRuntimeTrace = {
