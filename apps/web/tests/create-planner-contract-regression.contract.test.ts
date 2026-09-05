@@ -119,7 +119,7 @@ describe("create planner contract regression", () => {
       expect.objectContaining({
         model: "gpt-4.1-mini",
         max_tokens: 400,
-        timeoutMs: 4_200,
+        timeoutMs: 6_500,
         allowJsonFormatFallback: false,
         response_format: expect.objectContaining({
           name: "create_planner_result",

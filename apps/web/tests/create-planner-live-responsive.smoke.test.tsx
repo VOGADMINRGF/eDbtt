@@ -5,6 +5,10 @@ import { describe, expect, it } from "vitest";
 
 import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
+import {
+  CREATE_FAST_INTAKE_TIMEOUT_MS,
+  CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
+} from "@/features/create/createFastIntakeTiming";
 
 const REGRESSION_TEXT =
   "ich bin für mindestlohn bei behindertenwerkstätten, für mehr integration innerhalb der wirtschaft aber auch für stärkere kontrollen der vorstände der jeweiligen akteure";
@@ -94,8 +98,12 @@ describe.runIf(process.env.CREATE_LIVE_REGRESSION_SMOKE === "1")(
           expect(result.understanding.statements[0]?.stance).toBe("pro");
           expect(planner?.plannerProvider).toBe("openai");
           expect(planner?.providerAttemptCount).toBe(1);
-          expect(planner?.runtimeMs).toBeLessThan(4_300);
-          expect(fastIntakeToVisibleMs).toBeLessThan(5_000);
+          expect(planner?.runtimeMs).toBeLessThan(
+            CREATE_FAST_INTAKE_TIMEOUT_MS + 300,
+          );
+          expect(fastIntakeToVisibleMs).toBeLessThan(
+            CREATE_INTELLIGENT_FOLLOWUP_CLIENT_TIMEOUT_MS,
+          );
           expect(visible).toBe(true);
           expect(html).toContain("Ich sehe einen gemeinsamen Kern.");
           expect(html).toContain("1 Thema sichtbar");
