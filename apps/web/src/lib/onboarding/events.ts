@@ -1,4 +1,5 @@
 import { coreCol } from "@core/db/triMongo";
+import { scheduleMemberRegistrationNotification } from "@/features/operator/operatorNotifications";
 
 export type OnboardingEventName =
   | "register_completed"
@@ -31,6 +32,10 @@ export async function logOnboardingEvent(
     });
   } catch (error) {
     console.error("[onboarding-events] failed to log event", { event, error });
+  }
+
+  if (event === "register_completed" && payload?.userId) {
+    scheduleMemberRegistrationNotification(payload.userId);
   }
 }
 

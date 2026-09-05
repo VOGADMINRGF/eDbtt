@@ -20,7 +20,11 @@ import {
   CREATE_ANON_SESSION_COOKIE,
   verifyAnonymousSession,
 } from "@/features/create/createAnonymousSession";
-import { evaluateCreateAbusePayload } from "@/features/create/createAbuseGuard";
+import {
+  evaluateCreateAbusePayload,
+  readCreateTextAlias,
+} from "@/features/create/createAbuseGuard";
+import { scheduleCreateSubmissionNotification } from "@/features/operator/operatorNotifications";
 
 export type CreateMutationScope =
   | "create_save"
@@ -133,6 +137,21 @@ async function readAbuseEvaluation(req: NextRequest, scope: CreateMutationScope)
     return evaluateCreateAbusePayload(payload);
   } catch {
     return null;
+  }
+}
+
+async function scheduleCreateSaveMirror(req: NextRequest, actorKey: string) {
+  try {
+    const payload = await req.clone().json();
+    const text = readCreateTextAlias(payload);
+    if (!text) return;
+    const locale =
+      payload && typeof payload === "object" && !Array.isArray(payload)
+        ? String((payload as Record<string, unknown>).locale ?? "de")
+        : "de";
+    scheduleCreateSubmissionNotification({ actorKey, text, locale });
+  } catch {
+    // Operator mirroring is best-effort and must never change the citizen response.
   }
 }
 
@@ -284,6 +303,10 @@ export async function enforceCreateMutationSecurity(input: {
           Math.ceil(suspicious.retryIn / 1000),
         );
       }
+    }
+
+    if (input.scope === "create_save") {
+      await scheduleCreateSaveMirror(input.req, input.actorKey);
     }
   } catch {
     return genericSecurityFailure(503, "CREATE_RATE_LIMIT_UNAVAILABLE");
