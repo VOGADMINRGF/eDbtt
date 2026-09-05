@@ -589,7 +589,7 @@ export async function isAnlassraumPublicInputAllowed(input: {
   const workflowRecord = await getRepo().getByAnlassraumId(input.anlassraumId);
   return workflowRecord
     ? isAnlassraumPubliclyReleased(workflowRecord)
-    : true;
+    : false;
 }
 
 export async function getAnlassraumActivationRecord(sourceHandoffId: string) {

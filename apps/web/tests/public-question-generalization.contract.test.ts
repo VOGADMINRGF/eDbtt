@@ -112,6 +112,232 @@ describe("public question generalization and anti-targeting contract", () => {
     expect(result.requiresHumanReview).toBe(true);
   });
 
+  it.each([
+    [
+      "permit",
+      "Stadtwerke GmbH",
+      "Soll der Stadtwerke GmbH die Genehmigung für das beantragte Wärmenetz erteilt werden?",
+    ],
+    [
+      "procurement",
+      "Anbieter GmbH",
+      "Soll der Anbieter GmbH im formalen Vergabeverfahren der Zuschlag erteilt werden?",
+    ],
+    [
+      "parliamentary_procedure",
+      "Deutscher Bundestag",
+      "Soll der Deutsche Bundestag im formalen parlamentarischen Verfahren den dokumentierten Antrag beschließen?",
+    ],
+  ] as const)(
+    "allows a neutral %s case only after explicit procedure-specific human review",
+    (kind, name, question) => {
+      const result = evaluatePublicQuestionGeneralization({
+        originalInput: `Formaler Vorgang mit ${name}.`,
+        candidatePublicQuestion: question,
+        actorContexts: [
+          actor({
+            name,
+            type: kind === "parliamentary_procedure" ? "public_body" : "company",
+            role: "procedure_subject",
+            evidenceRefs: [`procedure:${kind}`],
+          }),
+        ],
+        procedure: {
+          kind,
+          entityBindingNecessary: true,
+          evidenceRefs: [`procedure:${kind}`],
+        },
+        actorExtraction: {
+          status: "complete",
+          source: "human_review",
+          independentFromCandidateProvider: true,
+          evidenceRefs: [`human-review:${kind}`],
+        },
+        procedureReviewResolution: {
+          previousOutcome: "entity_specific_procedure_review_required",
+          decision: "approved_after_human_review",
+        },
+      });
+
+      expect(result.outcome).toBe("entity_specific_procedure_review_resolved");
+      expect(result.releaseState).toBe("draft_allowed");
+      expect(result.requiresHumanReview).toBe(false);
+      expect(result.noAutoPublish).toBe(true);
+    },
+  );
+
+  it("does not resolve a procedure-specific question from registry evidence alone", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Formales Genehmigungsverfahren für Stadtwerke GmbH.",
+      candidatePublicQuestion:
+        "Soll der Stadtwerke GmbH die Genehmigung für das beantragte Wärmenetz erteilt werden?",
+      actorContexts: [
+        actor({
+          name: "Stadtwerke GmbH",
+          type: "company",
+          role: "procedure_subject",
+          evidenceRefs: ["permit:1"],
+        }),
+      ],
+      procedure: {
+        kind: "permit",
+        entityBindingNecessary: true,
+        evidenceRefs: ["permit:1"],
+      },
+      actorExtraction: {
+        status: "complete",
+        source: "entity_registry",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["registry:1"],
+      },
+      procedureReviewResolution: {
+        previousOutcome: "entity_specific_procedure_review_required",
+        decision: "approved_after_human_review",
+      },
+    });
+
+    expect(result.outcome).toBe("entity_specific_procedure_review_required");
+    expect(result.releaseState).toBe("review_required");
+  });
+
+  it("does not resolve a procedure-specific question without human evidence", () => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: "Formales Genehmigungsverfahren für Stadtwerke GmbH.",
+      candidatePublicQuestion:
+        "Soll der Stadtwerke GmbH die Genehmigung für das beantragte Wärmenetz erteilt werden?",
+      actorContexts: [
+        actor({
+          name: "Stadtwerke GmbH",
+          type: "company",
+          role: "procedure_subject",
+          evidenceRefs: ["permit:1"],
+        }),
+      ],
+      procedure: {
+        kind: "permit",
+        entityBindingNecessary: true,
+        evidenceRefs: ["permit:1"],
+      },
+      actorExtraction: {
+        status: "complete",
+        source: "human_review",
+        independentFromCandidateProvider: true,
+        evidenceRefs: [],
+      },
+      procedureReviewResolution: {
+        previousOutcome: "entity_specific_procedure_review_required",
+        decision: "approved_after_human_review",
+      },
+    });
+
+    expect(result.outcome).toBe("actor_extraction_review_required");
+    expect(result.releaseState).toBe("review_required");
+  });
+
+  it.each([
+    "Soll die Stadtwerke GmbH für den angeblichen Betrug bestraft werden?",
+    "Soll die unehrliche Stadtwerke GmbH vom Verfahren ausgeschlossen werden?",
+  ])("never lets procedure review override accusation or character safety: %s", (question) => {
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: question,
+      candidatePublicQuestion: question,
+      actorContexts: [
+        actor({
+          name: "Stadtwerke GmbH",
+          type: "company",
+          role: "procedure_subject",
+          evidenceRefs: ["permit:1"],
+        }),
+      ],
+      procedure: {
+        kind: "permit",
+        entityBindingNecessary: true,
+        evidenceRefs: ["permit:1"],
+      },
+      actorExtraction: {
+        status: "complete",
+        source: "human_review",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["human-review:1"],
+      },
+      procedureReviewResolution: {
+        previousOutcome: "entity_specific_procedure_review_required",
+        decision: "approved_after_human_review",
+      },
+    });
+
+    expect(result.releaseState).toBe("blocked");
+    expect(result.outcome).not.toBe("entity_specific_procedure_review_resolved");
+  });
+
+  it("never lets a procedure resolution override private-person targeting", () => {
+    const question = "Soll Max Mustermann die persönliche Genehmigung erhalten?";
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: question,
+      candidatePublicQuestion: question,
+      actorContexts: [
+        actor({
+          name: "Max Mustermann",
+          type: "person",
+          role: "procedure_subject",
+          evidenceRefs: ["permit:person:1"],
+        }),
+      ],
+      procedure: {
+        kind: "permit",
+        entityBindingNecessary: true,
+        evidenceRefs: ["permit:person:1"],
+      },
+      actorExtraction: {
+        status: "complete",
+        source: "human_review",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["human-review:person:1"],
+      },
+      procedureReviewResolution: {
+        previousOutcome: "entity_specific_procedure_review_required",
+        decision: "approved_after_human_review",
+      },
+    });
+
+    expect(result.outcome).toBe("personal_targeting_blocked");
+    expect(result.releaseState).toBe("blocked");
+  });
+
+  it("never lets a procedure resolution turn a factual question into a ballot", () => {
+    const question = "Stimmt es, dass Stadtwerke GmbH die Genehmigung erhalten hat?";
+    const result = evaluatePublicQuestionGeneralization({
+      originalInput: question,
+      candidatePublicQuestion: question,
+      actorContexts: [
+        actor({
+          name: "Stadtwerke GmbH",
+          type: "company",
+          role: "procedure_subject",
+          evidenceRefs: ["permit:1"],
+        }),
+      ],
+      procedure: {
+        kind: "permit",
+        entityBindingNecessary: true,
+        evidenceRefs: ["permit:1"],
+      },
+      actorExtraction: {
+        status: "complete",
+        source: "human_review",
+        independentFromCandidateProvider: true,
+        evidenceRefs: ["human-review:1"],
+      },
+      procedureReviewResolution: {
+        previousOutcome: "entity_specific_procedure_review_required",
+        decision: "approved_after_human_review",
+      },
+    });
+
+    expect(result.outcome).toBe("fact_or_truth_question_blocked");
+    expect(result.releaseState).toBe("blocked");
+  });
+
   it("allows a neutral question that is already generalized", () => {
     const question = "Welche Regeln sollten für Werbung für Kleinkindernahrung gelten?";
     const result = evaluatePublicQuestionGeneralization({

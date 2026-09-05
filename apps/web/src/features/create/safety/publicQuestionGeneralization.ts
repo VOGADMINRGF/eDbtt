@@ -9,6 +9,7 @@ export type PublicQuestionGeneralizationOutcome =
   | "generalized_from_named_actor"
   | "actor_context_retained"
   | "entity_specific_procedure_review_required"
+  | "entity_specific_procedure_review_resolved"
   | "personal_targeting_blocked"
   | "accusation_or_character_judgment_blocked"
   | "fact_or_truth_question_blocked"
@@ -114,6 +115,10 @@ export type EvaluatePublicQuestionGeneralizationInput = {
   actorContexts: PublicQuestionActorContext[];
   actorExtraction?: PublicQuestionActorExtraction | null;
   procedure?: PublicQuestionProcedureContext | null;
+  procedureReviewResolution?: {
+    previousOutcome: "entity_specific_procedure_review_required";
+    decision: "approved_after_human_review";
+  } | null;
   locale?: string | null;
   sourceLanguage?: string | null;
   contentLanguage?: string | null;
@@ -535,6 +540,28 @@ export function evaluatePublicQuestionGeneralization(
   }
 
   if (hasValidProcedureContext) {
+    const hasExplicitHumanProcedureResolution =
+      input.procedureReviewResolution?.previousOutcome ===
+        "entity_specific_procedure_review_required" &&
+      input.procedureReviewResolution.decision ===
+        "approved_after_human_review" &&
+      actorExtraction.source === "human_review";
+
+    if (hasExplicitHumanProcedureResolution) {
+      return result(input, {
+        ...commonResultParams,
+        outcome: "entity_specific_procedure_review_resolved",
+        releaseState: "draft_allowed",
+        publicQuestion: candidatePublicQuestion,
+        reasons: [
+          "entity_binding_is_procedure_specific",
+          "procedure_specific_human_review_completed",
+        ],
+        explanation:
+          "Die notwendige Akteursbindung im formalen Verfahren wurde mit unabhängiger menschlicher Evidenz geprüft. Der Entwurf bleibt weiterhin getrennt von jeder Veröffentlichung.",
+      });
+    }
+
     return result(input, {
       ...commonResultParams,
       outcome: "entity_specific_procedure_review_required",

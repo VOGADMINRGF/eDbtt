@@ -185,6 +185,34 @@ function buildActivationRecord(
   };
 }
 
+function buildProcedureQuestionGuard() {
+  return evaluatePublicQuestionGeneralization({
+    originalInput: "Die Stadtwerke GmbH beantragt ein formales Genehmigungsverfahren.",
+    candidatePublicQuestion:
+      "Soll der Stadtwerke GmbH die Genehmigung für das beantragte Wärmenetz erteilt werden?",
+    actorContexts: [
+      {
+        id: "stadtwerke-1",
+        name: "Stadtwerke GmbH",
+        type: "company",
+        role: "procedure_subject",
+        evidenceRefs: ["permit:waermenetz:1"],
+      },
+    ],
+    procedure: {
+      kind: "permit",
+      entityBindingNecessary: true,
+      evidenceRefs: ["permit:waermenetz:1"],
+    },
+    actorExtraction: {
+      status: "complete",
+      source: "actor_graph",
+      independentFromCandidateProvider: true,
+      evidenceRefs: ["actor-graph:stadtwerke:1"],
+    },
+  });
+}
+
 describe("anlassraum activation workflow", () => {
   it("carries a blocked source question into the activation blocker set", () => {
     const handoff = buildHandoffRecord();
@@ -242,6 +270,50 @@ describe("anlassraum activation workflow", () => {
     if (!activated.ok) {
       expect(activated.blockers).toContain("public_question_guard_blocked");
     }
+  });
+
+  it("resolves only the procedure-specific blocker through explicit human review", () => {
+    const questionGuard = buildProcedureQuestionGuard();
+    const record = buildActivationRecord({
+      description: questionGuard.originalInput,
+      trigger: questionGuard.candidatePublicQuestion,
+      questionGuard,
+      status: "approved_for_publication",
+      visibility: "ready_for_publication_review",
+      publicAccessMode: "internal_only",
+      roomStatus: "active",
+      roomIsPublic: true,
+      approvedForActivationAt: "2026-07-01T09:05:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+      approvedForPublicationAt: "2026-07-01T09:10:00.000Z",
+      approvedForPublicationBy: "admin-before-review",
+    });
+
+    const actorGraphReviewed = reviewAnlassraumQuestionGuard(record, {
+      actorExtractionSource: "actor_graph",
+      evidenceRefs: ["actor-graph:stadtwerke:2"],
+    });
+    expect(actorGraphReviewed.questionGuard.outcome).toBe(
+      "entity_specific_procedure_review_required",
+    );
+    expect(actorGraphReviewed.questionGuard.releaseState).toBe("review_required");
+
+    const humanReviewed = reviewAnlassraumQuestionGuard(record, {
+      actorExtractionSource: "human_review",
+      evidenceRefs: ["human-review:permit:waermenetz:1"],
+      reviewedAt: "2026-07-01T09:15:00.000Z",
+    });
+
+    expect(humanReviewed.questionGuard.outcome).toBe(
+      "entity_specific_procedure_review_resolved",
+    );
+    expect(humanReviewed.questionGuard.releaseState).toBe("draft_allowed");
+    expect(humanReviewed.status).toBe("draft");
+    expect(humanReviewed.visibility).toBe("editorial_workspace");
+    expect(humanReviewed.publicAccessMode).toBe("none");
+    expect(humanReviewed.roomIsPublic).toBe(false);
+    expect(humanReviewed.approvedForActivationAt).toBeNull();
+    expect(humanReviewed.approvedForPublicationAt).toBeNull();
   });
 
   it("invalidates earlier approvals and persists review audit before releasing the guard", async () => {
@@ -605,6 +677,10 @@ describe("anlassraum activation workflow", () => {
         roomStatus: "active",
         roomIsPublic: true,
         blockers: [],
+        approvedForActivationAt: "2026-07-01T09:20:00.000Z",
+        approvedForActivationBy: "admin-1",
+        approvedForPublicationAt: "2026-07-01T09:40:00.000Z",
+        approvedForPublicationBy: "admin-1",
       });
       expect(isAnlassraumPubliclyReleased(publicRecord)).toBe(true);
       await repo.save(publicRecord);
@@ -661,6 +737,29 @@ describe("anlassraum activation workflow", () => {
       });
       expect(legacyReserved.version).toBe(1);
       expect(legacyReserved.roomIsPublic).toBe(false);
+
+      setAnlassraumActivationWorkflowRepositoryForTests(
+        createInMemoryAnlassraumActivationWorkflowRepository(),
+      );
+      await expect(
+        isAnlassraumPublicInputAllowed({
+          anlassraumId: publicRecord.anlassraumId!,
+          roomIsPublic: true,
+        }),
+      ).resolves.toBe(false);
+
+      expect(
+        isAnlassraumPubliclyReleased({
+          ...publicRecord,
+          moderationPending: true,
+        }),
+      ).toBe(false);
+      expect(
+        isAnlassraumPubliclyReleased({
+          ...publicRecord,
+          questionGuard: undefined as never,
+        }),
+      ).toBe(false);
     } finally {
       setAnlassraumActivationWorkflowRepositoryForTests(null);
     }

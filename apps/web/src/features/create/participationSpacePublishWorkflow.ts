@@ -423,6 +423,15 @@ export function reviewParticipationSpaceQuestionGuard(
       evidenceRefs,
     },
     procedure: record.questionGuard.procedure,
+    procedureReviewResolution:
+      record.questionGuard.outcome ===
+        "entity_specific_procedure_review_required" &&
+      input.actorExtractionSource === "human_review"
+        ? {
+            previousOutcome: "entity_specific_procedure_review_required",
+            decision: "approved_after_human_review",
+          }
+        : null,
   });
   const reviewed = {
     ...record,

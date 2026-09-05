@@ -535,6 +535,15 @@ export function reviewAnlassraumQuestionGuard(
       evidenceRefs,
     },
     procedure: record.questionGuard.procedure,
+    procedureReviewResolution:
+      record.questionGuard.outcome ===
+        "entity_specific_procedure_review_required" &&
+      input.actorExtractionSource === "human_review"
+        ? {
+            previousOutcome: "entity_specific_procedure_review_required",
+            decision: "approved_after_human_review",
+          }
+        : null,
   });
   return withBlockers({
     ...record,
@@ -560,7 +569,12 @@ export function isAnlassraumPubliclyReleased(
     record.visibility === "public" &&
     record.publicAccessMode === "public_read_only" &&
     record.roomIsPublic === true &&
-    record.questionGuard.releaseState === "draft_allowed"
+    record.questionGuard?.releaseState === "draft_allowed" &&
+    Boolean(record.approvedForActivationAt) &&
+    Boolean(record.approvedForActivationBy) &&
+    Boolean(record.approvedForPublicationAt) &&
+    Boolean(record.approvedForPublicationBy) &&
+    getAnlassraumActivationBlockers(record).length === 0
   );
 }
 

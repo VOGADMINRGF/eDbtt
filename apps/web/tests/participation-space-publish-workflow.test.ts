@@ -185,6 +185,34 @@ function buildPublishRecord(
   };
 }
 
+function buildProcedureQuestionGuard() {
+  return evaluatePublicQuestionGeneralization({
+    originalInput: "Die Stadtwerke GmbH beantragt ein formales Genehmigungsverfahren.",
+    candidatePublicQuestion:
+      "Soll der Stadtwerke GmbH die Genehmigung für das beantragte Wärmenetz erteilt werden?",
+    actorContexts: [
+      {
+        id: "stadtwerke-1",
+        name: "Stadtwerke GmbH",
+        type: "company",
+        role: "procedure_subject",
+        evidenceRefs: ["permit:waermenetz:1"],
+      },
+    ],
+    procedure: {
+      kind: "permit",
+      entityBindingNecessary: true,
+      evidenceRefs: ["permit:waermenetz:1"],
+    },
+    actorExtraction: {
+      status: "complete",
+      source: "actor_graph",
+      independentFromCandidateProvider: true,
+      evidenceRefs: ["actor-graph:stadtwerke:1"],
+    },
+  });
+}
+
 describe("participation space publish workflow", () => {
   it("carries a blocked source question into the publication blocker set", () => {
     const handoff = buildHandoffRecord();
@@ -247,6 +275,55 @@ describe("participation space publish workflow", () => {
     if (!published.ok) {
       expect(published.blockers).toContain("public_question_guard_blocked");
     }
+  });
+
+  it("resolves only the procedure-specific blocker through explicit human review", () => {
+    const questionGuard = buildProcedureQuestionGuard();
+    const record = buildPublishRecord({
+      description: questionGuard.originalInput,
+      participationQuestion: questionGuard.candidatePublicQuestion,
+      questionGuard,
+      status: "approved_for_publication",
+      visibility: "ready_for_publication_review",
+      approvedForActivationAt: "2026-06-30T09:05:00.000Z",
+      approvedForActivationBy: "admin-before-review",
+      approvedForPublicationAt: "2026-06-30T09:10:00.000Z",
+      approvedForPublicationBy: "admin-before-review",
+    });
+
+    expect(record.questionGuard.outcome).toBe(
+      "entity_specific_procedure_review_required",
+    );
+
+    const registryReviewed = reviewParticipationSpaceQuestionGuard(record, {
+      actorExtractionSource: "entity_registry",
+      evidenceRefs: ["registry:stadtwerke:1"],
+    });
+    expect(registryReviewed.questionGuard.outcome).toBe(
+      "entity_specific_procedure_review_required",
+    );
+    expect(registryReviewed.questionGuard.releaseState).toBe("review_required");
+
+    const humanReviewed = reviewParticipationSpaceQuestionGuard(record, {
+      actorExtractionSource: "human_review",
+      evidenceRefs: ["human-review:permit:waermenetz:1"],
+      reviewedAt: "2026-06-30T09:15:00.000Z",
+    });
+
+    expect(humanReviewed.questionGuard.outcome).toBe(
+      "entity_specific_procedure_review_resolved",
+    );
+    expect(humanReviewed.questionGuard.releaseState).toBe("draft_allowed");
+    expect(humanReviewed.questionGuard.reasons).toContain(
+      "procedure_specific_human_review_completed",
+    );
+    expect(humanReviewed.status).toBe("draft");
+    expect(humanReviewed.visibility).toBe("editorial_workspace");
+    expect(humanReviewed.approvedForActivationAt).toBeNull();
+    expect(humanReviewed.approvedForPublicationAt).toBeNull();
+    expect(humanReviewed.blockers).toEqual(
+      expect.arrayContaining(["activation_not_approved", "publication_not_approved"]),
+    );
   });
 
   it("invalidates earlier approvals and persists review audit before releasing the guard", async () => {
