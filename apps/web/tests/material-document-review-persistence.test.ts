@@ -7,6 +7,7 @@ import {
 import {
   createInMemoryMaterialDocumentReviewRepository,
   createMaterialDocumentReviewSession,
+  getMaterialDocumentReviewSession,
   prepareSelectedMaterialQuestions,
   setMaterialDocumentReviewRepositoryForTests,
   updateMaterialDocumentReviewSelections,
@@ -79,6 +80,46 @@ const drafts: MaterialStructuredDraftResult = {
   noAutoMerge: true,
   error: null,
 };
+
+async function currentSession(id: string) {
+  const session = await createMaterialDocumentReviewSession({
+    job: {
+      id: `job-${id}`,
+      materialId: `material-${id}`,
+      materialLabel: `Material ${id}`,
+      organizationId: null,
+    } as MaterialExtractionJob,
+    actorId: `user-${id}`,
+    graphFirst: graph,
+    drafts,
+  });
+  if (!session) throw new Error("missing_session");
+  return session;
+}
+
+function withoutQuestionGuard<T extends { selections: Array<Record<string, unknown>> }>(
+  session: T,
+) {
+  const legacy = structuredClone(session);
+  for (const selection of legacy.selections) delete selection.questionGuard;
+  return legacy;
+}
+
+function installDocumentRepo(initial: Record<string, any>) {
+  let document = structuredClone(initial);
+  const repo = {
+    async save(session: any) {
+      document = structuredClone(session);
+    },
+    async get(id: string) {
+      return id === document.id ? structuredClone(document) : null;
+    },
+  };
+  setMaterialDocumentReviewRepositoryForTests(repo);
+  return {
+    read: () => structuredClone(document),
+  };
+}
 
 describe("material document review persistence", () => {
   beforeEach(() => {
@@ -286,6 +327,186 @@ describe("material document review persistence", () => {
     });
     expect(JSON.stringify(projectCreateSavedWorkstateForPublic(workstate))).not.toContain(
       procedureGuard.originalInput,
+    );
+  });
+
+  it("normalizes a persisted legacy review on load without inventing clearance", async () => {
+    const session = await currentSession("legacy-load");
+    const legacy = withoutQuestionGuard(session as any);
+    installDocumentRepo(legacy);
+
+    const loaded = await getMaterialDocumentReviewSession(session.id);
+
+    expect(loaded?.selections[0].questionGuard).toMatchObject({
+      originalInput: session.selections[0].text,
+      candidatePublicQuestion: session.selections[0].text,
+      outcome: "actor_extraction_review_required",
+      releaseState: "review_required",
+      requiresHumanReview: true,
+      actorExtraction: {
+        status: "unverified",
+        source: "material_provider",
+        independentFromCandidateProvider: false,
+      },
+      noAutoPublish: true,
+    });
+  });
+
+  it("preserves actually persisted actor, procedure, original, and evidence data in a legacy guard", async () => {
+    const session = await currentSession("legacy-procedure");
+    const legacy = withoutQuestionGuard(session as any);
+    Object.assign(legacy.selections[0], {
+      originalInput: "Die Stadtwerke GmbH beantragt das Wärmenetz.",
+      text: "Soll der Stadtwerke GmbH die Genehmigung erteilt werden?",
+      actorContexts: [
+        {
+          id: "company:stadtwerke",
+          name: "Stadtwerke GmbH",
+          type: "company",
+          role: "procedure_subject",
+          evidenceRefs: ["antrag:stadtwerke:1"],
+        },
+      ],
+      procedure: {
+        kind: "permit",
+        entityBindingNecessary: true,
+        evidenceRefs: ["antrag:stadtwerke:1"],
+      },
+      evidenceRefs: ["material:seite:4"],
+    });
+    installDocumentRepo(legacy);
+
+    const guard = (await getMaterialDocumentReviewSession(session.id))?.selections[0]
+      .questionGuard;
+
+    expect(guard).toMatchObject({
+      originalInput: "Die Stadtwerke GmbH beantragt das Wärmenetz.",
+      releaseState: "review_required",
+      actorContexts: [
+        {
+          name: "Stadtwerke GmbH",
+          type: "company",
+          role: "procedure_subject",
+          evidenceRefs: ["antrag:stadtwerke:1"],
+        },
+      ],
+      procedure: {
+        kind: "permit",
+        entityBindingNecessary: true,
+        evidenceRefs: ["antrag:stadtwerke:1"],
+      },
+      evidenceRefs: expect.arrayContaining([
+        "material:seite:4",
+        "antrag:stadtwerke:1",
+      ]),
+    });
+  });
+
+  it("saves a loaded legacy review with the normalized guard", async () => {
+    const session = await currentSession("legacy-save");
+    const repoState = installDocumentRepo(withoutQuestionGuard(session as any));
+    const loaded = await getMaterialDocumentReviewSession(session.id);
+    if (!loaded) throw new Error("missing_legacy_session");
+
+    const updated = await updateMaterialDocumentReviewSelections({
+      reviewId: session.id,
+      selections: [
+        {
+          ...loaded.selections[0],
+          selected: true,
+          action: "continue",
+        },
+      ],
+    });
+
+    expect(updated.selections[0].questionGuard.releaseState).toBe(
+      "review_required",
+    );
+    expect(repoState.read().selections[0].questionGuard).toEqual(
+      updated.selections[0].questionGuard,
+    );
+  });
+
+  it("prepares a safe legacy candidate only as a private needs-review workstate", async () => {
+    const session = await currentSession("legacy-prepare");
+    const legacy = withoutQuestionGuard(session as any);
+    legacy.selections[0].selected = true;
+    legacy.selections[0].action = "continue";
+    installDocumentRepo(legacy);
+
+    const prepared = await prepareSelectedMaterialQuestions({
+      reviewId: session.id,
+      actorId: session.actorId,
+      confirmed: true,
+    });
+    const [workstate] = await listCreateSavedWorkstates();
+
+    expect(prepared.status).toBe("prepared");
+    expect(workstate).toMatchObject({
+      visibility: "private",
+      status: "needs_review",
+    });
+    expect(workstate.status).not.toBe("published");
+    expect(workstate.privateReviewEvidence?.publicQuestionGuard).toMatchObject({
+      releaseState: "review_required",
+      noAutoPublish: true,
+    });
+  });
+
+  it("keeps a blocked legacy candidate blocked without deleting its stored options", async () => {
+    const session = await currentSession("legacy-blocked");
+    const legacy = withoutQuestionGuard(session as any);
+    legacy.selections[0].text = "Sollen wir diese Gruppe verprügeln?";
+    legacy.selections[0].selected = true;
+    legacy.selections[0].action = "continue";
+    legacy.selections[0].options = [
+      { text: "Persistierte Altoption", source: "document" },
+    ];
+    installDocumentRepo(legacy);
+
+    const loaded = await getMaterialDocumentReviewSession(session.id);
+    expect(loaded?.selections[0].questionGuard).toMatchObject({
+      outcome: "safety_blocked",
+      releaseState: "blocked",
+    });
+    expect(loaded?.selections[0].options).toEqual(legacy.selections[0].options);
+    await expect(
+      prepareSelectedMaterialQuestions({
+        reviewId: session.id,
+        actorId: session.actorId,
+        confirmed: true,
+      }),
+    ).rejects.toThrow("material_review_question_blocked");
+    expect(await listCreateSavedWorkstates()).toHaveLength(0);
+  });
+
+  it("leaves an existing persisted question guard unchanged", async () => {
+    const session = await currentSession("current-guard");
+    installDocumentRepo(session as any);
+
+    const loaded = await getMaterialDocumentReviewSession(session.id);
+
+    expect(loaded?.selections[0].questionGuard).toEqual(
+      session.selections[0].questionGuard,
+    );
+  });
+
+  it("applies identical load normalization after in-memory and Mongo-shaped reads", async () => {
+    const session = await currentSession("repository-parity");
+    const legacy = withoutQuestionGuard(session as any);
+    const inMemoryRepo = createInMemoryMaterialDocumentReviewRepository();
+    setMaterialDocumentReviewRepositoryForTests(inMemoryRepo);
+    await inMemoryRepo.save(legacy as any);
+    const fromMemory = await getMaterialDocumentReviewSession(session.id);
+
+    installDocumentRepo({ ...legacy, _id: legacy.id });
+    const fromMongoShapedRead = await getMaterialDocumentReviewSession(session.id);
+
+    expect(fromMemory?.selections[0].questionGuard).toEqual(
+      fromMongoShapedRead?.selections[0].questionGuard,
+    );
+    expect(fromMemory?.selections[0].questionGuard.releaseState).toBe(
+      "review_required",
     );
   });
 });

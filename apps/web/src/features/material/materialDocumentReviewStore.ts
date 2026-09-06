@@ -5,7 +5,9 @@ import { coreCol, shouldUseInMemoryMongoFallback } from "@core/db/triMongo";
 import { persistCreateSavedWorkstate } from "@/features/create/createSavedWorkstateRepo";
 import {
   evaluatePublicQuestionGeneralization,
+  type PublicQuestionActorContext,
   type PublicQuestionGeneralizationResult,
+  type PublicQuestionProcedureContext,
 } from "@/features/create/safety/publicQuestionGeneralization";
 import type { MaterialExtractionJob } from "./materialExtractionJobs";
 import type { MaterialGraphFirstContext, MaterialGraphRecommendedAction } from "./materialGraphFirstContext";
@@ -76,6 +78,163 @@ function nowIso() {
 
 function normalizeQuestionText(value: string): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function stringValues(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((entry) => normalizeQuestionText(String(entry ?? ""))).filter(Boolean)
+    : [];
+}
+
+const ACTOR_TYPES = new Set<PublicQuestionActorContext["type"]>([
+  "person",
+  "company",
+  "party",
+  "organization",
+  "public_body",
+  "media",
+  "other",
+]);
+const ACTOR_ROLES = new Set<PublicQuestionActorContext["role"]>([
+  "source",
+  "initiator",
+  "affected_party",
+  "competent_authority",
+  "position_holder",
+  "documented_case",
+  "procedure_subject",
+  "context",
+  "target",
+]);
+const PROCEDURE_KINDS = new Set<PublicQuestionProcedureContext["kind"]>([
+  "permit",
+  "procurement",
+  "merger",
+  "statute",
+  "parliamentary_procedure",
+  "administrative_procedure",
+  "other",
+]);
+
+function persistedActorContexts(selection: Record<string, unknown>) {
+  const legacyGeneralization = recordValue(selection.generalization);
+  const value = selection.actorContexts ?? legacyGeneralization?.actorContexts;
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry): PublicQuestionActorContext[] => {
+    const actor = recordValue(entry);
+    if (!actor) return [];
+    const id = normalizeQuestionText(String(actor.id ?? ""));
+    const name = normalizeQuestionText(String(actor.name ?? ""));
+    const type = String(actor.type ?? "") as PublicQuestionActorContext["type"];
+    const role = String(actor.role ?? "") as PublicQuestionActorContext["role"];
+    const evidenceRefs = stringValues(actor.evidenceRefs);
+    if (
+      !id ||
+      !name ||
+      !ACTOR_TYPES.has(type) ||
+      !ACTOR_ROLES.has(role) ||
+      evidenceRefs.length === 0
+    ) {
+      return [];
+    }
+    return [{ id, name, type, role, evidenceRefs }];
+  });
+}
+
+function persistedProcedure(
+  selection: Record<string, unknown>,
+): PublicQuestionProcedureContext | null {
+  const legacyGeneralization = recordValue(selection.generalization);
+  const procedure = recordValue(
+    selection.procedure ?? legacyGeneralization?.procedure,
+  );
+  if (!procedure) return null;
+  const kind = String(
+    procedure.kind ?? "",
+  ) as PublicQuestionProcedureContext["kind"];
+  const evidenceRefs = stringValues(procedure.evidenceRefs);
+  if (
+    !PROCEDURE_KINDS.has(kind) ||
+    typeof procedure.entityBindingNecessary !== "boolean" ||
+    evidenceRefs.length === 0
+  ) {
+    return null;
+  }
+  return {
+    kind,
+    entityBindingNecessary: procedure.entityBindingNecessary,
+    evidenceRefs,
+  };
+}
+
+function normalizePersistedSelection(
+  selection: MaterialReviewSelection,
+): MaterialReviewSelection {
+  const raw = selection as unknown as Record<string, unknown>;
+  if (recordValue(raw.questionGuard)) return clone(selection);
+
+  const legacyGeneralization = recordValue(raw.generalization);
+  const text = normalizeQuestionText(
+    String(raw.text ?? raw.publicQuestion ?? raw.originalInput ?? ""),
+  );
+  const originalInput = normalizeQuestionText(
+    String(
+      raw.originalInput ??
+        legacyGeneralization?.originalInput ??
+        raw.text ??
+        raw.publicQuestion ??
+        "",
+    ),
+  );
+  const evidenceRefs = Array.from(
+    new Set([
+      ...stringValues(raw.sourceAnchors),
+      ...stringValues(raw.evidenceRefs),
+      ...stringValues(legacyGeneralization?.evidenceRefs),
+    ]),
+  );
+
+  // Legacy material selections predate the independent extraction contract.
+  // Persisted anchors remain available as private evidence, but never become
+  // an invented independent clearance. Safety/fact blockers still win before
+  // the missing-extraction review gate.
+  const questionGuard = evaluatePublicQuestionGeneralization({
+    originalInput: originalInput || text,
+    candidatePublicQuestion: text || originalInput,
+    actorContexts: persistedActorContexts(raw),
+    actorExtraction: {
+      status: "unverified",
+      source: "material_provider",
+      independentFromCandidateProvider: false,
+      evidenceRefs,
+    },
+    procedure: persistedProcedure(raw),
+  });
+
+  return {
+    ...clone(selection),
+    text,
+    questionGuard,
+    options: clone(Array.isArray(selection.options) ? selection.options : []),
+  };
+}
+
+export function normalizeMaterialDocumentReviewSession(
+  session: MaterialDocumentReviewSession,
+): MaterialDocumentReviewSession {
+  return {
+    ...clone(session),
+    selections: (Array.isArray(session.selections) ? session.selections : []).map(
+      normalizePersistedSelection,
+    ),
+  };
 }
 
 function guardUpdatedSelection(
@@ -218,7 +377,9 @@ export async function createMaterialDocumentReviewSession(input: {
 
 export async function getMaterialDocumentReviewSession(id: string) {
   const normalized = String(id ?? "").trim();
-  return normalized ? repository().get(normalized) : null;
+  if (!normalized) return null;
+  const session = await repository().get(normalized);
+  return session ? normalizeMaterialDocumentReviewSession(session) : null;
 }
 
 export async function updateMaterialDocumentReviewSelections(input: {
