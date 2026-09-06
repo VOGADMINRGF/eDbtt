@@ -3,6 +3,10 @@ import "server-only";
 import crypto from "node:crypto";
 import { coreCol } from "@core/db/triMongo";
 import { stableHash } from "@core/utils/hash";
+import {
+  CreateProgressEventSchema,
+  type CreateProgressEvent,
+} from "@/features/create/createProgressEventContract";
 
 export type CreateOrchestrationKind = "create_intelligent_followup_planner";
 
@@ -20,6 +24,7 @@ type CreateOrchestrationClaimRecord<T> = {
   leaseUntil: string;
   externalExecutionStarted: boolean;
   externalExecutionStartedAt: string | null;
+  progressEvents: CreateProgressEvent[];
   result: T | null;
   failureCode: string | null;
   createdAt: string;
@@ -56,6 +61,12 @@ type ClaimRepository = {
     now: string;
     leaseUntil: string;
   }): Promise<boolean>;
+  appendProgress(input: {
+    key: string;
+    claimToken: string;
+    event: CreateProgressEvent;
+    now: string;
+  }): Promise<boolean>;
   complete<T>(input: {
     key: string;
     claimToken: string;
@@ -72,6 +83,7 @@ type ClaimRepository = {
 
 type InMemoryClaimRepository = ClaimRepository & {
   expireClaimForTests(key: string): void;
+  expireResultForTests(key: string): void;
   snapshotForTests<T>(key: string): CreateOrchestrationClaimRecord<T> | null;
 };
 
@@ -80,6 +92,7 @@ const DEFAULT_LEASE_MS = 45_000;
 const DEFAULT_WAIT_MS = 50_000;
 const RESULT_TTL_MS = 15 * 60 * 1000;
 const POLL_INTERVAL_MS = 20;
+export const CREATE_PROGRESS_EVENT_CAP = 32;
 
 let repoSingleton: ClaimRepository | null = null;
 let indexesReady = false;
@@ -188,12 +201,16 @@ function createMongoRepo(): ClaimRepository {
       await ensureIndexes();
       const claims =
         await coreCol<CreateOrchestrationClaimRecord<T>>(CLAIMS_COLLECTION);
-      const record = await claims.findOne({ key });
+      const record = await claims.findOne({
+        key,
+        expiresAt: { $gt: new Date() },
+      });
       return record ? clone(record) : null;
     },
     async markExternalExecutionStarted(input) {
       await ensureIndexes();
-      const claims = await coreCol(CLAIMS_COLLECTION);
+      const claims =
+        await coreCol<CreateOrchestrationClaimRecord<unknown>>(CLAIMS_COLLECTION);
       const result = await claims.updateOne(
         {
           key: input.key,
@@ -207,6 +224,25 @@ function createMongoRepo(): ClaimRepository {
             leaseUntil: input.leaseUntil,
             updatedAt: input.now,
           },
+        },
+      );
+      return result.modifiedCount === 1;
+    },
+    async appendProgress(input) {
+      await ensureIndexes();
+      const claims =
+        await coreCol<CreateOrchestrationClaimRecord<unknown>>(CLAIMS_COLLECTION);
+      const result = await claims.updateOne(
+        {
+          key: input.key,
+          claimToken: input.claimToken,
+          status: "running",
+          "progressEvents.eventId": { $ne: input.event.eventId },
+          [`progressEvents.${CREATE_PROGRESS_EVENT_CAP - 1}`]: { $exists: false },
+        },
+        {
+          $push: { progressEvents: input.event },
+          $set: { updatedAt: input.now },
         },
       );
       return result.modifiedCount === 1;
@@ -300,7 +336,8 @@ export function createInMemoryCreateOrchestrationClaimRepo(): InMemoryClaimRepos
     },
     async find<T>(key) {
       const record = records.get(key);
-      return record ? clone(record as CreateOrchestrationClaimRecord<T>) : null;
+      if (!record || new Date(record.expiresAt).getTime() <= Date.now()) return null;
+      return clone(record as CreateOrchestrationClaimRecord<T>);
     },
     async markExternalExecutionStarted(input) {
       const current = records.get(input.key);
@@ -316,6 +353,26 @@ export function createInMemoryCreateOrchestrationClaimRepo(): InMemoryClaimRepos
         externalExecutionStarted: true,
         externalExecutionStartedAt: input.now,
         leaseUntil: input.leaseUntil,
+        updatedAt: input.now,
+      });
+      return true;
+    },
+    async appendProgress(input) {
+      const current = records.get(input.key);
+      if (
+        !current ||
+        current.status !== "running" ||
+        current.claimToken !== input.claimToken
+      ) {
+        return false;
+      }
+      if (current.progressEvents.some((event) => event.eventId === input.event.eventId)) {
+        return true;
+      }
+      if (current.progressEvents.length >= CREATE_PROGRESS_EVENT_CAP) return false;
+      records.set(input.key, {
+        ...current,
+        progressEvents: [...current.progressEvents, clone(input.event)],
         updatedAt: input.now,
       });
       return true;
@@ -363,6 +420,14 @@ export function createInMemoryCreateOrchestrationClaimRepo(): InMemoryClaimRepos
       records.set(key, {
         ...current,
         leaseUntil: new Date(0).toISOString(),
+      });
+    },
+    expireResultForTests(key) {
+      const current = records.get(key);
+      if (!current) return;
+      records.set(key, {
+        ...current,
+        expiresAt: new Date(0),
       });
     },
     snapshotForTests<T>(key) {
@@ -420,7 +485,10 @@ export async function runCreateOrchestrationSingleFlight<T>(input: {
   run: (context: {
     recoveryWithoutExternalCall: boolean;
     markExternalExecutionStarted: () => Promise<void>;
+    publishProgressEvent: (event: CreateProgressEvent) => Promise<void>;
   }) => Promise<T>;
+  onProgress?: (event: CreateProgressEvent) => void | Promise<void>;
+  resumeOnly?: boolean;
   leaseMs?: number;
   waitMs?: number;
 }): Promise<{ result: T; reused: boolean; recovered: boolean }> {
@@ -437,6 +505,27 @@ export async function runCreateOrchestrationSingleFlight<T>(input: {
   const leaseMs = Math.max(1_000, input.leaseMs ?? DEFAULT_LEASE_MS);
   const waitMs = Math.max(1_000, input.waitMs ?? DEFAULT_WAIT_MS);
   const deadline = Date.now() + waitMs;
+  const emittedEventIds = new Set<string>();
+
+  const emitProgressEvents = async (events: CreateProgressEvent[] | undefined) => {
+    for (const event of events ?? []) {
+      if (emittedEventIds.has(event.eventId)) continue;
+      emittedEventIds.add(event.eventId);
+      try {
+        await input.onProgress?.(clone(event));
+      } catch {
+        // Observation must never invalidate the canonical orchestration result.
+      }
+    }
+  };
+
+  if (input.resumeOnly) {
+    const existing = await getRepo().find<T>(key);
+    if (!existing) throw new Error("create_single_flight_resume_unavailable");
+    if (existing.inputHash !== inputHash) {
+      throw new Error("create_single_flight_input_mismatch");
+    }
+  }
 
   while (Date.now() <= deadline) {
     const nowDate = new Date();
@@ -456,6 +545,7 @@ export async function runCreateOrchestrationSingleFlight<T>(input: {
         leaseUntil: new Date(nowDate.getTime() + leaseMs).toISOString(),
         externalExecutionStarted: false,
         externalExecutionStartedAt: null,
+        progressEvents: [],
         result: null,
         failureCode: null,
         createdAt: now,
@@ -467,6 +557,7 @@ export async function runCreateOrchestrationSingleFlight<T>(input: {
     if (acquired.record.inputHash !== inputHash) {
       throw new Error("create_single_flight_input_mismatch");
     }
+    await emitProgressEvents(acquired.record.progressEvents);
     if (acquired.kind === "completed") {
       return { result: acquired.result, reused: true, recovered: false };
     }
@@ -486,11 +577,41 @@ export async function runCreateOrchestrationSingleFlight<T>(input: {
       if (!marked) throw new Error("create_single_flight_claim_lost");
     };
 
+    const publishProgressEvent = async (event: CreateProgressEvent) => {
+      const parsed = CreateProgressEventSchema.safeParse(event);
+      if (!parsed.success) return;
+      if (
+        parsed.data.operationId !== correlationId ||
+        parsed.data.correlationId !== correlationId
+      ) {
+        return;
+      }
+      try {
+        const appended = await getRepo().appendProgress({
+          key,
+          claimToken,
+          event: parsed.data,
+          now: new Date().toISOString(),
+        });
+        if (!appended) {
+          const latest = await getRepo().find<T>(key);
+          const alreadyPersisted = latest?.progressEvents?.some(
+            (candidate) => candidate.eventId === parsed.data.eventId,
+          );
+          if (!alreadyPersisted) return;
+        }
+        await emitProgressEvents([parsed.data]);
+      } catch {
+        // Progress persistence is bounded observation; planner/result stay canonical.
+      }
+    };
+
     try {
       const result = await input.run({
         recoveryWithoutExternalCall:
           acquired.recovered && acquired.externalExecutionStarted,
         markExternalExecutionStarted,
+        publishProgressEvent,
       });
       const completed = await getRepo().complete({
         key,

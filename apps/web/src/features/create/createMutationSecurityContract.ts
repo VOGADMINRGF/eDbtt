@@ -9,6 +9,7 @@ export const CREATE_MAX_URL_LENGTH = 2_048;
 const CREATE_HONEYPOT_ID = "edebatte-create-request-note";
 const CREATE_CLIENT_SESSION_STORAGE_KEY = "edebatte:create:client-session:v1";
 let createSecuritySessionPrimed = false;
+let createSecuritySessionPromise: Promise<boolean> | null = null;
 
 function createClientSessionId() {
   if (typeof globalThis.crypto?.randomUUID === "function") {
@@ -63,10 +64,12 @@ function readCreateHoneypotValue() {
   return trap?.value?.trim().slice(0, 160) ?? "";
 }
 
-export function primeCreateSecuritySession() {
-  if (typeof window === "undefined" || createSecuritySessionPrimed) return;
+export function primeCreateSecuritySession(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  if (createSecuritySessionPromise) return createSecuritySessionPromise;
+  if (createSecuritySessionPrimed) return Promise.resolve(true);
   createSecuritySessionPrimed = true;
-  void window
+  createSecuritySessionPromise = window
     .fetch("/api/create/session", {
       method: "POST",
       credentials: "same-origin",
@@ -77,9 +80,18 @@ export function primeCreateSecuritySession() {
       },
       body: "{}",
     })
+    .then((response) => {
+      if (!response.ok) createSecuritySessionPrimed = false;
+      return response.ok;
+    })
     .catch(() => {
       createSecuritySessionPrimed = false;
+      return false;
+    })
+    .finally(() => {
+      createSecuritySessionPromise = null;
     });
+  return createSecuritySessionPromise;
 }
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
