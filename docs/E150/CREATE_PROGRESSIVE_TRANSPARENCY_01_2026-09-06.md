@@ -1,0 +1,157 @@
+# /create Progressive Transparency – Slice #726
+
+Stand: 6. September 2026
+
+Branch: `feat/create-progressive-transparency-01`
+
+Base: `fix/operator-notifications-01@8eceb6544f47f748fe40b350aeaab412ade63c34`
+
+## Ergebnis
+
+`/create` zeigt während der bestehenden kanonischen Orchestrierung echte,
+validierte Zustandsereignisse. Die neue Schicht verändert weder Save, Planner,
+Quality Gate noch Publish-Semantik. Sie transportiert ausschließlich bereits
+eingetretene Zustände und deterministisch aus dem gespeicherten Input ableitbare
+Strukturhinweise.
+
+Der vorhandene `POST /api/create/intelligent-followup` liefert bei
+`Accept: text/event-stream` einen SSE-Stream. Sessionprüfung, Same-Origin/CSRF,
+Rate Limit und Draft Binding laufen vollständig vor dem Öffnen des Streams. Der
+JSON-Pfad desselben Endpunkts bleibt kompatibel.
+
+## Event- und Wahrheitsmodell
+
+Der öffentliche Zod-Contract begrenzt Phase, Typ, Status und Sichtbarkeit. Er
+enthält `operationId` und `correlationId`, aber keine User-/Session-ID, Secrets,
+Reasoning-Tokens oder freien Provider-Rohpayload. Unterstützt werden die
+Wahrheitsklassen `recognized`, `verified`, `open`, `provisional` und
+`corrected`; Prozentwerte sind nicht Teil des Contracts.
+
+Nach dem bestätigten durable Save entstehen unmittelbar:
+
+- `draft.saved`
+- `intake.classified`
+- bei mindestens drei tatsächlich erkannten Segmenten `structure.detected`
+
+Die pure Früherkennung verwendet die vorhandene Single-/Multi-Issue-Logik und
+wertet nummerierte Blöcke, Markdown-/Standalone-Überschriften sowie
+`Unterthemen:` aus. Sie behauptet nur erkannte Abschnitte. `topic.detected`,
+`scope.confirmed`, `quality.passed` und `result.ready` werden erst nach einem
+erfolgreichen Planner- und Quality-Ergebnis erzeugt. Weichen vorläufige
+Segmentzahl und kanonische Themenzahl voneinander ab, bleibt die frühere
+Erkenntnis erhalten und ein `structure.corrected` macht die Konsolidierung
+sichtbar.
+
+Research-, Graph- und Source-Fortschrittsereignisse sind nicht zugelassen, weil
+diese Runtimes in diesem Flow vor Bestätigung nicht aktiv sind.
+
+## Adaptive Oberfläche
+
+Kurze Single-Issue-Eingaben erhalten eine kompakte Statusdarstellung. Lange
+strukturierte Eingaben zeigen höchstens vier geprüfte Themen und fassen den Rest
+als `+ N weitere geprüfte Themen` zusammen. `Warum erkannt?` ist als
+tastaturbedienbares natives Detail verfügbar und verweist bevorzugt auf ein
+erkanntes Segment beziehungsweise dessen Zeile, ohne den Bürgertext erneut zu
+speichern oder vollständig anzuzeigen.
+
+Es gibt genau eine gedrosselte `aria-live="polite"`-Region. Die sichtbaren
+Statuszeilen bleiben normal zugänglich; Topic-Ereignisse werden nicht einzeln in
+Live-Regionen angekündigt.
+
+## Single Flight, Reconnect und Recovery
+
+Progress-Ereignisse werden im vorhandenen Mongo-Claim
+`create_orchestration_claims` zusammen mit Actor-, Draft-, Correlation- und
+Input-Bindung idempotent persistiert. Pro Claim sind höchstens 32 streng
+validierte Events zulässig; IDs werden atomar dedupliziert, Labels und Referenz-
+Arrays sind bereits im öffentlichen Zod-Contract begrenzt. Damit bleiben auch
+Reconnects und fehlerhafte interne Producer unterhalb einer festen
+Dokumentgröße. Die Claim-TTL bleibt 15 Minuten. Eine
+lokale, auf 14 Minuten begrenzte Resume-Referenz speichert nur Operation,
+Correlation, Draft, Kontext und einen Input-Fingerprint – keinen vollständigen
+Bürgertext.
+
+Bei Stream-Abbruch läuft der bereits beanspruchte Servervorgang weiter. Reload
+oder Reconnect sendet dieselben gebundenen Identifikatoren mit `resumeOnly` und
+erhält persistierte Ereignisse sowie ein vorhandenes Resultat. Fehlt der Claim,
+ist er abgelaufen oder passt der Input-Hash nicht, startet Resume keinen neuen
+Provider-Aufruf. Die Oberfläche verweist dann auf einen ausdrücklichen Retry.
+Fehler eines Stream-Observers oder beim optionalen Event-Write verändern das
+kanonische Plannerresultat nicht; nicht dauerhaft gespeicherte Events werden
+auch nicht als öffentlich beobachtet ausgegeben.
+
+Ein technischer Fehler nach echtem Teilfortschritt erzeugt `scope.open`,
+`quality.needs_confirmation` und `result.partial`; die bisherigen erkannten
+Zustände bleiben sichtbar. Der Retry verwendet denselben gespeicherten Draft,
+aber eine neue Correlation. Er führt keinen zweiten Save aus. Die bestehenden
+idempotenten Operator-Benachrichtigungen werden nicht an Progress-Ereignisse
+gekoppelt.
+
+## Timing
+
+Der Save bleibt ohne `AbortSignal`. Erst nach erfolgreichem durable Save beginnt
+der Client-Timer. Die bestehenden Limits bleiben unverändert:
+
+- Fast Planner: 6.500 ms Serverlimit, 8.000 ms Clientlimit
+- Standard Planner: 10.000 ms Serverlimit, 12.500 ms Clientlimit
+- 3.000 ms sind ein Performance-Ziel, keine Fehlergrenze
+
+Zusätzlich erfasst der Client `firstProgressVisibleMs`,
+`firstValidatedTopicVisibleMs`, `finalVisibleMs`, `eventCount` und
+`correctedEventCount`.
+
+## Live-Provider-Check
+
+Der opt-in Live-Smoke lief unter Node 20.20.2 mit der lokal autorisierten
+OpenAI-Konfiguration und Headless Chromium. Es wurden keine Secrets ausgegeben.
+
+| Fall | First progress | First validated topic | Planner | Final visible | Events | Corrected | Lane |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Kurz, Desktop 1440 × 900 | 56 ms | 3.066 ms | 2.981 ms | 3.084 ms | 6 | 0 | fast |
+| Kurz, Mobile 390 × 844 | 11 ms | 2.713 ms | 2.683 ms | 2.733 ms | 6 | 0 | fast |
+| 14 Punkte, Mobile 390 × 844 | 12 ms | 3.720 ms | 3.675 ms | 3.720 ms | 20 | 0 | standard |
+
+Der lange Fall zeigte `Struktur erkannt: 14 getrennte Abschnitte.` sichtbar vor
+dem Providerresultat und endete mit 14 kanonischen Themen sowie kompakter
+`4 + 10`-Darstellung. Der kurze Behindertenwerkstätten-/Mindestlohn-Fall blieb
+`single_issue`, hatte genau einen Provider-Versuch und Scope `unclear`.
+
+`durableSaveMs` ist in diesem direkten Provider-/Render-Smoke bewusst `null`.
+Ein vollständiger authentifizierter lokaler `/create`-Submit wurde nicht
+vorgetäuscht: In der lokalen Konfiguration fehlen weiterhin freigegebene
+`EDEBATTE_E2E_EMAIL`-/`EDEBATTE_E2E_PASSWORD`-Daten für ein Wegwerf-Testkonto.
+Die produktive Save-vor-Timer-Reihenfolge und die Security-/Draft-Bindung sind
+durch die isolierten Route- und Source-Contracts abgedeckt.
+
+## Verifikation
+
+- Progressive-Transparency-, Route- und Single-Flight-Contracts: 31/31
+- kompletter CI-Focused-Create-Block: 232/232 nach Aktualisierung des
+  Save-vor-Analyse-Source-Contracts
+- isolierter Save-/Security-Harness: 25/25
+- Anti-Spam und Operator Notifications: 18/18
+- Production Guardrails: 36/36
+- Web Critical: 192/192 und Guardrail-Skript grün
+- Live Provider/Chromium: 3/3
+- vollständiger Production Build, Typecheck, ESLint und `git diff --check`:
+  grün
+
+Die erwarteten, abgefangenen Next-`after()`-Warnungen erscheinen in isolierten
+Route-Tests außerhalb eines Request-Scopes; sie sind kein Testfehler und ändern
+die Operator-Notification-Verträge nicht.
+
+Ein lokaler SSE-Contract beweist Eventreihenfolge, Close und Parsing. Ob Vercel
+Preview die Frames ohne Plattform-Pufferung inkrementell bis zum Browser
+überträgt, ist vor Production-Freigabe separat am Exact Head zu prüfen. Dieser
+Slice behauptet keine bereits erfolgte Production-Streaming-Verifikation.
+
+## OpenTasks und Loader
+
+`docs/E150/OpenTasks.md` bleibt wegen des aktiven #447-Single-Writer-Gates
+unverändert.
+
+Die optionalen `account.runtime`-Loader wurden nicht refaktoriert. Wie im
+vorherigen Create-Slice analysiert, hängen sie am serverseitigen `GET /create`,
+nicht an Save oder Intelligent Followup. Sie sind daher kein Teil des neuen
+SSE-/Progress-Pfads; ein breiteres Loader-Refactoring bleibt außerhalb von
+#726.

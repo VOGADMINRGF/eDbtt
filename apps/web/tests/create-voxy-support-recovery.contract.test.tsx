@@ -303,8 +303,10 @@ describe("/create Voxy and support recovery contract", () => {
       source.indexOf("const handleStart"),
     );
     expect(startFlow.indexOf('fetch("/api/create/save"')).toBeLessThan(
-      startFlow.indexOf('fetch("/api/create/intelligent-followup"'),
+      startFlow.indexOf("requestCreateProgressiveFollowup({"),
     );
+    expect(source).toContain('fetch("/api/create/intelligent-followup"');
+    expect(source).toContain('accept: "text/event-stream"');
     expect(startFlow).toContain("analysisRunInFlightRef.current");
     expect(startFlow).toContain("correlationId");
     expect(startFlow).toContain("draftId: runDraftId");

@@ -119,6 +119,24 @@ import {
   startCreateIntelligentFollowupDeadline,
   type CreateIntelligentFollowupDeadline,
 } from "@/features/create/createFastIntakeTiming";
+import CreateProgressiveTransparency from "@/features/create/CreateProgressiveTransparency";
+import {
+  buildCreateInitialProgressEvents,
+  dedupeCreateProgressEvents,
+  type CreateProgressEvent,
+} from "@/features/create/createProgressEventContract";
+import {
+  consumeCreateProgressResponse,
+  CreateProgressStreamError,
+} from "@/features/create/createProgressStreamClient";
+import {
+  buildCreateProgressResumeSnapshot,
+  buildCreateProgressResumeStorageKey,
+  clearCreateProgressResumeSnapshot,
+  fingerprintCreateProgressInput,
+  readCreateProgressResumeSnapshot,
+  writeCreateProgressResumeSnapshot,
+} from "@/features/create/createProgressResume";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -147,6 +165,50 @@ function createClientCorrelationId() {
     return crypto.randomUUID();
   }
   return `create-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+type CreateProgressiveFollowupResponse = {
+  ok?: boolean;
+  result?: CreateIntelligentFollowupResult;
+  supportHandoff?: CreateSupportHandoffPublic | null;
+  trace?: CreatePlannerRuntimeTrace | null;
+};
+
+async function requestCreateProgressiveFollowup(input: {
+  text: string;
+  locale: string;
+  anlassraumId?: string | null;
+  dossierId?: string | null;
+  intent: CreateIntent;
+  correlationId: string;
+  draftId: string;
+  resumeOnly?: boolean;
+  signal: AbortSignal;
+  onProgress: (event: CreateProgressEvent) => void;
+}) {
+  const response = await fetch("/api/create/intelligent-followup", {
+    method: "POST",
+    headers: {
+      ...createMutationRequestHeaders(),
+      accept: "text/event-stream",
+    },
+    signal: input.signal,
+    body: JSON.stringify({
+      text: input.text,
+      locale: input.locale,
+      anlassraumId: input.anlassraumId ?? null,
+      dossierId: input.dossierId ?? null,
+      intent: input.intent,
+      correlationId: input.correlationId,
+      draftId: input.draftId,
+      stream: true,
+      resumeOnly: input.resumeOnly === true,
+    }),
+  });
+  return consumeCreateProgressResponse<CreateProgressiveFollowupResponse>(response, {
+    onProgress: input.onProgress,
+    signal: input.signal,
+  });
 }
 
 function buildCreateToRundenHref(text: string): string {
@@ -818,6 +880,10 @@ export default function CreateClient({
     () => buildCreatePrimaryIntakeStorageKey(overview.userId),
     [overview.userId],
   );
+  const progressResumeStorageKey = React.useMemo(
+    () => buildCreateProgressResumeStorageKey(overview.userId),
+    [overview.userId],
+  );
   const intakeRestoreInfoText =
     surfaceLocale === "en"
       ? "Your draft was restored from local browser storage."
@@ -839,6 +905,7 @@ export default function CreateClient({
   const [supportHandoff, setSupportHandoff] =
     React.useState<CreateSupportHandoffPublic | null>(null);
   const [plannerTrace, setPlannerTrace] = React.useState<CreatePlannerRuntimeTrace | null>(null);
+  const [progressEvents, setProgressEvents] = React.useState<CreateProgressEvent[]>([]);
   const [analyzeTrace, setAnalyzeTrace] = React.useState<CreateAnalyzeRuntimeTrace | null>(null);
   const [analysisAutoRunToken, setAnalysisAutoRunToken] = React.useState<number>(0);
   const [intakeError, setIntakeError] = React.useState<string | null>(null);
@@ -867,6 +934,7 @@ export default function CreateClient({
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
   const [isRetryPlannerPending, setIsRetryPlannerPending] = React.useState(false);
   const analysisRunInFlightRef = React.useRef(false);
+  const progressResumeAttemptedRef = React.useRef(false);
   const plannerDeadlineRef = React.useRef<CreateIntelligentFollowupDeadline | null>(null);
   const [chatContinuationText, setChatContinuationText] = React.useState("");
   const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
@@ -1144,6 +1212,155 @@ export default function CreateClient({
     [],
   );
 
+  React.useEffect(() => {
+    if (progressResumeAttemptedRef.current || analysisRunInFlightRef.current) return;
+    if (!privacyGate.hasRequiredAcknowledgement) return;
+    const normalizedText = intakeText.trim();
+    if (!normalizedText) return;
+    const resumeSnapshot = readCreateProgressResumeSnapshot(
+      window.localStorage,
+      progressResumeStorageKey,
+    );
+    if (!resumeSnapshot) {
+      progressResumeAttemptedRef.current = true;
+      return;
+    }
+    if (
+      resumeSnapshot.inputFingerprint !==
+      fingerprintCreateProgressInput(normalizedText)
+    ) {
+      clearCreateProgressResumeSnapshot(window.localStorage, progressResumeStorageKey);
+      progressResumeAttemptedRef.current = true;
+      return;
+    }
+
+    progressResumeAttemptedRef.current = true;
+    analysisRunInFlightRef.current = true;
+    setProgressEvents([]);
+    setSavedDraftId(resumeSnapshot.draftId);
+    setFollowupSnapshot(
+      buildCreateLightweightFollowupSnapshot({
+        intakeText: normalizedText,
+        modeLabel: productModeConfig.label,
+        contextAnchorLabel: activeContextAnchor?.label,
+        surfaceTexts,
+      }),
+    );
+    setHasStarted(true);
+    setIsStarting(true);
+    setActionNotice(
+      surfaceLocale === "en"
+        ? "Your analysis is already running. Reconnecting to the saved progress …"
+        : "Deine Analyse läuft bereits. Der gespeicherte Fortschritt wird wieder verbunden …",
+    );
+
+    const resumeStartedAt = performance.now();
+    let firstProgressVisibleMs: number | null = null;
+    let firstValidatedTopicVisibleMs: number | null = null;
+    const resumedEvents: CreateProgressEvent[] = [];
+    const recordProgress = (event: CreateProgressEvent) => {
+      if (resumedEvents.some((candidate) => candidate.eventId === event.eventId)) return;
+      resumedEvents.push(event);
+      const elapsed = performance.now() - resumeStartedAt;
+      if (firstProgressVisibleMs === null) firstProgressVisibleMs = elapsed;
+      if (firstValidatedTopicVisibleMs === null && event.type === "topic.detected") {
+        firstValidatedTopicVisibleMs = elapsed;
+      }
+      setProgressEvents((current) => dedupeCreateProgressEvents([...current, event]));
+    };
+    const timing = resolveCreateIntakeTiming(normalizedText);
+    const deadline = startCreateIntelligentFollowupDeadline(timing.clientTimeoutMs);
+    plannerDeadlineRef.current = deadline;
+
+    void requestCreateProgressiveFollowup({
+      text: normalizedText,
+      locale: resumeSnapshot.locale,
+      anlassraumId: resumeSnapshot.anlassraumId,
+      dossierId: resumeSnapshot.dossierId,
+      intent:
+        resumeSnapshot.intent === "check" || resumeSnapshot.intent === "draft"
+          ? resumeSnapshot.intent
+          : "contribute",
+      correlationId: resumeSnapshot.correlationId,
+      draftId: resumeSnapshot.draftId,
+      resumeOnly: true,
+      signal: deadline.signal,
+      onProgress: recordProgress,
+    })
+      .then((body) => {
+        if (!body?.ok || !body.result) {
+          throw new CreateProgressStreamError(
+            "CREATE_PROGRESS_RESULT_MISSING",
+            "create_progress_result_missing",
+          );
+        }
+        clearCreateProgressResumeSnapshot(window.localStorage, progressResumeStorageKey);
+        const finalVisibleMs = performance.now() - resumeStartedAt;
+        setIntelligentFollowup(body.result);
+        setSupportHandoff(body.supportHandoff ?? null);
+        setPlannerTrace(
+          body.trace
+            ? {
+                ...body.trace,
+                timings: body.trace.timings
+                  ? {
+                      ...body.trace.timings,
+                      firstProgressVisibleMs,
+                      firstValidatedTopicVisibleMs,
+                      finalVisibleMs,
+                      eventCount: resumedEvents.length,
+                      correctedEventCount: resumedEvents.filter(
+                        (event) => event.status === "corrected",
+                      ).length,
+                      submitToResultMs: finalVisibleMs,
+                    }
+                  : undefined,
+              }
+            : null,
+        );
+        setActionNotice(
+          surfaceLocale === "en"
+            ? "The saved analysis has been resumed."
+            : "Die gespeicherte Analyse wurde fortgesetzt.",
+        );
+        const nextFollowupSurface = resolveFollowupSurfaceOnStart(productMode);
+        setFollowupSurface(nextFollowupSurface);
+        setAnalysisSceneMode(nextFollowupSurface === "analysis" ? productMode : null);
+      })
+      .catch((error: unknown) => {
+        const resumeUnavailable =
+          error instanceof CreateProgressStreamError &&
+          error.errorCode === "CREATE_PROGRESS_RESUME_UNAVAILABLE";
+        if (resumeUnavailable) {
+          clearCreateProgressResumeSnapshot(window.localStorage, progressResumeStorageKey);
+        }
+        setActionNotice(
+          resumeUnavailable
+            ? surfaceLocale === "en"
+              ? "The previous analysis is no longer available. It was not restarted; you can retry it explicitly."
+              : "Die vorherige Analyse ist nicht mehr verfügbar. Sie wurde nicht neu gestartet; du kannst sie ausdrücklich wiederholen."
+            : surfaceLocale === "en"
+              ? "The saved progress could not be reconnected yet. Your draft remains saved."
+              : "Der gespeicherte Fortschritt konnte noch nicht wieder verbunden werden. Dein Entwurf bleibt gespeichert.",
+        );
+      })
+      .finally(() => {
+        deadline.clear();
+        if (plannerDeadlineRef.current === deadline) plannerDeadlineRef.current = null;
+        analysisRunInFlightRef.current = false;
+        setIsStarting(false);
+      });
+  }, [
+    activeContextAnchor?.label,
+    intakeText,
+    privacyGate.hasRequiredAcknowledgement,
+    productMode,
+    productModeConfig.label,
+    progressResumeStorageKey,
+    surfaceLocale,
+    surfaceTexts,
+  ]);
+
   const startCreateFlow = React.useCallback(async (rawText: string) => {
     if (isStarting || analysisRunInFlightRef.current) return;
     const normalizedText = rawText.trim();
@@ -1165,8 +1382,22 @@ export default function CreateClient({
     let draftSavedForRun = false;
     const submitStartedAt = performance.now();
     let saveMs: number | null = null;
-    let plannerCorrelationId: string | null = null;
+    const correlationId = createClientCorrelationId();
+    let plannerCorrelationId: string | null = correlationId;
     let plannerDeadline: CreateIntelligentFollowupDeadline | null = null;
+    let firstProgressVisibleMs: number | null = null;
+    let firstValidatedTopicVisibleMs: number | null = null;
+    const runProgressEvents: CreateProgressEvent[] = [];
+    const recordProgress = (event: CreateProgressEvent) => {
+      if (runProgressEvents.some((candidate) => candidate.eventId === event.eventId)) return;
+      runProgressEvents.push(event);
+      const elapsed = performance.now() - submitStartedAt;
+      if (firstProgressVisibleMs === null) firstProgressVisibleMs = elapsed;
+      if (firstValidatedTopicVisibleMs === null && event.type === "topic.detected") {
+        firstValidatedTopicVisibleMs = elapsed;
+      }
+      setProgressEvents((current) => dedupeCreateProgressEvents([...current, event]));
+    };
     try {
       setIntakeRestoreInfo(null);
       setIntakeError(null);
@@ -1185,6 +1416,7 @@ export default function CreateClient({
       setIntelligentFollowup(null);
       setSupportHandoff(null);
       setPlannerTrace(null);
+      setProgressEvents([]);
       setAnalyzeTrace(null);
       setUnderstandingConfirmed(false);
       setActiveTopicLabel(null);
@@ -1273,32 +1505,47 @@ export default function CreateClient({
 
       let nextIntelligentFollowup: CreateIntelligentFollowupResult | null = null;
       let nextPlannerTrace: CreatePlannerRuntimeTrace | null = null;
-      const correlationId = createClientCorrelationId();
-      plannerCorrelationId = correlationId;
-      const intakeTiming = resolveCreateIntakeTiming(normalizedText);
-      plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs);
-      plannerDeadlineRef.current = plannerDeadline;
-      const response = await fetch("/api/create/intelligent-followup", {
-        method: "POST",
-        headers: createMutationRequestHeaders(),
-        signal: plannerDeadline.signal,
-        body: JSON.stringify({
+      const initialProgress = buildCreateInitialProgressEvents({
+        text: normalizedText,
+        operationId: correlationId,
+        correlationId,
+        locale: surfaceLocale,
+      });
+      initialProgress.events.forEach(recordProgress);
+      writeCreateProgressResumeSnapshot(
+        window.localStorage,
+        progressResumeStorageKey,
+        buildCreateProgressResumeSnapshot({
+          operationId: correlationId,
+          correlationId,
+          draftId: runDraftId,
           text: normalizedText,
           locale: surfaceLocale,
           anlassraumId: selectedAnlassraumId,
           dossierId: dossierId ?? null,
           intent: activeIntent,
-          sourceUrls: materialRouting.sourceUrls,
-          materialItems: materialRouting.materialItems,
-          correlationId,
-          draftId: runDraftId,
         }),
+      );
+      const intakeTiming = resolveCreateIntakeTiming(normalizedText);
+      plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs);
+      plannerDeadlineRef.current = plannerDeadline;
+      const body = await requestCreateProgressiveFollowup({
+        text: normalizedText,
+        locale: surfaceLocale,
+        anlassraumId: selectedAnlassraumId,
+        dossierId: dossierId ?? null,
+        intent: activeIntent,
+        correlationId,
+        draftId: runDraftId,
+        signal: plannerDeadline.signal,
+        onProgress: recordProgress,
       });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok || !body?.ok || !body?.result) {
+      if (!body?.ok || !body?.result) {
         throw new Error("create_intelligent_followup_failed");
       }
+      clearCreateProgressResumeSnapshot(window.localStorage, progressResumeStorageKey);
       nextIntelligentFollowup = body.result as CreateIntelligentFollowupResult;
+      const finalVisibleMs = performance.now() - submitStartedAt;
       nextPlannerTrace = body.trace
         ? {
             ...body.trace,
@@ -1306,7 +1553,14 @@ export default function CreateClient({
               ? {
                   ...body.trace.timings,
                   saveMs,
-                  submitToResultMs: performance.now() - submitStartedAt,
+                  firstProgressVisibleMs,
+                  firstValidatedTopicVisibleMs,
+                  finalVisibleMs,
+                  eventCount: runProgressEvents.length,
+                  correctedEventCount: runProgressEvents.filter(
+                    (event) => event.status === "corrected",
+                  ).length,
+                  submitToResultMs: finalVisibleMs,
                 }
               : undefined,
           }
@@ -1412,6 +1666,7 @@ export default function CreateClient({
     productModeConfig.label,
     productModeConfig.minimumInputHint,
     productModeConfig.preferredUseCase,
+    progressResumeStorageKey,
     savedDraftId,
     selectedAnlassraumId,
     surfaceLocale,
@@ -1748,7 +2003,12 @@ export default function CreateClient({
         />
       </div>
     ) : showIntelligentFollowup && intelligentFollowup ? (
-      <div ref={intelligentFollowupResultRef} className="scroll-mt-24">
+      <div ref={intelligentFollowupResultRef} className="scroll-mt-24 space-y-4">
+        <CreateProgressiveTransparency
+          events={progressEvents}
+          isRunning={false}
+          locale={surfaceLocale === "en" ? "en" : "de"}
+        />
         <CreateVisualFollowup
           result={intelligentFollowup}
           locale={surfaceLocale as CreateVoxyLocale}
@@ -1935,25 +2195,33 @@ export default function CreateClient({
           text={followupSnapshot.originalText}
           locale={surfaceLocale}
         />
-        <CreateAssistantStatusBubble
-          eyebrow={
-            isStarting
-              ? surfaceLocale === "en"
-                ? "Understanding"
-                : "Verstehen"
-              : surfaceTexts.followupUnderstandingLabel
-          }
-          title={
-            isStarting
-              ? surfaceLocale === "en"
-                ? "I’m organizing your contribution …"
-                : "Ich ordne deinen Beitrag gerade …"
-              : startChatAssistantTitle
-          }
-          body={startChatAssistantBody}
-          notice={isStarting ? null : localizedActionNotice}
-          announce={isStarting}
-        />
+        {progressEvents.length > 0 ? (
+          <CreateProgressiveTransparency
+            events={progressEvents}
+            isRunning={isStarting}
+            locale={surfaceLocale === "en" ? "en" : "de"}
+          />
+        ) : (
+          <CreateAssistantStatusBubble
+            eyebrow={
+              isStarting
+                ? surfaceLocale === "en"
+                  ? "Understanding"
+                  : "Verstehen"
+                : surfaceTexts.followupUnderstandingLabel
+            }
+            title={
+              isStarting
+                ? surfaceLocale === "en"
+                  ? "I’m organizing your contribution …"
+                  : "Ich ordne deinen Beitrag gerade …"
+                : startChatAssistantTitle
+            }
+            body={startChatAssistantBody}
+            notice={isStarting ? null : localizedActionNotice}
+            announce={isStarting}
+          />
+        )}
       </div>
     ) : (
       <div
@@ -2458,41 +2726,99 @@ export default function CreateClient({
       );
       return;
     }
+    if (!savedDraftId) {
+      setActionNotice(
+        surfaceLocale === "en"
+          ? "The saved draft is missing. Please save the contribution again."
+          : "Der gespeicherte Entwurf fehlt. Bitte speichere den Beitrag erneut.",
+      );
+      return;
+    }
     if (isRetryPlannerPending || analysisRunInFlightRef.current) return;
     if (!privacyGate.ensureActiveProcessingAllowed("create-retry-planner")) return;
 
     analysisRunInFlightRef.current = true;
     setIsRetryPlannerPending(true);
     setSupportHandoff(null);
+    setProgressEvents([]);
     const correlationId = createClientCorrelationId();
+    const retryStartedAt = performance.now();
+    let firstProgressVisibleMs: number | null = null;
+    let firstValidatedTopicVisibleMs: number | null = null;
+    const runProgressEvents: CreateProgressEvent[] = [];
+    const recordProgress = (event: CreateProgressEvent) => {
+      if (runProgressEvents.some((candidate) => candidate.eventId === event.eventId)) return;
+      runProgressEvents.push(event);
+      const elapsed = performance.now() - retryStartedAt;
+      if (firstProgressVisibleMs === null) firstProgressVisibleMs = elapsed;
+      if (firstValidatedTopicVisibleMs === null && event.type === "topic.detected") {
+        firstValidatedTopicVisibleMs = elapsed;
+      }
+      setProgressEvents((current) => dedupeCreateProgressEvents([...current, event]));
+    };
+    buildCreateInitialProgressEvents({
+      text: sourceText,
+      operationId: correlationId,
+      correlationId,
+      locale: surfaceLocale,
+    }).events.forEach(recordProgress);
+    writeCreateProgressResumeSnapshot(
+      window.localStorage,
+      progressResumeStorageKey,
+      buildCreateProgressResumeSnapshot({
+        operationId: correlationId,
+        correlationId,
+        draftId: savedDraftId,
+        text: sourceText,
+        locale: surfaceLocale,
+        anlassraumId: selectedAnlassraumId,
+        dossierId: dossierId ?? null,
+        intent: activeIntent,
+      }),
+    );
     const intakeTiming = resolveCreateIntakeTiming(sourceText);
     const plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs);
     plannerDeadlineRef.current = plannerDeadline;
     try {
-      const response = await fetch("/api/create/intelligent-followup", {
-        method: "POST",
-        headers: createMutationRequestHeaders(),
+      const body = await requestCreateProgressiveFollowup({
+        text: sourceText,
+        locale: surfaceLocale,
+        anlassraumId: selectedAnlassraumId,
+        dossierId: dossierId ?? null,
+        intent: activeIntent,
+        correlationId,
+        draftId: savedDraftId,
         signal: plannerDeadline.signal,
-        body: JSON.stringify({
-          text: sourceText,
-          locale: surfaceLocale,
-          anlassraumId: selectedAnlassraumId,
-          dossierId: dossierId ?? null,
-          intent: activeIntent,
-          sourceUrls: currentMaterialRouting.sourceUrls,
-          materialItems: currentMaterialRouting.materialItems,
-          correlationId,
-          draftId: savedDraftId,
-        }),
+        onProgress: recordProgress,
       });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok || !body?.ok || !body?.result) {
+      if (!body?.ok || !body?.result) {
         throw new Error("create_intelligent_followup_failed");
       }
+      clearCreateProgressResumeSnapshot(window.localStorage, progressResumeStorageKey);
       const nextFollowup = body.result as CreateIntelligentFollowupResult;
+      const finalVisibleMs = performance.now() - retryStartedAt;
       setIntelligentFollowup(nextFollowup);
       setSupportHandoff(body.supportHandoff ?? null);
-      setPlannerTrace(body.trace ?? null);
+      setPlannerTrace(
+        body.trace
+          ? {
+              ...body.trace,
+              timings: body.trace.timings
+                ? {
+                    ...body.trace.timings,
+                    firstProgressVisibleMs,
+                    firstValidatedTopicVisibleMs,
+                    finalVisibleMs,
+                    eventCount: runProgressEvents.length,
+                    correctedEventCount: runProgressEvents.filter(
+                      (event) => event.status === "corrected",
+                    ).length,
+                    submitToResultMs: finalVisibleMs,
+                  }
+                : undefined,
+            }
+          : null,
+      );
       setUnderstandingConfirmed(false);
       setActiveTopicLabel(null);
       setSelectedPrimaryTopic(null);
@@ -2552,6 +2878,7 @@ export default function CreateClient({
     isRetryPlannerPending,
     normalizedIntakeText,
     privacyGate,
+    progressResumeStorageKey,
     savedDraftId,
     selectedAnlassraumId,
     surfaceLocale,
