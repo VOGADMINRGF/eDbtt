@@ -30,6 +30,9 @@ vi.mock("@core/db/triMongo", () => {
     if (!doc) return false;
     return Object.entries(filter).every(([key, value]) => {
       if (key === "_id") return String(doc._id) === String(value);
+      if (value && typeof value === "object" && "$exists" in value) {
+        return (key in doc) === Boolean(value.$exists);
+      }
       return doc[key] === value;
     });
   }
@@ -43,6 +46,20 @@ vi.mock("@core/db/triMongo", () => {
             if (state.failAudit) throw new Error("audit_unavailable");
             state.audits.push(structuredClone(doc));
             return { insertedId: doc.id };
+          },
+          updateOne: async (
+            filter: Record<string, any>,
+            update: { $setOnInsert?: Record<string, any> },
+            options?: { upsert?: boolean },
+          ) => {
+            if (state.failAudit) throw new Error("audit_unavailable");
+            const existing = state.audits.find((audit) => matches(audit, filter));
+            if (existing) return { matchedCount: 1, modifiedCount: 0 };
+            if (options?.upsert && update.$setOnInsert) {
+              state.audits.push(structuredClone(update.$setOnInsert));
+              return { matchedCount: 0, modifiedCount: 0, upsertedCount: 1 };
+            }
+            return { matchedCount: 0, modifiedCount: 0 };
           },
         };
       }
@@ -59,7 +76,11 @@ vi.mock("@core/db/triMongo", () => {
         },
         updateOne: async (
           filter: Record<string, any>,
-          update: { $set?: Record<string, any>; $inc?: Record<string, number> },
+          update: {
+            $set?: Record<string, any>;
+            $unset?: Record<string, unknown>;
+            $inc?: Record<string, number>;
+          },
         ) => {
           if (!matches(state.set, filter)) return { matchedCount: 0, modifiedCount: 0 };
           if (state.failActiveRelease && update.$set?.status === "active") {
@@ -71,6 +92,9 @@ vi.mock("@core/db/triMongo", () => {
           };
           for (const [key, value] of Object.entries(update.$inc ?? {})) {
             state.set[key] = Number(state.set[key] ?? 0) + value;
+          }
+          for (const key of Object.keys(update.$unset ?? {})) {
+            delete state.set[key];
           }
           return { matchedCount: 1, modifiedCount: 1 };
         },
@@ -281,7 +305,7 @@ describe("QR question set review flow", () => {
     expect(state.audits).toHaveLength(0);
   });
 
-  it("keeps the set private when activation audit or final CAS fails", async () => {
+  it("keeps the set private and resumes safely when activation audit or final CAS fails", async () => {
     state.set = {
       _id: "65f000000000000000000499",
       code: "READY123",
@@ -317,11 +341,35 @@ describe("QR question set review flow", () => {
     expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(false);
 
     state.failAudit = false;
-    state.set = {
-      ...state.set,
-      activationState: "ready_for_activation",
+    const auditRetry = await activateQrSet(
+      request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
+        confirmActivation: true,
+      }),
+      { params: Promise.resolve({ code: "READY123" }) },
+    );
+    expect(auditRetry.status).toBe(200);
+    expect(state.set).toMatchObject({
+      status: "active",
+      activationState: "active",
       version: 4,
+    });
+    expect(state.audits).toHaveLength(1);
+
+    state.set = {
+      _id: "65f000000000000000000499",
+      code: "READY123",
+      status: "ready_for_activation",
+      questionGuardReviewState: "reviewed",
+      activationState: "ready_for_activation",
+      version: 10,
+      questions: [
+        {
+          id: "question-1",
+          questionGuard: { releaseState: "draft_allowed", outcome: "generalized" },
+        },
+      ],
     };
+    state.audits = [];
     state.failActiveRelease = true;
     const casFailure = await activateQrSet(
       request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
@@ -333,9 +381,55 @@ describe("QR question set review flow", () => {
     expect(state.set).toMatchObject({
       status: "ready_for_activation",
       activationState: "activation_in_progress",
-      version: 5,
+      version: 11,
     });
     expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(false);
+    expect(state.audits).toHaveLength(1);
+
+    state.failActiveRelease = false;
+    const casRetry = await activateQrSet(
+      request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
+        confirmActivation: true,
+      }),
+      { params: Promise.resolve({ code: "READY123" }) },
+    );
+    expect(casRetry.status).toBe(200);
+    expect(state.set).toMatchObject({
+      status: "active",
+      activationState: "active",
+      version: 12,
+    });
+    expect(state.audits).toHaveLength(1);
+  });
+
+  it("normalizes and activates a fully reviewed legacy set without activationState", async () => {
+    state.set = {
+      _id: "65f000000000000000000499",
+      code: "LEGACY123",
+      status: "ready_for_activation",
+      questionGuardReviewState: "reviewed",
+      version: 2,
+      questions: [
+        {
+          id: "question-1",
+          questionGuard: { releaseState: "draft_allowed", outcome: "generalized" },
+        },
+      ],
+    };
+
+    const response = await activateQrSet(
+      request("http://localhost/api/admin/qr/sets/LEGACY123/activate", "PATCH", {
+        confirmActivation: true,
+      }),
+      { params: Promise.resolve({ code: "LEGACY123" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(state.set).toMatchObject({
+      status: "active",
+      activationState: "active",
+      version: 5,
+    });
     expect(state.audits).toHaveLength(1);
   });
 
