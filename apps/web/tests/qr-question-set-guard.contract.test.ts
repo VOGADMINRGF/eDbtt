@@ -64,6 +64,18 @@ describe("QR question set public-question guard", () => {
       isQrQuestionSetReadyForActivation({
         status: "ready_for_activation",
         questionGuardReviewState: "reviewed",
+        questions: [
+          {
+            id: "reviewed-without-activation-state",
+            questionGuard: { releaseState: "draft_allowed" },
+          },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isQrQuestionSetReadyForActivation({
+        status: "ready_for_activation",
+        questionGuardReviewState: "reviewed",
         activationState: "ready_for_activation",
         questions: [{ id: "unguarded" }],
       }),
