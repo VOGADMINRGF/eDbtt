@@ -34,6 +34,7 @@ function blockedResult(input: {
     decisionPoints: [],
     questions: [],
     options: [],
+    questionGuardReviews: [],
     claimsOrSourceHints: [],
     uncertainties: [],
     provenance: [],
@@ -125,6 +126,9 @@ export async function generateSemanticallySegmentedMaterialDrafts(input: {
     decisionPoints: unique(results.flatMap((result) => result.decisionPoints), 120),
     questions: questions.slice(0, 240),
     options: options.slice(0, 720),
+    questionGuardReviews: results
+      .flatMap((result) => result.questionGuardReviews)
+      .slice(0, 240),
     claimsOrSourceHints: results.flatMap((result) => result.claimsOrSourceHints).slice(0, 240),
     uncertainties: unique(results.flatMap((result) => result.uncertainties), 120),
     provenance: unique(

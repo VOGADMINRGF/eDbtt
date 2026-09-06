@@ -15,6 +15,7 @@ const mongoHarness = vi.hoisted(() => {
   const Model = {
     findOne: vi.fn(async () => found),
     findOneAndUpdate: vi.fn(async () => updated),
+    create: vi.fn(async (input: unknown) => input),
   };
   return {
     Model,
@@ -75,7 +76,75 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
   beforeEach(() => {
     mongoHarness.Model.findOne.mockClear();
     mongoHarness.Model.findOneAndUpdate.mockClear();
+    mongoHarness.Model.create.mockClear();
+    mongoHarness.setFound(null);
     mongoHarness.setUpdated(null);
+  });
+
+  it("rejects a fresh pre-completed review-gated run at initial insertion", async () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-mongo-pre-completed",
+      idempotencyKey: "idem-run-mongo-pre-completed",
+      taskId: "ALPHA2-DIRECT-ENGINEERING-WORKER-01",
+      kind: "engineering_slice",
+      primaryRole: "engineering_agent",
+      supportingRoles: ["review_agent"],
+      primaryActor: { actorId: "worker-pre-completed", roleId: "engineering_agent" },
+      assignedReviewActor: { actorId: "reviewer-pre-completed", roleId: "review_agent" },
+      riskClass: "yellow",
+      route: { mode: "automatic", capabilityClass: "engineering" },
+      now: "2026-09-02T08:00:00.000Z",
+    });
+    const preCompleted = Alpha2RunRecordSchema.parse({
+      ...queued,
+      status: "completed",
+      updatedAt: "2026-09-02T08:01:00.000Z",
+      finishedAt: "2026-09-02T08:01:00.000Z",
+    });
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(ledger.createOrGet(preCompleted)).rejects.toThrow(
+      "alpha2_invalid_initial_run_status:completed",
+    );
+    expect(mongoHarness.Model.create).not.toHaveBeenCalled();
+  });
+
+  it("persists canonical initial runs and preserves existing recovery records", async () => {
+    const queued = createAlpha2RunRecord({
+      runId: "run-mongo-valid-initial",
+      idempotencyKey: "idem-run-mongo-valid-initial",
+      taskId: "ALPHA2-DIRECT-ENGINEERING-WORKER-01",
+      kind: "engineering_slice",
+      primaryRole: "engineering_agent",
+      supportingRoles: ["review_agent"],
+      primaryActor: { actorId: "worker-valid-initial", roleId: "engineering_agent" },
+      assignedReviewActor: { actorId: "reviewer-valid-initial", roleId: "review_agent" },
+      riskClass: "yellow",
+      route: { mode: "automatic", capabilityClass: "engineering" },
+      now: "2026-09-02T08:00:00.000Z",
+    });
+    const ledger = new Alpha2MongoRunLedger();
+
+    const created = await ledger.createOrGet(queued);
+    expect(created).toMatchObject({ created: true, record: { run: queued, version: 0 } });
+    expect(created.record.run.primaryActor).toEqual(queued.primaryActor);
+    expect(created.record.run.assignedReviewActor).toEqual(queued.assignedReviewActor);
+    expect(mongoHarness.Model.create).toHaveBeenCalledOnce();
+
+    const completed = Alpha2RunRecordSchema.parse({
+      ...queued,
+      status: "completed",
+      updatedAt: "2026-09-02T08:05:00.000Z",
+      finishedAt: "2026-09-02T08:05:00.000Z",
+    });
+    mongoHarness.setFound(mongoDocument(completed, 4));
+
+    const recovered = await ledger.createOrGet(completed);
+    expect(recovered).toMatchObject({
+      created: false,
+      record: { run: completed, version: 4 },
+    });
+    expect(mongoHarness.Model.create).toHaveBeenCalledOnce();
   });
 
   it("rejects direct compareAndSwap changes to execution policy", async () => {
@@ -113,6 +182,16 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
         run: Alpha2RunRecordSchema.parse({
           ...existing,
           supportingRoles: ["research_source"],
+        }),
+      },
+      {
+        expectedError: "alpha2_principal_assignments_are_immutable",
+        run: Alpha2RunRecordSchema.parse({
+          ...existing,
+          primaryActor: {
+            actorId: "worker-mutated",
+            roleId: existing.primaryRole,
+          },
         }),
       },
     ];
@@ -220,6 +299,58 @@ describe("Alpha2 Mongo run-ledger execution policy boundary", () => {
     await expect(
       ledger.compareAndSwap({ run: directCompletion, expectedVersion: 1 }),
     ).rejects.toThrow("alpha2_review_completion_requires_bound_approval");
+    expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects direct CAS review approval by the implementation principal", async () => {
+    const primaryActor = {
+      actorId: "worker-direct-cas",
+      roleId: "engineering_agent" as const,
+    };
+    const queued = createAlpha2RunRecord({
+      runId: "run-mongo-principal-cas",
+      idempotencyKey: "idem-run-mongo-principal-cas",
+      taskId: "ALPHA2-DIRECT-ENGINEERING-WORKER-01",
+      kind: "engineering_slice",
+      primaryRole: "engineering_agent",
+      supportingRoles: ["review_agent"],
+      primaryActor,
+      assignedReviewActor: {
+        actorId: "reviewer-direct-cas",
+        roleId: "review_agent",
+      },
+      riskClass: "yellow",
+      route: { mode: "automatic", capabilityClass: "engineering" },
+      now: "2026-09-02T08:00:00.000Z",
+    });
+    const running = transitionAlpha2Run(queued, "running", {
+      now: "2026-09-02T08:01:00.000Z",
+    });
+    const reviewed = transitionAlpha2Run(running, "review", {
+      now: "2026-09-02T08:02:00.000Z",
+    });
+    const directCompletion = Alpha2RunRecordSchema.parse({
+      ...reviewed,
+      status: "completed",
+      updatedAt: "2026-09-02T08:03:00.000Z",
+      finishedAt: "2026-09-02T08:03:00.000Z",
+      humanGate: {
+        state: "approved",
+        gateRef: alpha2ReviewCompletionGateRef(reviewed),
+        decisionRef: "review:direct-cas-self-approval",
+        decidedAt: "2026-09-02T08:03:00.000Z",
+        decisionActor: {
+          actorId: primaryActor.actorId,
+          roleId: "review_agent",
+        },
+      },
+    });
+    mongoHarness.setFound(mongoDocument(reviewed, 2));
+    const ledger = new Alpha2MongoRunLedger();
+
+    await expect(
+      ledger.compareAndSwap({ run: directCompletion, expectedVersion: 2 }),
+    ).rejects.toThrow("alpha2_review_approval_actor_matches_primary_principal");
     expect(mongoHarness.Model.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
