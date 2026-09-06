@@ -6,6 +6,8 @@ Branch: `feat/create-progressive-transparency-01`
 
 Base: `fix/operator-notifications-01@8eceb6544f47f748fe40b350aeaab412ade63c34`
 
+Konvergierter Create-Unterbau: `fix/citizen-first-create-01@52baa748c157810d4fd30ac1fe57d00fc342733b`
+
 ## Ergebnis
 
 `/create` zeigt während der bestehenden kanonischen Orchestrierung echte,
@@ -19,6 +21,12 @@ Der vorhandene `POST /api/create/intelligent-followup` liefert bei
 Rate Limit und Draft Binding laufen vollständig vor dem Öffnen des Streams. Der
 JSON-Pfad desselben Endpunkts bleibt kompatibel.
 
+Der neue anonyme `POST /api/create/intake` aus #682 verwendet denselben
+Event-Contract und dieselbe Single-Flight-Implementierung. Seine vorhandenen
+Anonymous-Session-, Browser-/IP-, Duplicate-/Flood-, Honeypot-, CSRF- und
+mechanischen Pre-AI-Gates laufen ebenfalls vor dem Stream. Er erzeugt weder
+Account-Draft noch Ownership-, Handoff- oder Publish-Schreibvorgänge.
+
 ## Event- und Wahrheitsmodell
 
 Der öffentliche Zod-Contract begrenzt Phase, Typ, Status und Sichtbarkeit. Er
@@ -27,7 +35,8 @@ Reasoning-Tokens oder freien Provider-Rohpayload. Unterstützt werden die
 Wahrheitsklassen `recognized`, `verified`, `open`, `provisional` und
 `corrected`; Prozentwerte sind nicht Teil des Contracts.
 
-Nach dem bestätigten durable Save entstehen unmittelbar:
+Nach dem bestätigten dauerhaften Account-Save beziehungsweise dem tatsächlich
+geschriebenen browserlokalen Gast-Arbeitsstand entstehen unmittelbar:
 
 - `draft.saved`
 - `intake.classified`
@@ -69,7 +78,10 @@ Reconnects und fehlerhafte interne Producer unterhalb einer festen
 Dokumentgröße. Die Claim-TTL bleibt 15 Minuten. Eine
 lokale, auf 14 Minuten begrenzte Resume-Referenz speichert nur Operation,
 Correlation, Draft, Kontext und einen Input-Fingerprint – keinen vollständigen
-Bürgertext.
+Bürgertext. Für Gäste enthält die Referenz nur den gebundenen Gastmodus; der
+Originaltext und der validierte fertige Arbeitsstand bleiben im vorhandenen
+browserlokalen #682-Workspace. Fertige Progress-Ereignisse werden dort ebenfalls
+streng gegen den öffentlichen Contract validiert und auf 32 Einträge begrenzt.
 
 Bei Stream-Abbruch läuft der bereits beanspruchte Servervorgang weiter. Reload
 oder Reconnect sendet dieselben gebundenen Identifikatoren mit `resumeOnly` und
@@ -87,6 +99,12 @@ aber eine neue Correlation. Er führt keinen zweiten Save aus. Die bestehenden
 idempotenten Operator-Benachrichtigungen werden nicht an Progress-Ereignisse
 gekoppelt.
 
+Der Gast→Login-Pfad übernimmt weiterhin den bereits validierten #682-Arbeitsstand
+mit stabiler Gast-Operation in genau einen Account-Draft. Auch ein während des
+laufenden Streams gestarteter Login behält die Resume-Referenz explizit an die
+signierte anonyme Session gebunden. Progress-Resume löst dabei keinen zweiten
+Providerlauf aus und erweitert die Ownership-Grenze nicht.
+
 ## Timing
 
 Der Save bleibt ohne `AbortSignal`. Erst nach erfolgreichem durable Save beginnt
@@ -100,10 +118,14 @@ Zusätzlich erfasst der Client `firstProgressVisibleMs`,
 `firstValidatedTopicVisibleMs`, `finalVisibleMs`, `eventCount` und
 `correctedEventCount`.
 
-## Live-Provider-Check
+## Vorheriger Live-Provider-Check
 
-Der opt-in Live-Smoke lief unter Node 20.20.2 mit der lokal autorisierten
-OpenAI-Konfiguration und Headless Chromium. Es wurden keine Secrets ausgegeben.
+Der opt-in Live-Smoke lief auf dem #726-Vorhead `7fc69547` unter Node 20.20.2 mit
+der lokal autorisierten OpenAI-Konfiguration und Headless Chromium. Es wurden
+keine Secrets ausgegeben. Nach der #682-Konvergenz wurde der opt-in Providerlauf
+nicht erneut ausgelöst; die deterministischen, Route-, Single-Flight- und
+UI-Verträge sowie der Production Build wurden auf dem konvergierten Stand neu
+ausgeführt.
 
 | Fall | First progress | First validated topic | Planner | Final visible | Events | Corrected | Lane |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
@@ -125,11 +147,12 @@ durch die isolierten Route- und Source-Contracts abgedeckt.
 
 ## Verifikation
 
-- Progressive-Transparency-, Route- und Single-Flight-Contracts: 31/31
-- kompletter CI-Focused-Create-Block: 232/232 nach Aktualisierung des
-  Save-vor-Analyse-Source-Contracts
+- kompletter CI-Focused-Create-Block einschließlich Progressive Transparency,
+  Anonymous Stream/Resume und Single Flight: 312/312
 - isolierter Save-/Security-Harness: 25/25
-- Anti-Spam und Operator Notifications: 18/18
+- zusätzliche Mobile-, Region-, Degraded-, Graph-after-Planner- und
+  Multi-Branch-Regressions: 24/24; drei opt-in Live-Smokes bewusst nicht erneut
+  ausgeführt
 - Production Guardrails: 36/36
 - Web Critical: 192/192 und Guardrail-Skript grün
 - Live Provider/Chromium: 3/3

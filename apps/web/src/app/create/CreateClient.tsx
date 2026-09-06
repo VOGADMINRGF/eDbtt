@@ -64,7 +64,10 @@ import {
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
 import { buildCreateTechnicalFollowup } from "@/features/create/intelligentFollowupResults";
-import { createMutationRequestHeaders } from "@/features/create/createMutationSecurityContract";
+import {
+  createMutationRequestHeaders,
+  primeCreateSecuritySession,
+} from "@/features/create/createMutationSecurityContract";
 import {
   buildCreateFollowupPrimaryCtaHref,
   buildCreateFollowupTargetHref,
@@ -113,6 +116,7 @@ import {
   type CreateVoxyLocale,
 } from "@/features/create/createVoxySupportCopy";
 import type { CreateSupportHandoffPublic } from "@/features/support/createSupportTicketContract";
+import { applyCreateRegionPriority } from "@/features/create/createCitizenIntakeContext";
 import {
   isCreateIntelligentFollowupAbortError,
   resolveCreateIntakeTiming,
@@ -123,6 +127,7 @@ import CreateProgressiveTransparency from "@/features/create/CreateProgressiveTr
 import {
   buildCreateInitialProgressEvents,
   dedupeCreateProgressEvents,
+  parseCreateProgressEvent,
   type CreateProgressEvent,
 } from "@/features/create/createProgressEventContract";
 import {
@@ -140,7 +145,7 @@ import {
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
-  overview: AccountOverview;
+  overview: AccountOverview | null;
   dossierId?: string | null;
   initialAnlassraumId?: string | null;
   initialMode?: CreateMode;
@@ -154,6 +159,7 @@ export type CreateClientProps = {
   initialNextActionParam?: string | null;
   initialRequestScope?: RequestScopeSummary | null;
   initialRundenCreateHandoff?: RundenCreateHandoffIntegrityState | null;
+  initialResumeGuestWorkspace?: boolean;
 };
 
 export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
@@ -169,6 +175,7 @@ function createClientCorrelationId() {
 
 type CreateProgressiveFollowupResponse = {
   ok?: boolean;
+  errorCode?: string;
   result?: CreateIntelligentFollowupResult;
   supportHandoff?: CreateSupportHandoffPublic | null;
   trace?: CreatePlannerRuntimeTrace | null;
@@ -181,30 +188,45 @@ async function requestCreateProgressiveFollowup(input: {
   dossierId?: string | null;
   intent: CreateIntent;
   correlationId: string;
-  draftId: string;
+  draftId?: string | null;
+  anonymous?: boolean;
   resumeOnly?: boolean;
   signal: AbortSignal;
   onProgress: (event: CreateProgressEvent) => void;
 }) {
-  const response = await fetch("/api/create/intelligent-followup", {
+  const response = await fetch(
+    input.anonymous ? "/api/create/intake" : "/api/create/intelligent-followup",
+    {
     method: "POST",
     headers: {
       ...createMutationRequestHeaders(),
       accept: "text/event-stream",
     },
     signal: input.signal,
-    body: JSON.stringify({
-      text: input.text,
-      locale: input.locale,
-      anlassraumId: input.anlassraumId ?? null,
-      dossierId: input.dossierId ?? null,
-      intent: input.intent,
-      correlationId: input.correlationId,
-      draftId: input.draftId,
-      stream: true,
-      resumeOnly: input.resumeOnly === true,
-    }),
-  });
+      body: JSON.stringify(
+        input.anonymous
+          ? {
+              text: input.text,
+              locale: input.locale,
+              intent: input.intent,
+              correlationId: input.correlationId,
+              stream: true,
+              resumeOnly: input.resumeOnly === true,
+            }
+          : {
+              text: input.text,
+              locale: input.locale,
+              anlassraumId: input.anlassraumId ?? null,
+              dossierId: input.dossierId ?? null,
+              intent: input.intent,
+              correlationId: input.correlationId,
+              draftId: input.draftId,
+              stream: true,
+              resumeOnly: input.resumeOnly === true,
+            },
+      ),
+    },
+  );
   return consumeCreateProgressResponse<CreateProgressiveFollowupResponse>(response, {
     onProgress: input.onProgress,
     signal: input.signal,
@@ -397,10 +419,16 @@ type GateState =
   | { status: "allowed"; entitlements: CreateEntitlements }
   | { status: "blocked"; entitlements: CreateEntitlements };
 
-type CreatePrimaryIntakeSnapshot = {
+export type CreatePrimaryIntakeSnapshot = {
   intakeText: string;
   hasStarted: boolean;
   updatedAt: string;
+  intelligentFollowup?: CreateIntelligentFollowupResult | null;
+  plannerTrace?: CreatePlannerRuntimeTrace | null;
+  progressEvents?: CreateProgressEvent[];
+  productMode?: CreateProductMode;
+  guestOperationId?: string | null;
+  serverDraftId?: string | null;
 };
 
 type CreateFollowupSurface = "none" | "lightweight" | "analysis";
@@ -584,10 +612,29 @@ const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
 
 export function buildCreatePrimaryIntakeStorageKey(userId?: string | null): string {
   const normalizedUserId = String(userId ?? "").trim();
-  if (!normalizedUserId) {
-    throw new Error("authenticated_create_user_required");
+  return `${CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX}:${normalizedUserId || "guest"}`;
+}
+
+function isCreateIntelligentFollowupSnapshot(
+  value: unknown,
+): value is CreateIntelligentFollowupResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  const understanding = record.understanding;
+  if (!understanding || typeof understanding !== "object" || Array.isArray(understanding)) {
+    return false;
   }
-  return `${CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX}:${normalizedUserId}`;
+  const parsedUnderstanding = understanding as Record<string, unknown>;
+  return (
+    typeof record.sourceText === "string" &&
+    typeof record.generatedAt === "string" &&
+    Array.isArray(record.suggestions) &&
+    typeof parsedUnderstanding.summary === "string" &&
+    Array.isArray(parsedUnderstanding.categories) &&
+    Array.isArray(parsedUnderstanding.topics) &&
+    Array.isArray(parsedUnderstanding.statements) &&
+    Array.isArray(parsedUnderstanding.scopes)
+  );
 }
 
 export function parseCreatePrimaryIntakeSnapshot(raw: string | null): CreatePrimaryIntakeSnapshot | null {
@@ -605,10 +652,86 @@ export function parseCreatePrimaryIntakeSnapshot(raw: string | null): CreatePrim
         typeof parsed.updatedAt === "string" && parsed.updatedAt.trim()
           ? parsed.updatedAt
           : new Date().toISOString(),
+      intelligentFollowup:
+        isCreateIntelligentFollowupSnapshot(parsed.intelligentFollowup)
+          ? parsed.intelligentFollowup
+          : null,
+      plannerTrace:
+        parsed.plannerTrace && typeof parsed.plannerTrace === "object"
+          ? (parsed.plannerTrace as CreatePlannerRuntimeTrace)
+          : null,
+      progressEvents: Array.isArray(parsed.progressEvents)
+        ? parsed.progressEvents
+            .map((event) => parseCreateProgressEvent(event))
+            .filter((event): event is CreateProgressEvent => event !== null)
+            .slice(0, 32)
+        : [],
+      productMode: CREATE_PRODUCT_MODE_VALUES.includes(parsed.productMode as CreateProductMode)
+        ? (parsed.productMode as CreateProductMode)
+        : undefined,
+      guestOperationId:
+        typeof parsed.guestOperationId === "string" && parsed.guestOperationId.trim()
+          ? parsed.guestOperationId.trim().slice(0, 160)
+          : null,
+      serverDraftId:
+        typeof parsed.serverDraftId === "string" && parsed.serverDraftId.trim()
+          ? parsed.serverDraftId.trim().slice(0, 160)
+          : null,
     };
   } catch {
     return null;
   }
+}
+
+export function resolveCreatePrimaryIntakeResumeSnapshot(input: {
+  ownedRaw: string | null;
+  guestRaw: string | null;
+  isAuthenticated: boolean;
+  preferGuest?: boolean;
+}): { snapshot: CreatePrimaryIntakeSnapshot | null; source: "owned" | "guest" | null } {
+  const owned = parseCreatePrimaryIntakeSnapshot(input.ownedRaw);
+  const guest = parseCreatePrimaryIntakeSnapshot(input.guestRaw);
+  if (input.isAuthenticated && input.preferGuest && guest) {
+    return { snapshot: guest, source: "guest" };
+  }
+  if (owned) return { snapshot: owned, source: "owned" };
+  if (!input.isAuthenticated) return { snapshot: null, source: null };
+  return guest
+    ? { snapshot: guest, source: "guest" }
+    : { snapshot: null, source: null };
+}
+
+export function buildCreateGuestAdoptionPayload(input: {
+  snapshot: CreatePrimaryIntakeSnapshot;
+  locale: string;
+  createMode: CreateMode;
+}) {
+  const text = input.snapshot.intakeText.trim();
+  const operationId = input.snapshot.guestOperationId?.trim() ?? "";
+  if (
+    !text ||
+    !operationId ||
+    !input.snapshot.intelligentFollowup ||
+    !hasValidatedCreateSemanticOutput(input.snapshot.intelligentFollowup)
+  ) {
+    return null;
+  }
+  return {
+    text,
+    textOriginal: text,
+    textPrepared: input.snapshot.intelligentFollowup.sourceText.trim() || text,
+    locale: input.locale,
+    source: "create_guest_resume",
+    createMode: input.createMode,
+    analysis: {
+      intelligentFollowup: input.snapshot.intelligentFollowup,
+      guestResume: {
+        operationId,
+        providerRunReused: true,
+        noAutoPublish: true,
+      },
+    },
+  };
 }
 
 function deriveGate(entitlements: CreateEntitlements): GateState {
@@ -675,12 +798,9 @@ function buildCreateScopeNotice(scope: RequestScopeSummary | null): {
       tone: "neutral",
     };
   }
-  return {
-    title: membershipStatusLabel(scope.membershipStatus),
-    body:
-      "Du kannst den Arbeitsstand vorbereiten, aber noch ohne bestätigten Organisationsbereich. Nichts wird automatisch veröffentlicht.",
-    tone: "limited",
-  };
+  // A personal citizen contribution does not require an organization scope.
+  // Organization/operator gates remain enforced by their server mutations.
+  return null;
 }
 
 export function hasPrimaryIntakeText(value?: string | null): boolean {
@@ -819,6 +939,7 @@ export default function CreateClient({
   initialNextActionParam,
   initialRequestScope,
   initialRundenCreateHandoff,
+  initialResumeGuestWorkspace = false,
 }: CreateClientProps) {
   const privacyGate = usePrivacyGate();
   const router = useRouter();
@@ -828,9 +949,9 @@ export default function CreateClient({
     () =>
       getCreateVoxyCopy(
         surfaceLocale as CreateVoxyLocale,
-        overview.displayName,
+        overview?.displayName ?? null,
       ),
-    [overview.displayName, surfaceLocale],
+    [overview?.displayName, surfaceLocale],
   );
   const surfaceTexts = React.useMemo(() => getCreateSurfaceTexts(surfaceLocale), [surfaceLocale]);
   const surfaceComposerTexts = React.useMemo(
@@ -877,13 +998,17 @@ export default function CreateClient({
     return text.selectionInfoInvalidContext;
   });
   const intakeStorageKey = React.useMemo(
-    () => buildCreatePrimaryIntakeStorageKey(overview.userId),
-    [overview.userId],
+    () => buildCreatePrimaryIntakeStorageKey(overview?.userId),
+    [overview?.userId],
   );
   const progressResumeStorageKey = React.useMemo(
-    () => buildCreateProgressResumeStorageKey(overview.userId),
-    [overview.userId],
+    () =>
+      buildCreateProgressResumeStorageKey(
+        initialResumeGuestWorkspace ? "guest" : overview?.userId ?? "guest",
+      ),
+    [initialResumeGuestWorkspace, overview?.userId],
   );
+  const guestIntakeStorageKey = buildCreatePrimaryIntakeStorageKey(null);
   const intakeRestoreInfoText =
     surfaceLocale === "en"
       ? "Your draft was restored from local browser storage."
@@ -926,6 +1051,9 @@ export default function CreateClient({
     "default" | "edit" | "source" | "manual_topic"
   >("default");
   const [savedDraftId, setSavedDraftId] = React.useState<string | null>(null);
+  const [guestOperationId, setGuestOperationId] = React.useState<string | null>(null);
+  const [guestResumePending, setGuestResumePending] = React.useState(false);
+  const guestAdoptionInFlightRef = React.useRef(false);
   const [persistedCandidateDossierReviewRecord, setPersistedCandidateDossierReviewRecord] =
     React.useState<PersistedCandidateDossierReviewRecordState | null>(null);
   const [reviewRequestState, setReviewRequestState] = React.useState<CreateReviewRequestState>("idle");
@@ -946,8 +1074,15 @@ export default function CreateClient({
   const analysisSceneRef = React.useRef<HTMLDivElement | null>(null);
   const [analysisSceneMode, setAnalysisSceneMode] = React.useState<CreateProductMode | null>(null);
   const readStoredPrimaryIntake = React.useCallback(
-    () => parseCreatePrimaryIntakeSnapshot(window.localStorage.getItem(intakeStorageKey)),
-    [intakeStorageKey],
+    () => {
+      return resolveCreatePrimaryIntakeResumeSnapshot({
+        ownedRaw: window.localStorage.getItem(intakeStorageKey),
+        guestRaw: window.localStorage.getItem(guestIntakeStorageKey),
+        isAuthenticated: entitlements.isAuthenticated,
+        preferGuest: initialResumeGuestWorkspace,
+      }).snapshot;
+    },
+    [entitlements.isAuthenticated, guestIntakeStorageKey, initialResumeGuestWorkspace, intakeStorageKey],
   );
 
   const startDraftRestore = useCreateStartDraftRestore({
@@ -964,8 +1099,19 @@ export default function CreateClient({
     if (intakeHydratedRef.current) return;
     intakeHydratedRef.current = true;
     try {
-      const snapshot = parseCreatePrimaryIntakeSnapshot(window.localStorage.getItem(intakeStorageKey));
+      const resume = resolveCreatePrimaryIntakeResumeSnapshot({
+        ownedRaw: window.localStorage.getItem(intakeStorageKey),
+        guestRaw: window.localStorage.getItem(guestIntakeStorageKey),
+        isAuthenticated: entitlements.isAuthenticated,
+        preferGuest: initialResumeGuestWorkspace,
+      });
+      const snapshot = resume.snapshot;
       if (!snapshot) return;
+      setGuestResumePending(
+        resume.source === "guest" &&
+          entitlements.isAuthenticated &&
+          initialResumeGuestWorkspace,
+      );
 
       const hasServerPrefill = hasPrimaryIntakeText(initialText);
       if (hasServerPrefill) return;
@@ -974,12 +1120,49 @@ export default function CreateClient({
         setIntakeText(snapshot.intakeText);
         setIntakeRestoreInfo(intakeRestoreInfoText);
       }
-      // Do not auto-open follow-up surfaces from local restore.
-      // We restore text only; activation stays explicit via CTA.
+      if (snapshot.intelligentFollowup && snapshot.hasStarted) {
+        setHasStarted(true);
+        setIntelligentFollowup(snapshot.intelligentFollowup);
+        setPlannerTrace(snapshot.plannerTrace ?? null);
+        setProgressEvents(snapshot.progressEvents ?? []);
+        setGuestOperationId(snapshot.guestOperationId ?? null);
+        setSavedDraftId(snapshot.serverDraftId ?? null);
+        if (snapshot.productMode) setProductMode(snapshot.productMode);
+        setFollowupSnapshot(
+          buildCreateLightweightFollowupSnapshot({
+            intakeText: snapshot.intakeText,
+            modeLabel: resolveCreateProductModeConfig(
+              snapshot.productMode ?? productMode,
+              surfaceLocale,
+            ).label,
+            surfaceTexts,
+          }),
+        );
+        setFollowupSurface(
+          entitlements.isAuthenticated
+            ? resolveFollowupSurfaceOnStart(snapshot.productMode ?? productMode)
+            : "lightweight",
+        );
+        setIntakeRestoreInfo(
+          surfaceLocale === "en"
+            ? "Your guest classification was restored. Sign in only when you want to save or continue it."
+            : "Deine Gast-Einordnung wurde wiederhergestellt. Melde dich erst an, wenn du sie speichern oder weiterführen möchtest.",
+        );
+      }
     } catch {
       // ignore local restore issues
     }
-  }, [initialText, intakeRestoreInfoText, intakeStorageKey]);
+  }, [
+    entitlements.isAuthenticated,
+    guestIntakeStorageKey,
+    initialText,
+    initialResumeGuestWorkspace,
+    intakeRestoreInfoText,
+    intakeStorageKey,
+    productMode,
+    surfaceLocale,
+    surfaceTexts,
+  ]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1044,12 +1227,18 @@ export default function CreateClient({
         intakeText,
         hasStarted,
         updatedAt: new Date().toISOString(),
+        intelligentFollowup,
+        plannerTrace,
+        progressEvents,
+        productMode,
+        guestOperationId,
+        serverDraftId: savedDraftId,
       };
       window.localStorage.setItem(intakeStorageKey, JSON.stringify(snapshot));
     } catch {
       // ignore local draft persistence errors
     }
-  }, [hasStarted, intakeStorageKey, intakeText]);
+  }, [guestOperationId, hasStarted, intakeStorageKey, intakeText, intelligentFollowup, plannerTrace, productMode, progressEvents, savedDraftId]);
 
   React.useEffect(() => {
     let ignore = false;
@@ -1156,6 +1345,88 @@ export default function CreateClient({
       : createOrchestration.createMode);
   const pickerEnabled = canonicalIntent === "contribution";
 
+  React.useEffect(() => {
+    if (
+      !guestResumePending ||
+      !entitlements.isAuthenticated ||
+      savedDraftId ||
+      guestAdoptionInFlightRef.current
+    ) {
+      return;
+    }
+    const snapshot: CreatePrimaryIntakeSnapshot = {
+      intakeText,
+      hasStarted,
+      updatedAt: new Date().toISOString(),
+      intelligentFollowup,
+      plannerTrace,
+      progressEvents,
+      productMode,
+      guestOperationId,
+      serverDraftId: null,
+    };
+    const payload = buildCreateGuestAdoptionPayload({
+      snapshot,
+      locale: surfaceLocale,
+      createMode: canonicalCreateMode,
+    });
+    if (!payload) return;
+
+    guestAdoptionInFlightRef.current = true;
+    async function adoptGuestWorkspace() {
+      try {
+        const response = await fetch("/api/create/save", {
+          method: "POST",
+          headers: createMutationRequestHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body?.ok || typeof body?.draftId !== "string") {
+          throw new Error("create_guest_adoption_failed");
+        }
+        const draftId = body.draftId as string;
+        setSavedDraftId(draftId);
+        setGuestResumePending(false);
+        const adoptedSnapshot: CreatePrimaryIntakeSnapshot = {
+          ...snapshot,
+          updatedAt: new Date().toISOString(),
+          serverDraftId: draftId,
+        };
+        window.localStorage.setItem(intakeStorageKey, JSON.stringify(adoptedSnapshot));
+        window.localStorage.removeItem(guestIntakeStorageKey);
+        setIntakeRestoreInfo(
+          surfaceLocale === "en"
+            ? "Your guest classification was adopted without another AI run."
+            : "Deine Gast-Einordnung wurde ohne weiteren KI-Lauf übernommen.",
+        );
+      } catch {
+        setActionNotice(
+          surfaceLocale === "en"
+            ? "Your guest workspace remains in this browser. The account copy can be retried safely."
+            : "Dein Gast-Arbeitsstand bleibt in diesem Browser. Die Konto-Übernahme kann sicher erneut versucht werden.",
+        );
+      } finally {
+        guestAdoptionInFlightRef.current = false;
+      }
+    }
+    void adoptGuestWorkspace();
+  }, [
+    canonicalCreateMode,
+    entitlements.isAuthenticated,
+    guestIntakeStorageKey,
+    guestOperationId,
+    guestResumePending,
+    hasStarted,
+    intakeStorageKey,
+    intakeText,
+    intelligentFollowup,
+    plannerTrace,
+    progressEvents,
+    productMode,
+    savedDraftId,
+    surfaceLocale,
+  ]);
+
   const loadContextItems = React.useCallback(async () => {
     setContextLoadState("loading");
     setContextLoadError(null);
@@ -1237,7 +1508,9 @@ export default function CreateClient({
     progressResumeAttemptedRef.current = true;
     analysisRunInFlightRef.current = true;
     setProgressEvents([]);
-    setSavedDraftId(resumeSnapshot.draftId);
+    if (resumeSnapshot.actorMode === "authenticated") {
+      setSavedDraftId(resumeSnapshot.draftId);
+    }
     setFollowupSnapshot(
       buildCreateLightweightFollowupSnapshot({
         intakeText: normalizedText,
@@ -1272,7 +1545,13 @@ export default function CreateClient({
     const deadline = startCreateIntelligentFollowupDeadline(timing.clientTimeoutMs);
     plannerDeadlineRef.current = deadline;
 
-    void requestCreateProgressiveFollowup({
+    const resumeProgress = async () => {
+      const anonymousResume = resumeSnapshot.actorMode === "anonymous";
+      if (anonymousResume) {
+        const sessionReady = await primeCreateSecuritySession();
+        if (!sessionReady) throw new Error("create_anonymous_session_failed");
+      }
+      return requestCreateProgressiveFollowup({
       text: normalizedText,
       locale: resumeSnapshot.locale,
       anlassraumId: resumeSnapshot.anlassraumId,
@@ -1282,11 +1561,15 @@ export default function CreateClient({
           ? resumeSnapshot.intent
           : "contribute",
       correlationId: resumeSnapshot.correlationId,
-      draftId: resumeSnapshot.draftId,
+      draftId: anonymousResume ? null : resumeSnapshot.draftId,
+      anonymous: anonymousResume,
       resumeOnly: true,
       signal: deadline.signal,
       onProgress: recordProgress,
-    })
+      });
+    };
+
+    void resumeProgress()
       .then((body) => {
         if (!body?.ok || !body.result) {
           throw new CreateProgressStreamError(
@@ -1323,7 +1606,9 @@ export default function CreateClient({
             ? "The saved analysis has been resumed."
             : "Die gespeicherte Analyse wurde fortgesetzt.",
         );
-        const nextFollowupSurface = resolveFollowupSurfaceOnStart(productMode);
+        const nextFollowupSurface = entitlements.isAuthenticated
+          ? resolveFollowupSurfaceOnStart(productMode)
+          : "lightweight";
         setFollowupSurface(nextFollowupSurface);
         setAnalysisSceneMode(nextFollowupSurface === "analysis" ? productMode : null);
       })
@@ -1340,8 +1625,12 @@ export default function CreateClient({
               ? "The previous analysis is no longer available. It was not restarted; you can retry it explicitly."
               : "Die vorherige Analyse ist nicht mehr verfügbar. Sie wurde nicht neu gestartet; du kannst sie ausdrücklich wiederholen."
             : surfaceLocale === "en"
-              ? "The saved progress could not be reconnected yet. Your draft remains saved."
-              : "Der gespeicherte Fortschritt konnte noch nicht wieder verbunden werden. Dein Entwurf bleibt gespeichert.",
+              ? resumeSnapshot.actorMode === "anonymous"
+                ? "The saved progress could not be reconnected yet. Your guest workspace remains in this browser."
+                : "The saved progress could not be reconnected yet. Your draft remains saved."
+              : resumeSnapshot.actorMode === "anonymous"
+                ? "Der gespeicherte Fortschritt konnte noch nicht wieder verbunden werden. Dein Gast-Arbeitsstand bleibt in diesem Browser."
+                : "Der gespeicherte Fortschritt konnte noch nicht wieder verbunden werden. Dein Entwurf bleibt gespeichert.",
         );
       })
       .finally(() => {
@@ -1352,6 +1641,7 @@ export default function CreateClient({
       });
   }, [
     activeContextAnchor?.label,
+    entitlements.isAuthenticated,
     intakeText,
     privacyGate.hasRequiredAcknowledgement,
     productMode,
@@ -1379,6 +1669,7 @@ export default function CreateClient({
       return;
     }
     analysisRunInFlightRef.current = true;
+    const anonymousRun = !entitlements.isAuthenticated;
     let draftSavedForRun = false;
     const submitStartedAt = performance.now();
     let saveMs: number | null = null;
@@ -1446,6 +1737,81 @@ export default function CreateClient({
             }
           : null,
       );
+
+      if (anonymousRun) {
+        const sessionReady = await primeCreateSecuritySession();
+        if (!sessionReady) throw new Error("create_anonymous_session_failed");
+
+        setGuestOperationId(correlationId);
+        const initialProgress = buildCreateInitialProgressEvents({
+          text: normalizedText,
+          operationId: correlationId,
+          correlationId,
+          locale: surfaceLocale,
+          persistence: "browser",
+        });
+        initialProgress.events.forEach(recordProgress);
+        writeCreateProgressResumeSnapshot(
+          window.localStorage,
+          progressResumeStorageKey,
+          buildCreateProgressResumeSnapshot({
+            operationId: correlationId,
+            correlationId,
+            actorMode: "anonymous",
+            draftId: "guest-browser",
+            text: normalizedText,
+            locale: surfaceLocale,
+            intent: activeIntent,
+          }),
+        );
+        const intakeTiming = resolveCreateIntakeTiming(normalizedText);
+        plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs);
+        plannerDeadlineRef.current = plannerDeadline;
+        const body = await requestCreateProgressiveFollowup({
+          text: normalizedText,
+          locale: surfaceLocale,
+          intent: activeIntent,
+          correlationId,
+          anonymous: true,
+          signal: plannerDeadline.signal,
+          onProgress: recordProgress,
+        });
+        if (!body?.ok || !body?.result) {
+          throw new Error(
+            typeof body?.errorCode === "string"
+              ? body.errorCode
+              : "create_anonymous_intake_failed",
+          );
+        }
+        clearCreateProgressResumeSnapshot(window.localStorage, progressResumeStorageKey);
+
+        const nextIntelligentFollowup = body.result as CreateIntelligentFollowupResult;
+        setIntelligentFollowup(nextIntelligentFollowup);
+        setSupportHandoff(null);
+        setPlannerTrace(body.trace ?? null);
+        setAnalyzeTrace(null);
+        setUnderstandingConfirmed(false);
+        setActiveTopicLabel(null);
+        setSelectedPrimaryTopic(null);
+        setGroupedTopicLabels([]);
+        setDocumentTopicOverviewOpened(false);
+        setShowExpandedTopicPreview(false);
+        setTopicExpansionDecision("idle");
+        setParkedTopicLabels([]);
+        const nextFollowupSurface: CreateFollowupSurface = "lightweight";
+        setFollowupSurface(nextFollowupSurface);
+        setAnalysisSceneMode(null);
+        setActionNotice(
+          hasValidatedCreateSemanticOutput(nextIntelligentFollowup)
+            ? surfaceLocale === "en"
+              ? "Your first classification is available as a guest. Sign in only when you want to save or continue it."
+              : "Deine erste Einordnung ist als Gast verfügbar. Melde dich erst an, wenn du sie speichern oder weiterführen möchtest."
+            : surfaceLocale === "en"
+              ? "The classification is currently unavailable. Your text remains in this browser and can be retried."
+              : "Die Einordnung ist gerade nicht verfügbar. Dein Text bleibt in diesem Browser und kann erneut geprüft werden.",
+        );
+        return;
+      }
 
       const saveStartedAt = performance.now();
       const saveResponse = await fetch("/api/create/save", {
@@ -1587,10 +1953,42 @@ export default function CreateClient({
       setIsStarting(false);
     } catch (error: unknown) {
       const plannerTimedOut =
-        draftSavedForRun &&
+        (draftSavedForRun || anonymousRun) &&
         plannerDeadline?.didTimeout() === true &&
         isCreateIntelligentFollowupAbortError(error);
-      if (!draftSavedForRun) {
+      if (anonymousRun) {
+        const failedHandoff: CreateSupportHandoffPublic | null = plannerCorrelationId
+          ? {
+              status: "failed",
+              technicalReference: plannerCorrelationId,
+              safeUserMessage:
+                surfaceLocale === "en"
+                  ? "The classification is currently unavailable. Your contribution remains in this browser."
+                  : "Die Einordnung ist gerade nicht verfügbar. Dein Beitrag bleibt in diesem Browser erhalten.",
+            }
+          : null;
+        setSupportHandoff(failedHandoff);
+        setIntelligentFollowup(
+          buildCreateTechnicalFollowup({
+            text: normalizedText,
+            analysisState: "ai_failed",
+            sourceType: "text",
+            sourceLoaded: true,
+            userMessage:
+              surfaceLocale === "en"
+                ? "I couldn’t complete the classification just now. Your text remains in this browser so you can try again."
+                : "Ich konnte die Einordnung gerade nicht abschließen. Dein Text bleibt in diesem Browser und du kannst es erneut versuchen.",
+          }),
+        );
+        setActionNotice(
+          plannerTimedOut
+            ? surfaceLocale === "en"
+              ? "The classification took longer than expected. Your contribution remains in this browser."
+              : "Die Einordnung hat länger als erwartet gedauert. Dein Beitrag bleibt in diesem Browser."
+            : null,
+        );
+        setIntakeError(null);
+      } else if (!draftSavedForRun) {
         setIntakeError(
           surfaceLocale === "en"
             ? "Your contribution could not be saved securely. Please try again."
@@ -1659,6 +2057,7 @@ export default function CreateClient({
     activeIntent,
     composerAttachmentMaterialItems,
     dossierId,
+    entitlements.isAuthenticated,
     isStarting,
     canonicalCreateMode,
     canonicalIntent,
@@ -1797,6 +2196,22 @@ export default function CreateClient({
       : surfaceTexts.startBusyStatus;
   const showStartChatPreview =
     Boolean(followupSnapshot) && hasStarted && !showIntelligentFollowup && !showLinkClarification;
+  const citizenContext = React.useMemo(() => {
+    const detected = intelligentFollowup?.meta?.citizenContext ?? null;
+    if (!detected) return null;
+    const profileRegion =
+      overview?.profile?.publicLocation?.city ??
+      overview?.profile?.publicLocation?.region ??
+      null;
+    const confirmedRegion =
+      initialIntakeContext?.reviewState === "confirmed"
+        ? initialIntakeContext.region
+        : null;
+    return applyCreateRegionPriority(detected, {
+      confirmedRegion,
+      profileRegion,
+    });
+  }, [initialIntakeContext, intelligentFollowup?.meta?.citizenContext, overview?.profile]);
   const startChatAssistantTitle = isStarting
     ? surfaceLocale === "en"
       ? "I’m organizing this briefly"
@@ -2422,6 +2837,19 @@ export default function CreateClient({
     ],
   );
 
+  const requireAuthenticatedOwnership = React.useCallback(() => {
+    if (entitlements.isAuthenticated) return true;
+    setActionNotice(
+      surfaceLocale === "en"
+        ? "Your guest workspace stays in this browser. Sign in to save or continue it."
+        : "Dein Gast-Arbeitsstand bleibt in diesem Browser. Melde dich an, um ihn zu speichern oder weiterzuführen.",
+    );
+    router.push(
+      "/login?next=%2Fcreate%3Fresume%3Dguest" as Parameters<typeof router.push>[0],
+    );
+    return false;
+  }, [entitlements.isAuthenticated, router, surfaceLocale]);
+
   const persistSavedWorkstate = React.useCallback(
     async (params: {
       type:
@@ -2445,6 +2873,7 @@ export default function CreateClient({
       sourceUrl?: string | null;
       metadata?: Record<string, unknown>;
     }) => {
+      if (!requireAuthenticatedOwnership()) return false;
       if (!intelligentFollowup) {
         setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
         return false;
@@ -2522,11 +2951,13 @@ export default function CreateClient({
       currentMaterialRouting.sourceUrls,
       entitlements.maxVisibleAiProposals,
       intelligentFollowup,
+      requireAuthenticatedOwnership,
       selectedPrimaryTopic,
     ],
   );
 
   const persistFollowupWorkstate = React.useCallback(async (manualReviewRequested: boolean) => {
+    if (!requireAuthenticatedOwnership()) return;
     if (!showIntelligentFollowup) {
       setReviewRequestState("error");
       setReviewRequestMessage("Dieser Schritt ist in diesem Arbeitsstand noch nicht verfügbar.");
@@ -2612,10 +3043,12 @@ export default function CreateClient({
     currentMaterialRouting.materialItems,
     currentMaterialRouting.sourceUrls,
     linkClarificationState,
+    requireAuthenticatedOwnership,
   ]);
 
   const navigateWithCreateHandoff = React.useCallback(
     async (selectedAction: CreateHandoffAction, baseHref: string) => {
+      if (!requireAuthenticatedOwnership()) return;
       if (!privacyGate.ensureActiveProcessingAllowed(`create-handoff:${selectedAction}`)) return;
       if (!hasValidatedCreateSemanticOutput(intelligentFollowup)) {
         setActionNotice("Dieser Schritt braucht zuerst einen bestätigbaren Arbeitsstand.");
@@ -2712,6 +3145,7 @@ export default function CreateClient({
       effectiveSelectedAnlassraumId,
       intelligentFollowup,
       privacyGate,
+      requireAuthenticatedOwnership,
       router,
     ],
   );
@@ -2726,7 +3160,7 @@ export default function CreateClient({
       );
       return;
     }
-    if (!savedDraftId) {
+    if (entitlements.isAuthenticated && !savedDraftId) {
       setActionNotice(
         surfaceLocale === "en"
           ? "The saved draft is missing. Please save the contribution again."
@@ -2761,6 +3195,7 @@ export default function CreateClient({
       operationId: correlationId,
       correlationId,
       locale: surfaceLocale,
+      persistence: entitlements.isAuthenticated ? "account_draft" : "browser",
     }).events.forEach(recordProgress);
     writeCreateProgressResumeSnapshot(
       window.localStorage,
@@ -2768,7 +3203,8 @@ export default function CreateClient({
       buildCreateProgressResumeSnapshot({
         operationId: correlationId,
         correlationId,
-        draftId: savedDraftId,
+        actorMode: entitlements.isAuthenticated ? "authenticated" : "anonymous",
+        draftId: savedDraftId ?? "guest-browser",
         text: sourceText,
         locale: surfaceLocale,
         anlassraumId: selectedAnlassraumId,
@@ -2776,10 +3212,15 @@ export default function CreateClient({
         intent: activeIntent,
       }),
     );
+    if (!entitlements.isAuthenticated) setGuestOperationId(correlationId);
     const intakeTiming = resolveCreateIntakeTiming(sourceText);
     const plannerDeadline = startCreateIntelligentFollowupDeadline(intakeTiming.clientTimeoutMs);
     plannerDeadlineRef.current = plannerDeadline;
     try {
+      if (!entitlements.isAuthenticated) {
+        const sessionReady = await primeCreateSecuritySession();
+        if (!sessionReady) throw new Error("create_anonymous_session_failed");
+      }
       const body = await requestCreateProgressiveFollowup({
         text: sourceText,
         locale: surfaceLocale,
@@ -2788,6 +3229,7 @@ export default function CreateClient({
         intent: activeIntent,
         correlationId,
         draftId: savedDraftId,
+        anonymous: !entitlements.isAuthenticated,
         signal: plannerDeadline.signal,
         onProgress: recordProgress,
       });
@@ -2873,6 +3315,7 @@ export default function CreateClient({
     currentMaterialRouting.materialItems,
     currentMaterialRouting.sourceUrls,
     dossierId,
+    entitlements.isAuthenticated,
     followupSnapshot?.originalText,
     intelligentFollowup?.sourceText,
     isRetryPlannerPending,
@@ -2906,6 +3349,7 @@ export default function CreateClient({
   }, [intelligentFollowup, navigateWithCreateHandoff, selectedPrimaryTopic]);
 
   const handleOpenExistingAnlassraum = React.useCallback(() => {
+    if (!requireAuthenticatedOwnership()) return;
     const prefill = normalizedIntakeText.trim();
     if (prefill) {
       setActionNotice("Dein Beitrag ist vorbereitet. Wähle jetzt einen Anlassraum oder starte einen neuen.");
@@ -2913,7 +3357,7 @@ export default function CreateClient({
       setActionNotice(null);
     }
     router.push(buildCreateToRundenHref(prefill) as Parameters<typeof router.push>[0]);
-  }, [normalizedIntakeText, router]);
+  }, [normalizedIntakeText, requireAuthenticatedOwnership, router]);
 
   const handleOpenDossierAppend = React.useCallback(() => {
     if (!intelligentFollowup) {
@@ -3151,6 +3595,7 @@ export default function CreateClient({
   }, []);
 
   const handleContinueInAccount = React.useCallback(() => {
+    if (!requireAuthenticatedOwnership()) return;
     if (!intelligentFollowup) {
       setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
       return;
@@ -3168,7 +3613,7 @@ export default function CreateClient({
       }),
     );
     router.push("/account");
-  }, [intelligentFollowup, router]);
+  }, [intelligentFollowup, requireAuthenticatedOwnership, router]);
 
   const handleSaveQuestion = React.useCallback(async () => {
     const branches = intelligentFollowup
@@ -3391,13 +3836,6 @@ export default function CreateClient({
       </main>
     );
   }
-  if (gate.status === "anon") {
-    return (
-      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
-        {text.loginRequired}
-      </main>
-    );
-  }
   if (gate.status === "blocked") {
     return (
       <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
@@ -3478,8 +3916,36 @@ export default function CreateClient({
                 subline={surfaceTexts.sublineCanonical}
                 texts={surfaceComposerTexts}
                 topMeta={
-                  !hasStarted || intakeRestoreInfo || scopeNotice ? (
+                  !hasStarted || intakeRestoreInfo || scopeNotice || gate.status === "anon" ? (
                     <div className="space-y-2">
+                      {gate.status === "anon" ? (
+                        <div
+                          className="rounded-2xl border border-cyan-300/50 bg-cyan-50/70 px-3 py-3 text-sm text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-950/25 dark:text-cyan-50"
+                          data-create-guest-ownership="browser-workstate"
+                        >
+                          <p className="font-semibold">
+                            {surfaceLocale === "en"
+                              ? "Start without an account"
+                              : "Ohne Konto starten"}
+                          </p>
+                          <p className="mt-1 leading-relaxed">
+                            {surfaceLocale === "en"
+                              ? "Your first AI-assisted classification stays in this browser. Sign in only when you want to save or continue it."
+                              : "Deine erste KI-gestützte Einordnung bleibt in diesem Browser. Melde dich erst an, wenn du sie speichern oder weiterführen möchtest."}
+                          </p>
+                          {hasStarted ? (
+                            <button
+                              type="button"
+                              className="mt-2 inline-flex min-h-[44px] items-center rounded-full border border-cyan-500 px-4 py-2 font-semibold"
+                              onClick={requireAuthenticatedOwnership}
+                            >
+                              {surfaceLocale === "en"
+                                ? "Sign in and continue"
+                                : "Anmelden und weiterführen"}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {startDraftRestore.draft ? (
                         <>
                           <CreateStartDraftHandoff
@@ -3562,7 +4028,10 @@ export default function CreateClient({
                 inputValue={workspaceComposerValue}
                 inputPlaceholder={workspaceComposerPlaceholder}
                 onInputChange={handleWorkspaceComposerChange}
-                onAttachmentsChange={setComposerAttachments}
+                onAttachmentsChange={
+                  entitlements.isAuthenticated ? setComposerAttachments : undefined
+                }
+                allowAttachments={entitlements.isAuthenticated}
                 onStart={hasStarted ? handleContinueConversation : handleStart}
                 startLabel={workspaceComposerStartLabel}
                 startDisabled={workspaceComposerStartDisabled}
@@ -3613,6 +4082,11 @@ export default function CreateClient({
                     </div>
                   ) : null
                 }
+                citizenContext={citizenContext}
+                onEditCitizenRegion={() => {
+                  setWorkspaceActionMode("edit");
+                  setActionNotice("Du kannst Ort oder Region direkt in deinem Beitrag ändern.");
+                }}
                 minRows={7}
                 collapseModeSelector
                 embeddedWorkspace

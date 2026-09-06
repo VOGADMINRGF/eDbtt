@@ -7,6 +7,7 @@ const CreateProgressResumeSnapshotSchema = z
   .object({
     operationId: z.string().trim().min(8).max(160),
     correlationId: z.string().trim().min(8).max(160),
+    actorMode: z.enum(["authenticated", "anonymous"]),
     draftId: z.string().trim().min(1).max(160),
     inputFingerprint: z.string().trim().min(1).max(80),
     locale: z.string().trim().min(1).max(10),
@@ -64,6 +65,7 @@ export function fingerprintCreateProgressInput(text: string) {
 export function buildCreateProgressResumeSnapshot(input: {
   operationId: string;
   correlationId: string;
+  actorMode?: "authenticated" | "anonymous";
   draftId: string;
   text: string;
   locale: string;
@@ -76,6 +78,7 @@ export function buildCreateProgressResumeSnapshot(input: {
   return CreateProgressResumeSnapshotSchema.parse({
     operationId: input.operationId,
     correlationId: input.correlationId,
+    actorMode: input.actorMode ?? "authenticated",
     draftId: input.draftId,
     inputFingerprint: fingerprintCreateProgressInput(input.text.trim()),
     locale: input.locale,

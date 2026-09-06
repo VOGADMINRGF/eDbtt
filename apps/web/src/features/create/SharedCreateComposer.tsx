@@ -12,6 +12,7 @@ import type {
   CreateSurfaceModeDefinition,
 } from "@/features/create/createSurfaceConfig";
 import EntryHeroHeading from "@/components/surfaces/EntryHeroHeading";
+import type { CreateCitizenIntakeContext } from "@/features/create/createContributionPackageContract";
 
 type SpeechRecognitionLike = {
   lang: string;
@@ -165,6 +166,9 @@ export type SharedCreateComposerProps = {
   error?: string | null;
   errorRef?: React.Ref<React.ElementRef<"p">>;
   contextBanner?: React.ReactNode;
+  citizenContext?: CreateCitizenIntakeContext | null;
+  onEditCitizenRegion?: () => void;
+  allowAttachments?: boolean;
   allowVoice?: boolean;
   onAttachmentsChange?: (files: File[]) => void;
   minRows?: number;
@@ -208,6 +212,9 @@ export default function SharedCreateComposer({
   error,
   errorRef,
   contextBanner,
+  citizenContext,
+  onEditCitizenRegion,
+  allowAttachments = true,
   allowVoice = true,
   onAttachmentsChange,
   minRows = 9,
@@ -430,6 +437,36 @@ export default function SharedCreateComposer({
 
           {contextBanner}
 
+          {citizenContext?.regionChipLabel ? (
+            <div
+              className="flex flex-wrap items-center gap-2"
+              data-create-region-context={citizenContext.regionSource}
+            >
+              <button
+                type="button"
+                className="inline-flex min-h-[44px] items-center rounded-full border border-cyan-300/45 bg-cyan-500/[0.08] px-3.5 py-2 text-sm font-medium text-cyan-950 transition hover:bg-cyan-500/[0.13] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 dark:border-cyan-300/25 dark:bg-cyan-500/[0.12] dark:text-cyan-50"
+                onClick={() => {
+                  onEditCitizenRegion?.();
+                  textareaRef.current?.focus();
+                }}
+                aria-label={`${citizenContext.regionChipLabel}. Region bearbeiten`}
+              >
+                <span aria-hidden="true" className="mr-1.5">📍</span>
+                {citizenContext.regionChipLabel}
+              </button>
+            </div>
+          ) : null}
+
+          {citizenContext?.safety.emergencyNoticeRequired ? (
+            <div
+              role="alert"
+              className="rounded-2xl border border-red-300/60 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-950 dark:border-red-300/30 dark:bg-red-950/30 dark:text-red-50"
+              data-create-emergency-notice
+            >
+              Bei akuter Gefahr ist eDebatte nicht der richtige Notfallkanal. Ruf 112 oder wende dich direkt an Polizei beziehungsweise Rettungsdienst.
+            </div>
+          ) : null}
+
           <label className="sr-only" htmlFor={inputId}>
             {inputLabel ?? texts.inputLabel}
           </label>
@@ -449,16 +486,18 @@ export default function SharedCreateComposer({
                 <span className="text-[12px] font-medium text-[rgb(var(--muted))]">
                   {locale === "en" ? "Write or speak" : "Schreiben oder sprechen"}
                 </span>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label={texts.attachAria}
-                  title={texts.attachAria}
-                >
-                  <IconPaperclip />
-                  <span>{texts.attachLabel}</span>
-                </button>
+                {allowAttachments ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label={texts.attachAria}
+                    title={texts.attachAria}
+                  >
+                    <IconPaperclip />
+                    <span>{texts.attachLabel}</span>
+                  </button>
+                ) : null}
 
                 <button
                   type="button"
@@ -504,14 +543,16 @@ export default function SharedCreateComposer({
             </div>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={FILE_ACCEPT}
-            className="sr-only"
-            onChange={handleFilesChange}
-          />
+          {allowAttachments ? (
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={FILE_ACCEPT}
+              className="sr-only"
+              onChange={handleFilesChange}
+            />
+          ) : null}
 
           {attachments.length > 0 ? (
             <details className="rounded-[1.3rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">

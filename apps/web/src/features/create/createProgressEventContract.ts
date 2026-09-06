@@ -195,6 +195,7 @@ export function buildCreateInitialProgressEvents(input: {
   operationId: string;
   correlationId: string;
   locale: string;
+  persistence?: "account_draft" | "browser";
   createdAt?: string;
 }): { structure: CreateDeterministicStructure; events: CreateProgressEvent[] } {
   const createdAt = input.createdAt ?? new Date().toISOString();
@@ -209,7 +210,14 @@ export function buildCreateInitialProgressEvents(input: {
       type: "draft.saved",
       status: "completed",
       visibility: "verified",
-      label: isEnglish ? "Draft saved." : "Entwurf gespeichert.",
+      label:
+        input.persistence === "browser"
+          ? isEnglish
+            ? "Draft saved in this browser."
+            : "Entwurf in diesem Browser gespeichert."
+          : isEnglish
+            ? "Draft saved."
+            : "Entwurf gespeichert.",
       provisional: false,
     }),
     createEvent({

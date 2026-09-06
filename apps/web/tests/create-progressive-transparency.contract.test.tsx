@@ -93,6 +93,24 @@ describe("/create progressive transparency contract", () => {
     })).toBeNull();
   });
 
+  it("describes the real browser persistence boundary for guest intake", () => {
+    const initial = buildCreateInitialProgressEvents({
+      text: "Beschäftigte in Behindertenwerkstätten sollen den gesetzlichen Mindestlohn erhalten.",
+      operationId: OPERATION_ID,
+      correlationId: OPERATION_ID,
+      locale: "de",
+      persistence: "browser",
+      createdAt: CREATED_AT,
+    });
+
+    expect(initial.events[0]).toMatchObject({
+      type: "draft.saved",
+      visibility: "verified",
+      provisional: false,
+      label: "Entwurf in diesem Browser gespeichert.",
+    });
+  });
+
   it("makes a real 15-to-14 consolidation correction visible", () => {
     const initial = buildCreateInitialProgressEvents({
       text: numberedProgram(15),
@@ -258,6 +276,24 @@ describe("/create progressive transparency contract", () => {
     expect(values.get("resume")).not.toContain("Privater Bürgertext");
     expect(readCreateProgressResumeSnapshot(storage, "resume", new Date("2026-09-06T09:10:00.000Z"))).toEqual(snapshot);
     expect(readCreateProgressResumeSnapshot(storage, "resume", new Date("2026-09-06T09:15:00.000Z"))).toBeNull();
+  });
+
+  it("keeps an in-flight guest resume bound to the anonymous actor across login navigation", () => {
+    const snapshot = buildCreateProgressResumeSnapshot({
+      operationId: OPERATION_ID,
+      correlationId: OPERATION_ID,
+      actorMode: "anonymous",
+      draftId: "guest-browser",
+      text: "Der Gasttext bleibt im bestehenden browserlokalen Arbeitsstand.",
+      locale: "de",
+      now: new Date(CREATED_AT),
+    });
+
+    expect(snapshot).toMatchObject({
+      actorMode: "anonymous",
+      draftId: "guest-browser",
+    });
+    expect(JSON.stringify(snapshot)).not.toContain("Der Gasttext");
   });
 
   it("does not block the saved create flow when browser storage is unavailable", () => {
