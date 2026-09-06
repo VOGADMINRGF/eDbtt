@@ -172,12 +172,14 @@ describe("QR question set review flow", () => {
       ok: true,
       status: "ready_for_activation",
       questionGuardReviewState: "reviewed",
+      activationState: "ready_for_activation",
       noAutoApproval: true,
       noAutoPublish: true,
     });
     expect(state.set).toMatchObject({
       status: "ready_for_activation",
       questionGuardReviewState: "reviewed",
+      activationState: "ready_for_activation",
       version: 2,
       noAutoApproval: true,
       noAutoPublish: true,
@@ -245,6 +247,7 @@ describe("QR question set review flow", () => {
       code: "READY123",
       status: "ready_for_activation",
       questionGuardReviewState: "reviewed",
+      activationState: "ready_for_activation",
       version: 2,
       questions: [
         {
@@ -284,6 +287,7 @@ describe("QR question set review flow", () => {
       code: "READY123",
       status: "ready_for_activation",
       questionGuardReviewState: "reviewed",
+      activationState: "ready_for_activation",
       version: 2,
       questions: [
         {
@@ -313,6 +317,11 @@ describe("QR question set review flow", () => {
     expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(false);
 
     state.failAudit = false;
+    state.set = {
+      ...state.set,
+      activationState: "ready_for_activation",
+      version: 4,
+    };
     state.failActiveRelease = true;
     const casFailure = await activateQrSet(
       request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
@@ -324,10 +333,53 @@ describe("QR question set review flow", () => {
     expect(state.set).toMatchObject({
       status: "ready_for_activation",
       activationState: "activation_in_progress",
-      version: 4,
+      version: 5,
     });
     expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(false);
     expect(state.audits).toHaveLength(1);
+  });
+
+  it("allows only one concurrent activation reservation and one approval audit", async () => {
+    state.set = {
+      _id: "65f000000000000000000499",
+      code: "READY123",
+      status: "ready_for_activation",
+      questionGuardReviewState: "reviewed",
+      activationState: "ready_for_activation",
+      version: 2,
+      questions: [
+        {
+          id: "question-1",
+          questionGuard: { releaseState: "draft_allowed", outcome: "generalized" },
+        },
+      ],
+    };
+
+    const [first, second] = await Promise.all([
+      activateQrSet(
+        request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
+          confirmActivation: true,
+        }),
+        { params: Promise.resolve({ code: "READY123" }) },
+      ),
+      activateQrSet(
+        request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
+          confirmActivation: true,
+        }),
+        { params: Promise.resolve({ code: "READY123" }) },
+      ),
+    ]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 409]);
+    expect(state.set).toMatchObject({
+      status: "active",
+      activationState: "active",
+      version: 4,
+    });
+    expect(state.audits).toHaveLength(1);
+    expect(state.audits[0]).toMatchObject({
+      action: "qr_question_set_activation_approved",
+    });
   });
 
   it("cannot complete an actor-free human review from evidenceRef alone", async () => {

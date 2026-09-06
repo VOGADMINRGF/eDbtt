@@ -49,6 +49,7 @@ export async function PATCH(
         _id: set._id,
         status: "ready_for_activation",
         questionGuardReviewState: "reviewed",
+        activationState: "ready_for_activation",
         version: currentVersion,
       },
       {

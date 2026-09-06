@@ -16,7 +16,7 @@ describe("QR question set public-question guard", () => {
     expect(result.releaseState).toBe("review_required");
   });
 
-  it("keeps legacy active sets compatible but fails closed once guard coverage exists", () => {
+  it("fails closed for legacy active sets and for every partial or unresolved guard", () => {
     const allowedGuard = evaluateQrQuestionSetQuestion({
       question: "Welche Maßnahmen sollten Kommunen gegen Hitze priorisieren?",
       actorExtraction: {
@@ -35,7 +35,7 @@ describe("QR question set public-question guard", () => {
         status: "active",
         questions: [{ id: "legacy-question" }],
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isQrQuestionSetPubliclyReleased({
         status: "active",
@@ -64,6 +64,7 @@ describe("QR question set public-question guard", () => {
       isQrQuestionSetReadyForActivation({
         status: "ready_for_activation",
         questionGuardReviewState: "reviewed",
+        activationState: "ready_for_activation",
         questions: [{ id: "unguarded" }],
       }),
     ).toBe(false);
@@ -71,6 +72,7 @@ describe("QR question set public-question guard", () => {
       isQrQuestionSetReadyForActivation({
         status: "ready_for_activation",
         questionGuardReviewState: "reviewed",
+        activationState: "ready_for_activation",
         questions: [
           {
             id: "pending",
@@ -83,6 +85,7 @@ describe("QR question set public-question guard", () => {
       isQrQuestionSetReadyForActivation({
         status: "ready_for_activation",
         questionGuardReviewState: "reviewed",
+        activationState: "ready_for_activation",
         questions: [
           {
             id: "reviewed",

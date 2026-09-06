@@ -23,11 +23,8 @@ export function isQrQuestionSetPubliclyReleased(
       ),
   );
 
-  // Established active QR sets predate the guard. Once any question in a set
-  // carries guard metadata, mixed/partial coverage and unresolved review both
-  // fail closed at every public boundary.
-  if (guardedQuestions.length === 0) return set.questions.length > 0;
   return (
+    set.questions.length > 0 &&
     guardedQuestions.length === set.questions.length &&
     guardedQuestions.every(
       (question) => question.questionGuard.releaseState === "draft_allowed",
@@ -40,11 +37,13 @@ export function isQrQuestionSetReadyForActivation(value: unknown): boolean {
   const set = value as {
     status?: unknown;
     questionGuardReviewState?: unknown;
+    activationState?: unknown;
     questions?: unknown;
   };
   if (
     set.status !== "ready_for_activation" ||
     set.questionGuardReviewState !== "reviewed" ||
+    set.activationState !== "ready_for_activation" ||
     !Array.isArray(set.questions) ||
     set.questions.length === 0
   ) {

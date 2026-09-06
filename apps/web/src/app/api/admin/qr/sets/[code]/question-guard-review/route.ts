@@ -189,6 +189,9 @@ export async function PATCH(
           questionGuardReviewState: readyForActivation
             ? "reviewed"
             : "review_required",
+          activationState: readyForActivation
+            ? "ready_for_activation"
+            : "review_required",
           lastQuestionGuardReviewAuditId: auditId,
           updatedAt: releasedAt,
           noAutoApproval: true,
@@ -210,6 +213,9 @@ export async function PATCH(
       status: nextStatus,
       questionGuardReviewState: readyForActivation
         ? "reviewed"
+        : "review_required",
+      activationState: readyForActivation
+        ? "ready_for_activation"
         : "review_required",
       questions: reviewedQuestions.map((question) => ({
         id: question.id,
