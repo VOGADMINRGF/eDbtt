@@ -5,6 +5,8 @@ const state = vi.hoisted(() => ({
   set: null as Record<string, any> | null,
   audits: [] as Record<string, any>[],
   failAudit: false,
+  failActiveRelease: false,
+  denyAdmin: false,
 }));
 
 vi.mock("@core/db/triMongo", () => {
@@ -60,6 +62,9 @@ vi.mock("@core/db/triMongo", () => {
           update: { $set?: Record<string, any>; $inc?: Record<string, number> },
         ) => {
           if (!matches(state.set, filter)) return { matchedCount: 0, modifiedCount: 0 };
+          if (state.failActiveRelease && update.$set?.status === "active") {
+            return { matchedCount: 0, modifiedCount: 0 };
+          }
           state.set = {
             ...state.set,
             ...(update.$set ? structuredClone(update.$set) : {}),
@@ -83,13 +88,19 @@ vi.mock("@/app/api/streams/utils", () => ({
 }));
 
 vi.mock("@/lib/server/auth/admin", () => ({
-  requireAdminOrResponse: vi.fn().mockResolvedValue({
-    _id: { toHexString: () => "admin-reviewer-1" },
-  }),
+  requireAdminOrResponse: vi.fn().mockImplementation(async () =>
+    state.denyAdmin
+      ? new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403 })
+      : {
+          _id: { toHexString: () => "admin-reviewer-1" },
+        },
+  ),
 }));
 
 import { POST as createQrSet } from "@/app/api/qr/sets/route";
 import { PATCH as reviewQrSet } from "@/app/api/admin/qr/sets/[code]/question-guard-review/route";
+import { PATCH as activateQrSet } from "@/app/api/admin/qr/sets/[code]/activate/route";
+import { isQrQuestionSetPubliclyReleased } from "@/features/create/qrQuestionSetGuard";
 
 function request(url: string, method: "POST" | "PATCH", body: unknown) {
   return new NextRequest(url, {
@@ -104,9 +115,11 @@ describe("QR question set review flow", () => {
     state.set = null;
     state.audits = [];
     state.failAudit = false;
+    state.failActiveRelease = false;
+    state.denyAdmin = false;
   });
 
-  it("persists review-required creation, audits independent review, and stops at ready-for-activation", async () => {
+  it("persists review-required creation, then audits explicit activation before public release", async () => {
     const createResponse = await createQrSet(
       request("http://localhost/api/qr/sets", "POST", {
         title: "Hitzeschutz",
@@ -186,6 +199,135 @@ describe("QR question set review flow", () => {
       noAutoApproval: true,
       noAutoPublish: true,
     });
+    expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(false);
+
+    const activationResponse = await activateQrSet(
+      request(
+        `http://localhost/api/admin/qr/sets/${created.code}/activate`,
+        "PATCH",
+        { confirmActivation: true },
+      ),
+      { params: Promise.resolve({ code: created.code }) },
+    );
+
+    expect(activationResponse.status).toBe(200);
+    await expect(activationResponse.json()).resolves.toMatchObject({
+      ok: true,
+      status: "active",
+      activationState: "active",
+      noAutoApproval: true,
+      noAutoPublish: true,
+    });
+    expect(state.set).toMatchObject({
+      status: "active",
+      activationState: "active",
+      activatedBy: "admin-reviewer-1",
+      version: 4,
+      noAutoApproval: true,
+      noAutoPublish: true,
+    });
+    expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(true);
+    expect(state.audits).toHaveLength(2);
+    expect(state.audits[1]).toMatchObject({
+      action: "qr_question_set_activation_approved",
+      actorUserId: "admin-reviewer-1",
+      previousStatus: "ready_for_activation",
+      requestedStatus: "active",
+      explicitAdminAction: true,
+      noAutoApproval: true,
+      noAutoPublish: true,
+    });
+  });
+
+  it("requires authenticated admin access and explicit activation confirmation", async () => {
+    state.set = {
+      _id: "65f000000000000000000499",
+      code: "READY123",
+      status: "ready_for_activation",
+      questionGuardReviewState: "reviewed",
+      version: 2,
+      questions: [
+        {
+          id: "question-1",
+          questionGuard: { releaseState: "draft_allowed" },
+        },
+      ],
+    };
+
+    state.denyAdmin = true;
+    const denied = await activateQrSet(
+      request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
+        confirmActivation: true,
+      }),
+      { params: Promise.resolve({ code: "READY123" }) },
+    );
+    expect(denied.status).toBe(403);
+    expect(state.set.status).toBe("ready_for_activation");
+
+    state.denyAdmin = false;
+    const unconfirmed = await activateQrSet(
+      request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {}),
+      { params: Promise.resolve({ code: "READY123" }) },
+    );
+    expect(unconfirmed.status).toBe(400);
+    await expect(unconfirmed.json()).resolves.toMatchObject({
+      ok: false,
+      error: "qr_question_set_activation_confirmation_required",
+    });
+    expect(state.set.status).toBe("ready_for_activation");
+    expect(state.audits).toHaveLength(0);
+  });
+
+  it("keeps the set private when activation audit or final CAS fails", async () => {
+    state.set = {
+      _id: "65f000000000000000000499",
+      code: "READY123",
+      status: "ready_for_activation",
+      questionGuardReviewState: "reviewed",
+      version: 2,
+      questions: [
+        {
+          id: "question-1",
+          questionGuard: { releaseState: "draft_allowed", outcome: "generalized" },
+        },
+      ],
+    };
+    state.failAudit = true;
+
+    const auditFailure = await activateQrSet(
+      request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
+        confirmActivation: true,
+      }),
+      { params: Promise.resolve({ code: "READY123" }) },
+    );
+    expect(auditFailure.status).toBe(500);
+    await expect(auditFailure.json()).resolves.toMatchObject({
+      ok: false,
+      error: "qr_question_set_activation_failed",
+    });
+    expect(state.set).toMatchObject({
+      status: "ready_for_activation",
+      activationState: "activation_in_progress",
+      version: 3,
+    });
+    expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(false);
+
+    state.failAudit = false;
+    state.failActiveRelease = true;
+    const casFailure = await activateQrSet(
+      request("http://localhost/api/admin/qr/sets/READY123/activate", "PATCH", {
+        confirmActivation: true,
+      }),
+      { params: Promise.resolve({ code: "READY123" }) },
+    );
+    expect(casFailure.status).toBe(409);
+    expect(state.set).toMatchObject({
+      status: "ready_for_activation",
+      activationState: "activation_in_progress",
+      version: 4,
+    });
+    expect(isQrQuestionSetPubliclyReleased(state.set)).toBe(false);
+    expect(state.audits).toHaveLength(1);
   });
 
   it("cannot complete an actor-free human review from evidenceRef alone", async () => {

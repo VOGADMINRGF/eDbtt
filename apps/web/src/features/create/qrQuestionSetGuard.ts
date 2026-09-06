@@ -35,6 +35,33 @@ export function isQrQuestionSetPubliclyReleased(
   );
 }
 
+export function isQrQuestionSetReadyForActivation(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const set = value as {
+    status?: unknown;
+    questionGuardReviewState?: unknown;
+    questions?: unknown;
+  };
+  if (
+    set.status !== "ready_for_activation" ||
+    set.questionGuardReviewState !== "reviewed" ||
+    !Array.isArray(set.questions) ||
+    set.questions.length === 0
+  ) {
+    return false;
+  }
+
+  return set.questions.every((question) => {
+    if (!question || typeof question !== "object") return false;
+    const questionGuard = (question as { questionGuard?: unknown }).questionGuard;
+    return Boolean(
+      questionGuard &&
+        typeof questionGuard === "object" &&
+        (questionGuard as { releaseState?: unknown }).releaseState === "draft_allowed",
+    );
+  });
+}
+
 export function evaluateQrQuestionSetQuestion(input: {
   question: string;
   staffReviewerId?: string | null;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateQrQuestionSetQuestion,
   isQrQuestionSetPubliclyReleased,
+  isQrQuestionSetReadyForActivation,
   reviewQrQuestionSetQuestion,
 } from "@/features/create/qrQuestionSetGuard";
 
@@ -56,6 +57,40 @@ describe("QR question set public-question guard", () => {
         ],
       }),
     ).toBe(false);
+  });
+
+  it("requires reviewed full guard coverage before the explicit activation transition", () => {
+    expect(
+      isQrQuestionSetReadyForActivation({
+        status: "ready_for_activation",
+        questionGuardReviewState: "reviewed",
+        questions: [{ id: "unguarded" }],
+      }),
+    ).toBe(false);
+    expect(
+      isQrQuestionSetReadyForActivation({
+        status: "ready_for_activation",
+        questionGuardReviewState: "reviewed",
+        questions: [
+          {
+            id: "pending",
+            questionGuard: { releaseState: "review_required" },
+          },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isQrQuestionSetReadyForActivation({
+        status: "ready_for_activation",
+        questionGuardReviewState: "reviewed",
+        questions: [
+          {
+            id: "reviewed",
+            questionGuard: { releaseState: "draft_allowed" },
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 
   it("does not treat staff identity alone as independent extraction evidence", () => {
