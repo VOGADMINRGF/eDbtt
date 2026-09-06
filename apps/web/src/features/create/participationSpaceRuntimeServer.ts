@@ -38,6 +38,7 @@ import {
   normalizeWorkflowRecordVersion,
   persistQuestionGuardReviewFailClosed,
 } from "@/features/create/safety/questionGuardReviewPersistence";
+import type { PublicQuestionActorContext } from "@/features/create/safety/publicQuestionGeneralization";
 
 export type ParticipationSpaceRuntimePersistenceState = {
   mode: "persistent_primary" | "in_memory_fallback";
@@ -1254,6 +1255,8 @@ export async function reviewParticipationSpaceQuestionGuard(input: {
   actorUserId: string;
   actorExtractionSource: "entity_registry" | "actor_graph" | "human_review";
   evidenceRefs: string[];
+  actorContexts?: PublicQuestionActorContext[];
+  noNamedActorsConfirmed?: boolean;
   note?: string | null;
 }) {
   const record = await getParticipationSpacePublishRecord(input.sourceHandoffId);
@@ -1265,6 +1268,8 @@ export async function reviewParticipationSpaceQuestionGuard(input: {
   const reviewedRecord = reviewParticipationSpaceQuestionGuardRecord(record, {
     actorExtractionSource: input.actorExtractionSource,
     evidenceRefs: input.evidenceRefs,
+    actorContexts: input.actorContexts,
+    noNamedActorsConfirmed: input.noNamedActorsConfirmed,
     reviewedAt,
   });
 
@@ -1282,6 +1287,9 @@ export async function reviewParticipationSpaceQuestionGuard(input: {
     questionGuardActorExtractionSource: input.actorExtractionSource,
     questionGuardEvidenceRefs:
       reviewedRecord.questionGuard.actorExtraction.evidenceRefs,
+    questionGuardActorContexts: reviewedRecord.questionGuard.actorContexts,
+    questionGuardHumanReviewFinding:
+      reviewedRecord.questionGuard.actorExtraction.humanReviewFinding ?? null,
   } satisfies Omit<
     ParticipationSpacePublishAuditEntry,
     "id" | "sourceHandoffId"

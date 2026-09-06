@@ -38,6 +38,7 @@ function buildRecord(
         source: "human_review",
         independentFromCandidateProvider: true,
         evidenceRefs: ["human-review:anlassraum-activation-1"],
+        humanReviewFinding: "no_named_actors",
       },
     }),
     description:

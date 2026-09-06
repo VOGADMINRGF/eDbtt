@@ -152,6 +152,7 @@ describe("public question generalization and anti-targeting contract", () => {
           source: "human_review",
           independentFromCandidateProvider: true,
           evidenceRefs: [`human-review:${kind}`],
+          humanReviewFinding: "actor_contexts_supplied",
         },
         procedureReviewResolution: {
           previousOutcome: "entity_specific_procedure_review_required",
@@ -259,6 +260,7 @@ describe("public question generalization and anti-targeting contract", () => {
         source: "human_review",
         independentFromCandidateProvider: true,
         evidenceRefs: ["human-review:1"],
+        humanReviewFinding: "actor_contexts_supplied",
       },
       procedureReviewResolution: {
         previousOutcome: "entity_specific_procedure_review_required",
@@ -293,6 +295,7 @@ describe("public question generalization and anti-targeting contract", () => {
         source: "human_review",
         independentFromCandidateProvider: true,
         evidenceRefs: ["human-review:person:1"],
+        humanReviewFinding: "actor_contexts_supplied",
       },
       procedureReviewResolution: {
         previousOutcome: "entity_specific_procedure_review_required",
@@ -327,6 +330,7 @@ describe("public question generalization and anti-targeting contract", () => {
         source: "human_review",
         independentFromCandidateProvider: true,
         evidenceRefs: ["human-review:1"],
+        humanReviewFinding: "actor_contexts_supplied",
       },
       procedureReviewResolution: {
         previousOutcome: "entity_specific_procedure_review_required",

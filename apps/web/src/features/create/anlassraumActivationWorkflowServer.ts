@@ -28,6 +28,7 @@ import {
   normalizeWorkflowRecordVersion,
   persistQuestionGuardReviewFailClosed,
 } from "@/features/create/safety/questionGuardReviewPersistence";
+import type { PublicQuestionActorContext } from "@/features/create/safety/publicQuestionGeneralization";
 
 export type AnlassraumActivationWorkflowPersistenceState = {
   mode: "persistent_primary" | "in_memory_fallback";
@@ -584,12 +585,28 @@ export async function listPublishedAnlassraumActivationRecords(limit = 40) {
 export async function isAnlassraumPublicInputAllowed(input: {
   anlassraumId: string;
   roomIsPublic: boolean;
+  roomStatus?: string | null;
+  roomPublishedAt?: Date | string | null;
+  roomReviewedBy?: string | null;
+  roomApprovedBy?: string | null;
+  activationWorkflowSourceHandoffId?: string | null;
 }) {
   if (!input.roomIsPublic) return false;
   const workflowRecord = await getRepo().getByAnlassraumId(input.anlassraumId);
-  return workflowRecord
-    ? isAnlassraumPubliclyReleased(workflowRecord)
-    : false;
+  if (workflowRecord) return isAnlassraumPubliclyReleased(workflowRecord);
+
+  // Established governance publications predate the activation workflow. A
+  // room may use that canonical transition only while no activation-workflow
+  // ownership marker exists. Once the new guard owns it, missing workflow
+  // state remains fail-closed.
+  if (trimOrNull(input.activationWorkflowSourceHandoffId)) return false;
+  const status = trimOrNull(input.roomStatus);
+  return (
+    (status === "active" || status === "published") &&
+    Boolean(input.roomPublishedAt) &&
+    Boolean(trimOrNull(input.roomReviewedBy)) &&
+    Boolean(trimOrNull(input.roomApprovedBy))
+  );
 }
 
 export async function getAnlassraumActivationRecord(sourceHandoffId: string) {
@@ -646,6 +663,8 @@ export async function reviewAnlassraumQuestionGuard(input: {
   actorUserId: string;
   actorExtractionSource: "entity_registry" | "actor_graph" | "human_review";
   evidenceRefs: string[];
+  actorContexts?: PublicQuestionActorContext[];
+  noNamedActorsConfirmed?: boolean;
   note?: string | null;
 }) {
   const record = await getAnlassraumActivationRecord(input.sourceHandoffId);
@@ -655,6 +674,8 @@ export async function reviewAnlassraumQuestionGuard(input: {
   const reviewedRecord = reviewAnlassraumQuestionGuardRecord(record, {
     actorExtractionSource: input.actorExtractionSource,
     evidenceRefs: input.evidenceRefs,
+    actorContexts: input.actorContexts,
+    noNamedActorsConfirmed: input.noNamedActorsConfirmed,
     reviewedAt,
   });
 
@@ -672,6 +693,9 @@ export async function reviewAnlassraumQuestionGuard(input: {
     questionGuardActorExtractionSource: input.actorExtractionSource,
     questionGuardEvidenceRefs:
       reviewedRecord.questionGuard.actorExtraction.evidenceRefs,
+    questionGuardActorContexts: reviewedRecord.questionGuard.actorContexts,
+    questionGuardHumanReviewFinding:
+      reviewedRecord.questionGuard.actorExtraction.humanReviewFinding ?? null,
   } satisfies Omit<
     AnlassraumActivationAuditEntry,
     "id" | "sourceHandoffId"

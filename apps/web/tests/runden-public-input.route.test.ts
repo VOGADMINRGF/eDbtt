@@ -45,6 +45,10 @@ describe("public Anlassraum input route", () => {
       title: "Schulwegsicherheit in Reinickendorf",
       summary: "Öffentlicher Anlassraum für lokale Hinweise und Fragen.",
       isPublic: true,
+      status: "active",
+      publishedAt: new Date("2026-07-01T09:40:00.000Z"),
+      reviewedBy: "reviewer-legacy",
+      approvedBy: "approver-legacy",
       regionKey: "berlin-reinickendorf",
     });
     mocks.isAnlassraumPublicInputAllowed.mockResolvedValue(true);
@@ -142,6 +146,11 @@ describe("public Anlassraum input route", () => {
     expect(mocks.isAnlassraumPublicInputAllowed).toHaveBeenCalledWith({
       anlassraumId: "65f000000000000000000401",
       roomIsPublic: true,
+      roomStatus: "active",
+      roomPublishedAt: new Date("2026-07-01T09:40:00.000Z"),
+      roomReviewedBy: "reviewer-legacy",
+      roomApprovedBy: "approver-legacy",
+      activationWorkflowSourceHandoffId: null,
     });
   });
 });

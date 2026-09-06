@@ -694,6 +694,7 @@ describe("anlassraum activation workflow", () => {
       const reviewReservation = reviewAnlassraumQuestionGuard(publicRecord, {
         actorExtractionSource: "human_review",
         evidenceRefs: ["human-review:legacy-public-room"],
+        noNamedActorsConfirmed: true,
         reviewedAt: "2026-07-01T10:20:00.000Z",
       });
       const reserved = await repo.compareAndSwap({
@@ -745,6 +746,28 @@ describe("anlassraum activation workflow", () => {
         isAnlassraumPublicInputAllowed({
           anlassraumId: publicRecord.anlassraumId!,
           roomIsPublic: true,
+        }),
+      ).resolves.toBe(false);
+      await expect(
+        isAnlassraumPublicInputAllowed({
+          anlassraumId: publicRecord.anlassraumId!,
+          roomIsPublic: true,
+          roomStatus: "active",
+          roomPublishedAt: "2026-07-01T09:40:00.000Z",
+          roomReviewedBy: "reviewer-legacy",
+          roomApprovedBy: "approver-legacy",
+          activationWorkflowSourceHandoffId: null,
+        }),
+      ).resolves.toBe(true);
+      await expect(
+        isAnlassraumPublicInputAllowed({
+          anlassraumId: publicRecord.anlassraumId!,
+          roomIsPublic: true,
+          roomStatus: "review_required",
+          roomPublishedAt: "2026-07-01T09:40:00.000Z",
+          roomReviewedBy: "reviewer-legacy",
+          roomApprovedBy: "approver-legacy",
+          activationWorkflowSourceHandoffId: "handoff-owned-by-new-guard",
         }),
       ).resolves.toBe(false);
 

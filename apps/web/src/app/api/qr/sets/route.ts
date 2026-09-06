@@ -77,16 +77,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "options_required" }, { status: 400 });
   }
   const blockedQuestion = questions.find(
-    (question) => question.questionGuard.releaseState !== "draft_allowed",
+    (question) => question.questionGuard.releaseState === "blocked",
   );
   if (blockedQuestion) {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          blockedQuestion.questionGuard.releaseState === "blocked"
-            ? "public_question_blocked"
-            : "public_question_review_required",
+        error: "public_question_blocked",
         questionGuard: blockedQuestion.questionGuard,
       },
       { status: 422 },
@@ -117,6 +114,9 @@ export async function POST(req: NextRequest) {
 
   const code = await generateUniqueCode();
   const now = new Date();
+  const reviewRequired = questions.some(
+    (question) => question.questionGuard.releaseState === "review_required",
+  );
   let anlassraumId: ObjectId | null = null;
   let dossierId: ObjectId | null = null;
 
@@ -153,7 +153,11 @@ export async function POST(req: NextRequest) {
     dossierId,
     roundSlug: parsed.data.roundSlug ?? null,
     protocolStatus: "open",
-    status: "active",
+    status: reviewRequired ? "review_required" : "active",
+    questionGuardReviewState: reviewRequired ? "review_required" : "not_required",
+    version: 0,
+    noAutoApproval: true,
+    noAutoPublish: true,
     source: ctx ? "creator" : "public_qr_studio",
     createdAt: now,
     updatedAt: now,
@@ -162,12 +166,19 @@ export async function POST(req: NextRequest) {
   const col = await coreCol("qr_question_sets");
   const result = await col.insertOne(doc);
 
-  return NextResponse.json({
-    ok: true,
-    setId: result.insertedId.toString(),
-    code,
-    anlassraumId: anlassraumId?.toHexString() ?? null,
-    dossierId: dossierId?.toHexString() ?? null,
-    roundSlug: parsed.data.roundSlug ?? null,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      setId: result.insertedId.toString(),
+      code,
+      status: doc.status,
+      questionGuardReviewState: doc.questionGuardReviewState,
+      anlassraumId: anlassraumId?.toHexString() ?? null,
+      dossierId: dossierId?.toHexString() ?? null,
+      roundSlug: parsed.data.roundSlug ?? null,
+      noAutoApproval: true,
+      noAutoPublish: true,
+    },
+    { status: reviewRequired ? 202 : 200 },
+  );
 }

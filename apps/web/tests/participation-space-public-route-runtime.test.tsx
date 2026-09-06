@@ -45,6 +45,7 @@ function buildRecord(
         source: "human_review",
         independentFromCandidateProvider: true,
         evidenceRefs: ["human-review:sichere-schulwege:1"],
+        humanReviewFinding: "no_named_actors",
       },
     }),
     publicHeadline: "Sichere Schulwege im Blick",
@@ -153,6 +154,7 @@ describe("participation space public route runtime", () => {
           source: "human_review",
           independentFromCandidateProvider: true,
           evidenceRefs: ["human-review:safety:1"],
+          humanReviewFinding: "no_named_actors",
         },
       }),
     });

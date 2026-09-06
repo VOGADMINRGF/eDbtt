@@ -8,6 +8,7 @@ import type {
 } from "@/features/create/anlassraumRuntime";
 import {
   evaluatePublicQuestionGeneralization,
+  type PublicQuestionActorContext,
   type PublicQuestionGeneralizationResult,
 } from "@/features/create/safety/publicQuestionGeneralization";
 import { normalizeWorkflowRecordVersion } from "@/features/create/safety/questionGuardReviewPersistence";
@@ -132,6 +133,11 @@ export type AnlassraumActivationAuditEntry = {
     | "human_review"
     | null;
   questionGuardEvidenceRefs?: string[];
+  questionGuardActorContexts?: PublicQuestionActorContext[];
+  questionGuardHumanReviewFinding?:
+    | "actor_contexts_supplied"
+    | "no_named_actors"
+    | null;
 };
 
 export type AnlassraumActivationDraft = {
@@ -214,6 +220,8 @@ type BuildDraftInput = {
 export type AnlassraumQuestionGuardReviewInput = {
   actorExtractionSource: "entity_registry" | "actor_graph" | "human_review";
   evidenceRefs: string[];
+  actorContexts?: PublicQuestionActorContext[];
+  noNamedActorsConfirmed?: boolean;
   reviewedAt?: string | null;
 };
 
@@ -524,15 +532,31 @@ export function reviewAnlassraumQuestionGuard(
   if (evidenceRefs.length === 0) {
     throw new Error("public_question_guard_review_evidence_required");
   }
+  const actorContexts = input.actorContexts ?? record.questionGuard.actorContexts;
+  if (
+    input.actorExtractionSource === "human_review" &&
+    actorContexts.length === 0 &&
+    input.noNamedActorsConfirmed !== true
+  ) {
+    throw new Error("public_question_guard_actor_finding_required");
+  }
   const questionGuard = evaluatePublicQuestionGeneralization({
     originalInput: record.questionGuard.originalInput,
     candidatePublicQuestion: record.trigger,
-    actorContexts: record.questionGuard.actorContexts,
+    actorContexts,
     actorExtraction: {
       status: "complete",
       source: input.actorExtractionSource,
       independentFromCandidateProvider: true,
       evidenceRefs,
+      ...(input.actorExtractionSource === "human_review"
+        ? {
+            humanReviewFinding:
+              actorContexts.length > 0
+                ? ("actor_contexts_supplied" as const)
+                : ("no_named_actors" as const),
+          }
+        : {}),
     },
     procedure: record.questionGuard.procedure,
     procedureReviewResolution:

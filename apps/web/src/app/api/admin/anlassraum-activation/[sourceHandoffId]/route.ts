@@ -27,6 +27,34 @@ const ExistingActionSchema = z
   })
   .strict();
 
+const ActorContextSchema = z
+  .object({
+    id: z.string().trim().min(1).max(160),
+    name: z.string().trim().min(1).max(240),
+    type: z.enum([
+      "person",
+      "company",
+      "party",
+      "organization",
+      "public_body",
+      "media",
+      "other",
+    ]),
+    role: z.enum([
+      "source",
+      "initiator",
+      "affected_party",
+      "competent_authority",
+      "position_holder",
+      "documented_case",
+      "procedure_subject",
+      "context",
+      "target",
+    ]),
+    evidenceRefs: z.array(z.string().trim().min(1).max(500)).min(1),
+  })
+  .strict();
+
 const ReviewActionSchema = z
   .object({
     action: z.literal("reviewAnlassraumQuestionGuard"),
@@ -36,6 +64,8 @@ const ReviewActionSchema = z
       "human_review",
     ]),
     evidenceRefs: z.array(z.string().trim().min(1).max(500)).min(1),
+    actorContexts: z.array(ActorContextSchema).max(50).optional(),
+    noNamedActorsConfirmed: z.boolean().optional(),
   })
   .strict();
 
@@ -74,6 +104,8 @@ export async function POST(
             actorUserId,
             actorExtractionSource: body.actorExtractionSource,
             evidenceRefs: body.evidenceRefs,
+            actorContexts: body.actorContexts,
+            noNamedActorsConfirmed: body.noNamedActorsConfirmed,
           })
         : body.action === "approveAnlassraumActivation"
           ? await approveAnlassraumActivation({

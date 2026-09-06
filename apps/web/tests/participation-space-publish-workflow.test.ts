@@ -356,6 +356,7 @@ describe("participation space publish workflow", () => {
     const reviewed = reviewParticipationSpaceQuestionGuard(record, {
       actorExtractionSource: "human_review",
       evidenceRefs: ["human-review:participation-question-guard-1"],
+      noNamedActorsConfirmed: true,
       reviewedAt: "2026-06-30T09:15:00.000Z",
     });
 
@@ -365,6 +366,7 @@ describe("participation space publish workflow", () => {
       source: "human_review",
       independentFromCandidateProvider: true,
       evidenceRefs: ["human-review:participation-question-guard-1"],
+      humanReviewFinding: "no_named_actors",
     });
     expect(reviewed.blockers).not.toContain("public_question_guard_blocked");
     expect(reviewed.status).toBe("draft");
@@ -506,6 +508,7 @@ describe("participation space publish workflow", () => {
       reviewParticipationSpaceQuestionGuard(record, {
         actorExtractionSource: "human_review",
         evidenceRefs: [evidenceRef],
+        noNamedActorsConfirmed: true,
         reviewedAt: "2026-06-30T10:00:00.000Z",
       });
 

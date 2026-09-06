@@ -84,6 +84,7 @@ export type PublicQuestionActorExtraction = {
   source: PublicQuestionActorExtractionSource;
   independentFromCandidateProvider: boolean;
   evidenceRefs: string[];
+  humanReviewFinding?: "actor_contexts_supplied" | "no_named_actors";
 };
 
 export type PublicQuestionReleaseState = "draft_allowed" | "review_required" | "blocked";
@@ -522,7 +523,11 @@ export function evaluatePublicQuestionGeneralization(
     actorExtraction.status === "complete" &&
     actorExtraction.independentFromCandidateProvider === true &&
     actorExtraction.evidenceRefs.length > 0 &&
-    INDEPENDENT_ACTOR_EXTRACTION_SOURCES.has(actorExtraction.source);
+    INDEPENDENT_ACTOR_EXTRACTION_SOURCES.has(actorExtraction.source) &&
+    (actorExtraction.source !== "human_review" ||
+      (input.actorContexts.length > 0
+        ? actorExtraction.humanReviewFinding === "actor_contexts_supplied"
+        : actorExtraction.humanReviewFinding === "no_named_actors"));
 
   if (!hasIndependentlyCompleteActorExtraction) {
     return result(input, {
@@ -534,6 +539,20 @@ export function evaluatePublicQuestionGeneralization(
         "actor_extraction_not_independently_complete",
         `actor_extraction_status:${actorExtraction.status}`,
         `actor_extraction_source:${actorExtraction.source}`,
+        ...(actorExtraction.source === "human_review" &&
+        !actorExtraction.humanReviewFinding
+          ? ["human_review_actor_finding_required"]
+          : []),
+        ...(actorExtraction.source === "human_review" &&
+        input.actorContexts.length > 0 &&
+        actorExtraction.humanReviewFinding !== "actor_contexts_supplied"
+          ? ["human_review_actor_contexts_must_be_acknowledged"]
+          : []),
+        ...(actorExtraction.source === "human_review" &&
+        input.actorContexts.length === 0 &&
+        actorExtraction.humanReviewFinding !== "no_named_actors"
+          ? ["human_review_no_named_actors_must_be_explicit"]
+          : []),
       ],
       explanation: "Die Akteurs-/Entity-Erkennung ist nicht unabhängig vollständig belegt; die Frage bleibt im Human Review.",
     });

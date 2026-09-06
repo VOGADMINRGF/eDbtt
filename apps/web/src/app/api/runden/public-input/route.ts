@@ -32,6 +32,13 @@ export async function POST(req: Request) {
       !(await isAnlassraumPublicInputAllowed({
         anlassraumId: payload.anlassraumId,
         roomIsPublic: room.isPublic === true,
+        roomStatus: String(room.status ?? "").trim() || null,
+        roomPublishedAt:
+          (room.publishedAt as Date | string | null | undefined) ?? null,
+        roomReviewedBy: String(room.reviewedBy ?? "").trim() || null,
+        roomApprovedBy: String(room.approvedBy ?? "").trim() || null,
+        activationWorkflowSourceHandoffId:
+          String(room.activationWorkflowSourceHandoffId ?? "").trim() || null,
       }))
     ) {
       return NextResponse.json(
