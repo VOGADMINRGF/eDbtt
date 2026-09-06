@@ -320,12 +320,12 @@ export function resolveCreateCitizenIntakeContext(
     regionStatus = "needs_clarification";
     regionSource = "contribution_text";
     regionChipLabel = `${detectedRegionLabels.join(" + ")} · aus deinem Text`;
-    clarificationQuestion = `Geht es um ${detectedRegionLabels.join(", ")} oder ausdrücklich um den Vergleich dieser Orte?`;
+    clarificationQuestion = `Welcher Ort ist für das Anliegen maßgeblich: ${detectedRegionLabels.join(", ")} – oder geht es ausdrücklich um den Vergleich?`;
   } else if (ambiguousSinglePlace) {
     regionStatus = "needs_clarification";
     regionSource = "contribution_text";
     regionChipLabel = `${detectedRegionLabels[0]} · Ort klären`;
-    clarificationQuestion = `Welches ${detectedRegionLabels[0]} meinst du?`;
+    clarificationQuestion = `Welchen Ort mit dem Namen ${detectedRegionLabels[0]} meinst du?`;
   } else if (notLocationBound) {
     regionStatus = "not_location_bound";
   } else if (needsMunicipalRegion) {

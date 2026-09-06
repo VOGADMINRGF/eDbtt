@@ -168,6 +168,7 @@ export type SharedCreateComposerProps = {
   contextBanner?: React.ReactNode;
   citizenContext?: CreateCitizenIntakeContext | null;
   onEditCitizenRegion?: () => void;
+  allowAttachments?: boolean;
   allowVoice?: boolean;
   onAttachmentsChange?: (files: File[]) => void;
   minRows?: number;
@@ -213,6 +214,7 @@ export default function SharedCreateComposer({
   contextBanner,
   citizenContext,
   onEditCitizenRegion,
+  allowAttachments = true,
   allowVoice = true,
   onAttachmentsChange,
   minRows = 9,
@@ -452,11 +454,6 @@ export default function SharedCreateComposer({
                 <span aria-hidden="true" className="mr-1.5">📍</span>
                 {citizenContext.regionChipLabel}
               </button>
-              {citizenContext.clarificationQuestion ? (
-                <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
-                  {citizenContext.clarificationQuestion}
-                </p>
-              ) : null}
             </div>
           ) : null}
 
@@ -489,16 +486,18 @@ export default function SharedCreateComposer({
                 <span className="text-[12px] font-medium text-[rgb(var(--muted))]">
                   {locale === "en" ? "Write or speak" : "Schreiben oder sprechen"}
                 </span>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label={texts.attachAria}
-                  title={texts.attachAria}
-                >
-                  <IconPaperclip />
-                  <span>{texts.attachLabel}</span>
-                </button>
+                {allowAttachments ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-1.5 text-[13px] font-medium text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label={texts.attachAria}
+                    title={texts.attachAria}
+                  >
+                    <IconPaperclip />
+                    <span>{texts.attachLabel}</span>
+                  </button>
+                ) : null}
 
                 <button
                   type="button"
@@ -544,14 +543,16 @@ export default function SharedCreateComposer({
             </div>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={FILE_ACCEPT}
-            className="sr-only"
-            onChange={handleFilesChange}
-          />
+          {allowAttachments ? (
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={FILE_ACCEPT}
+              className="sr-only"
+              onChange={handleFilesChange}
+            />
+          ) : null}
 
           {attachments.length > 0 ? (
             <details className="rounded-[1.3rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">

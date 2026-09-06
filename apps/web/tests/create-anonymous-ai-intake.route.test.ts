@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   buildCreateIntelligentFollowup: vi.fn(),
   evaluateCreateInputSafety: vi.fn(),
-  rateLimitOrThrow: vi.fn(),
+  enforceCreateMutationSecurity: vi.fn(),
+  verifyAnonymousSession: vi.fn(),
+  runCreateOrchestrationSingleFlight: vi.fn(),
 }));
 
 vi.mock("@/features/create/intelligentFollowup", () => ({
@@ -17,8 +20,19 @@ vi.mock("@/features/create/safety/createInputSafety", () => ({
     mocks.evaluateCreateInputSafety(...args),
 }));
 
-vi.mock("@/utils/rateLimitHelpers", () => ({
-  rateLimitOrThrow: (...args: unknown[]) => mocks.rateLimitOrThrow(...args),
+vi.mock("@/features/create/createRouteSecurity", () => ({
+  enforceCreateMutationSecurity: (...args: unknown[]) =>
+    mocks.enforceCreateMutationSecurity(...args),
+}));
+
+vi.mock("@/features/create/createAnonymousSession", () => ({
+  CREATE_ANON_SESSION_COOKIE: "edebatte_create_session",
+  verifyAnonymousSession: (...args: unknown[]) => mocks.verifyAnonymousSession(...args),
+}));
+
+vi.mock("@/features/create/createOrchestrationSingleFlight", () => ({
+  runCreateOrchestrationSingleFlight: (...args: unknown[]) =>
+    mocks.runCreateOrchestrationSingleFlight(...args),
 }));
 
 import { POST } from "@/app/api/create/intake/route";
@@ -29,6 +43,11 @@ function request(body: Record<string, unknown>, ip = "203.0.113.15") {
     headers: {
       "content-type": "application/json",
       "x-forwarded-for": ip,
+      origin: "http://localhost",
+      "sec-fetch-site": "same-origin",
+      "x-edebatte-create-csrf": "create-mutation-v1",
+      "x-edebatte-create-client": "browser-session-12345678",
+      cookie: "edebatte_create_session=signed-anonymous-session",
     },
     body: JSON.stringify(body),
   });
@@ -62,7 +81,16 @@ function allowedSafety(overrides: Record<string, unknown> = {}) {
 describe("POST /api/create/intake", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.rateLimitOrThrow.mockResolvedValue({ ok: true });
+    mocks.verifyAnonymousSession.mockReturnValue({ id: "anonymous-1" });
+    mocks.enforceCreateMutationSecurity.mockResolvedValue(null);
+    mocks.runCreateOrchestrationSingleFlight.mockImplementation(async (input) => ({
+      result: await input.run({
+        recoveryWithoutExternalCall: false,
+        markExternalExecutionStarted: vi.fn().mockResolvedValue(undefined),
+      }),
+      reused: false,
+      recovered: false,
+    }));
     mocks.evaluateCreateInputSafety.mockReturnValue(allowedSafety());
     mocks.buildCreateIntelligentFollowup.mockResolvedValue({
       understanding: {
@@ -91,6 +119,7 @@ describe("POST /api/create/intake", () => {
       text: "Tempo 30 vor der Schule in Wuppertal prüfen.",
       locale: "de",
       intent: "contribute",
+      correlationId: "request-12345678",
     }));
     const body = await response.json();
 
@@ -116,6 +145,16 @@ describe("POST /api/create/intake", () => {
         dossierId: null,
         anlassraumId: null,
         operationType: "create_anonymous_ai_intake",
+        requestId: "request-12345678",
+      }),
+    );
+    expect(mocks.runCreateOrchestrationSingleFlight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorKey: "anonymous:anonymous-1",
+        draftId: "anonymous:anonymous-1",
+        correlationId: "request-12345678",
+        operationType: "create_intelligent_followup_planner",
+        inputHash: expect.any(String),
       }),
     );
   });
@@ -133,6 +172,7 @@ describe("POST /api/create/intake", () => {
     const response = await POST(request({
       text: "Bitte sichere Querung an Musterstraße 1 prüfen.",
       locale: "de",
+      correlationId: "request-12345678",
     }));
     const body = await response.json();
 
@@ -141,6 +181,25 @@ describe("POST /api/create/intake", () => {
     expect(mocks.buildCreateIntelligentFollowup).toHaveBeenCalledWith(
       expect.objectContaining({ text: "Bitte sichere Querung an [ADRESSE] prüfen." }),
     );
+  });
+
+  it("fails closed when safety redaction leaves no provider-safe text", async () => {
+    mocks.evaluateCreateInputSafety.mockReturnValue(
+      allowedSafety({
+        decision: "revise_required",
+        redactedText: "   ",
+        requiresHumanReview: true,
+        nextActions: ["Personendaten entfernen"],
+      }),
+    );
+
+    const response = await POST(request({
+      text: "Musterstraße 1, 12345 Musterstadt",
+      correlationId: "request-12345678",
+    }));
+
+    expect(response.status).toBe(422);
+    expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
   });
 
   it("blocks unsafe intake before a provider call", async () => {
@@ -153,7 +212,7 @@ describe("POST /api/create/intake", () => {
       }),
     );
 
-    const response = await POST(request({ text: "unsafe input" }));
+    const response = await POST(request({ text: "unsafe input", correlationId: "request-12345678" }));
     const body = await response.json();
 
     expect(response.status).toBe(422);
@@ -165,21 +224,38 @@ describe("POST /api/create/intake", () => {
     expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
   });
 
-  it("rate-limits anonymous AI use per IP before the provider call", async () => {
-    mocks.rateLimitOrThrow.mockResolvedValue({ ok: false, retryIn: 30_000 });
+  it("applies the canonical anonymous/browser/IP/duplicate abuse guard before the provider call", async () => {
+    mocks.enforceCreateMutationSecurity.mockResolvedValue(
+      NextResponse.json(
+        { ok: false, errorCode: "CREATE_RATE_LIMITED" },
+        { status: 429 },
+      ),
+    );
 
-    const response = await POST(request({ text: "Ein ausreichend konkretes öffentliches Anliegen." }));
+    const response = await POST(request({
+      text: "Ein ausreichend konkretes öffentliches Anliegen.",
+      correlationId: "request-12345678",
+    }));
     const body = await response.json();
 
     expect(response.status).toBe(429);
-    expect(body.errorCode).toBe("RATE_LIMITED");
+    expect(body.errorCode).toBe("CREATE_RATE_LIMITED");
+    expect(mocks.enforceCreateMutationSecurity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: "create_intelligent_followup",
+        actorKey: "anonymous:anonymous-1",
+      }),
+    );
     expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
   });
 
   it("fails honestly without heuristic topic invention when the AI planner is unavailable", async () => {
     mocks.buildCreateIntelligentFollowup.mockRejectedValue(new Error("provider raw secret detail"));
 
-    const response = await POST(request({ text: "Ein neues Thema, das es so noch nicht gibt." }));
+    const response = await POST(request({
+      text: "Ein neues Thema, das es so noch nicht gibt.",
+      correlationId: "request-12345678",
+    }));
     const raw = await response.text();
     const body = JSON.parse(raw);
 
@@ -199,11 +275,24 @@ describe("POST /api/create/intake", () => {
   });
 
   it("rejects empty and oversized inputs without spending an AI call", async () => {
-    const empty = await POST(request({ text: "   " }));
+    const empty = await POST(request({ text: "   ", correlationId: "request-12345678" }));
     expect(empty.status).toBe(400);
 
-    const oversized = await POST(request({ text: "x".repeat(6_001) }));
+    const oversized = await POST(request({ text: "x".repeat(6_001), correlationId: "request-12345678" }));
     expect(oversized.status).toBe(413);
+    expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
+  });
+
+  it("rejects a missing or invalid signed anonymous session before abuse checks and AI", async () => {
+    mocks.verifyAnonymousSession.mockReturnValue(null);
+
+    const response = await POST(request({
+      text: "Ein neues lokales Anliegen.",
+      correlationId: "request-12345678",
+    }));
+
+    expect(response.status).toBe(403);
+    expect(mocks.enforceCreateMutationSecurity).not.toHaveBeenCalled();
     expect(mocks.buildCreateIntelligentFollowup).not.toHaveBeenCalled();
   });
 });

@@ -224,20 +224,6 @@ export async function buildCreateIntelligentFollowup(
 ): Promise<CreateIntelligentFollowupResult> {
   const text = input.text.trim();
   const generatedAt = new Date().toISOString();
-  const citizenContext = resolveCreateCitizenIntakeContext({
-    text,
-    locale: input.locale,
-    directoryEntries: buildOfficialRegionsFromDirectory()
-      .filter((region) => Boolean(region.officialDirectoryEntry))
-      .map((region) => ({
-        id: region.id,
-        municipalityName: region.name,
-        state: region.federalState,
-        country: region.country,
-        registryId: region.officialDirectoryEntry?.ags ?? region.officialDirectoryEntry?.ars ?? null,
-        authorityName: region.officialBody?.label ?? null,
-      })),
-  });
   const planner = await buildCreatePlanner({
     text,
     locale: input.locale,
@@ -262,11 +248,34 @@ export async function buildCreateIntelligentFollowup(
       userMessage: resolveTextAnalysisFailureMessage(planner, input.locale),
       generatedAt,
       planner,
-      citizenContext,
     });
   }
 
-  const understanding = buildUnderstandingFromPlanner(planner);
+  // The bounded AI planner remains the first semantic pass. Deterministic
+  // directory/jurisdiction logic validates its successful result afterwards;
+  // provider failure must not masquerade as a precise heuristic assignment.
+  const citizenContext = resolveCreateCitizenIntakeContext({
+    text,
+    locale: input.locale,
+    directoryEntries: buildOfficialRegionsFromDirectory()
+      .filter((region) => Boolean(region.officialDirectoryEntry))
+      .map((region) => ({
+        id: region.id,
+        municipalityName: region.name,
+        state: region.federalState,
+        country: region.country,
+        registryId: region.officialDirectoryEntry?.ags ?? region.officialDirectoryEntry?.ars ?? null,
+        authorityName: region.officialBody?.label ?? null,
+      })),
+  });
+
+  const plannerUnderstanding = buildUnderstandingFromPlanner(planner);
+  const understanding = citizenContext.clarificationQuestion
+    ? {
+        ...plannerUnderstanding,
+        openQuestion: citizenContext.clarificationQuestion,
+      }
+    : plannerUnderstanding;
   const suggestions = buildCreateConnectionSuggestions({
     text,
     intent: input.intent,

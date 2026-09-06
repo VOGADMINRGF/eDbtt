@@ -107,7 +107,7 @@ describe("citizen-first Create intake context", () => {
     expect(result.placeResolution.warnings).toContain(
       "Mehrere Orte erkannt; keine stille Reduktion auf einen Ort.",
     );
-    expect(result.clarificationQuestion).toMatch(/Vergleich dieser Orte/);
+    expect(result.clarificationQuestion).toMatch(/ausdrücklich um den Vergleich/);
   });
 
   it("asks the smallest useful question for an ambiguous place name", () => {
@@ -118,7 +118,7 @@ describe("citizen-first Create intake context", () => {
 
     expect(result.regionStatus).toBe("needs_clarification");
     expect(result.regionChipLabel).toBe("Neustadt · Ort klären");
-    expect(result.clarificationQuestion).toBe("Welches Neustadt meinst du?");
+    expect(result.clarificationQuestion).toBe("Welchen Ort mit dem Namen Neustadt meinst du?");
     expect(result.placeResolution.candidates).toHaveLength(2);
   });
 

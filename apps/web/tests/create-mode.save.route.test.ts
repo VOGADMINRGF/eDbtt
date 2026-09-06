@@ -433,11 +433,24 @@ describe("create mode split - save route", () => {
     expect(reviewSaved[0].noAutoVote).toBe(true);
   });
 
-  it("deduplicates an identical retry without creating a second draft", async () => {
+  it("adopts the same guest planner workstate into exactly one account draft", async () => {
     const payload = {
-      textPrepared: "Identischer Retry für denselben Arbeitsstand.",
-      source: "create_followup",
+      text: "Tempo 30 vor der Schule prüfen.",
+      textOriginal: "Tempo 30 vor der Schule prüfen.",
+      textPrepared: "Tempo 30 vor der Schule prüfen.",
+      source: "create_guest_resume",
       createMode: "source",
+      analysis: {
+        intelligentFollowup: {
+          sourceText: "Tempo 30 vor der Schule prüfen.",
+          generatedAt: "2026-09-06T10:00:00.000Z",
+        },
+        guestResume: {
+          operationId: "guest-operation-12345678",
+          providerRunReused: true,
+          noAutoPublish: true,
+        },
+      },
     };
 
     const first = await savePOST(req(payload));
@@ -449,6 +462,11 @@ describe("create mode split - save route", () => {
     expect(second.status).toBe(200);
     expect(secondBody.draftId).toBe(firstBody.draftId);
     expect(mocks.readAll()).toHaveLength(1);
+    expect(mocks.readAll()[0].analysis?.guestResume).toMatchObject({
+      operationId: "guest-operation-12345678",
+      providerRunReused: true,
+      noAutoPublish: true,
+    });
   });
 
   it("deduplicates identical parallel retries into the same canonical draft", async () => {
